@@ -1,6 +1,6 @@
-import { StyleSheet } from 'react-native';
-import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { StyleSheet } from 'react-native';
 
 export default function StartScreen() {
   return (
