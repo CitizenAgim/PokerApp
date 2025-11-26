@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyAaRg2DmOsc_UoWdfn21jlPDiF5I206bwM</string>
+	<key>GCM_SENDER_ID</key>
+	<string>432275305630</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>pokerapp</string>
+	<key>PROJECT_ID</key>
+	<string>pokerapp-6e1fe</string>
+	<key>STORAGE_BUCKET</key>
+	<string>pokerapp-6e1fe.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:432275305630:ios:ca9c936d8ecee90660778f</string>
+</dict>
+</plist>
