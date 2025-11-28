@@ -2,14 +2,16 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { auth } from '@/config/firebase';
 import { useRouter } from 'expo-router';
-import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-export default function AuthScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
+export default function LandingScreen() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -24,25 +26,6 @@ export default function AuthScreen() {
     return unsubscribe;
   }, []);
 
-  const handleAuth = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
-      setLoading(false);
-    }
-  };
-
   if (loading) {
     return (
       <ThemedView style={[styles.container, styles.centered]}>
@@ -53,45 +36,32 @@ export default function AuthScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-        style={styles.content}
-      >
-        <ThemedText type="title" style={styles.title}>
-          {isSignUp ? 'Create Account' : 'Welcome Back'}
+      <View style={styles.content}>
+        <ThemedText type="title" style={styles.logo}>
+          ♠️ PokerApp
         </ThemedText>
-        
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#888"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-        
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#888"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
+        <ThemedText style={styles.tagline}>
+          Your ultimate poker companion
+        </ThemedText>
 
-        <TouchableOpacity style={styles.button} onPress={handleAuth}>
-          <ThemedText style={styles.buttonText}>
-            {isSignUp ? 'Sign Up' : 'Sign In'}
-          </ThemedText>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => router.push('/(auth)/login')}
+          >
+            <ThemedText style={styles.primaryButtonText}>Sign In</ThemedText>
+          </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)} style={styles.switchButton}>
-          <ThemedText style={styles.switchText}>
-            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
-          </ThemedText>
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => router.push('/(auth)/signup')}
+          >
+            <ThemedText style={styles.secondaryButtonText}>
+              Create Account
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+      </View>
     </ThemedView>
   );
 }
@@ -109,40 +79,46 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     alignSelf: 'center',
-  },
-  title: {
-    textAlign: 'center',
-    marginBottom: 40,
-    fontSize: 32,
-  },
-  input: {
-    backgroundColor: '#2A2A2A',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 15,
-    color: '#fff',
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  button: {
-    backgroundColor: '#0a7ea4',
-    padding: 15,
-    borderRadius: 8,
     alignItems: 'center',
-    marginTop: 10,
   },
-  buttonText: {
-    color: '#fff',
+  logo: {
+    fontSize: 42,
+    marginBottom: 10,
+    textAlign: 'center',
+    lineHeight: 55,
+  },
+  tagline: {
     fontSize: 16,
+    color: '#888',
+    marginBottom: 60,
+    textAlign: 'center',
+  },
+  buttonContainer: {
+    width: '100%',
+    gap: 15,
+  },
+  primaryButton: {
+    backgroundColor: '#0a7ea4',
+    padding: 18,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  switchButton: {
-    marginTop: 20,
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    padding: 18,
+    borderRadius: 10,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#0a7ea4',
   },
-  switchText: {
+  secondaryButtonText: {
     color: '#0a7ea4',
-    fontSize: 14,
+    fontSize: 18,
+    fontWeight: '600',
   },
 });
