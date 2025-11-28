@@ -1,9 +1,9 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { StyleSheet, TouchableOpacity } from 'react-native';
 import { auth } from '@/config/firebase';
-import { signOut } from 'firebase/auth';
 import { useRouter } from 'expo-router';
+import { signOut } from 'firebase/auth';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function StartScreen() {
   const router = useRouter();
