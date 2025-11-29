@@ -14,7 +14,7 @@ interface UsePlayersResult {
   loading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
-  createPlayer: (player: Omit<CreatePlayer, 'createdBy'>) => Promise<Player>;
+  createPlayer: (player: { name: string; notes?: string; photoUrl?: string }) => Promise<Player>;
   updatePlayer: (player: UpdatePlayer) => Promise<void>;
   deletePlayer: (id: string) => Promise<void>;
 }
@@ -60,7 +60,7 @@ export function usePlayers(): UsePlayersResult {
   }, []);
 
   const createPlayer = useCallback(async (
-    playerData: Omit<CreatePlayer, 'createdBy'>
+    playerData: { name: string; notes?: string; photoUrl?: string }
   ): Promise<Player> => {
     const userId = auth.currentUser?.uid;
     if (!userId) throw new Error('Not authenticated');

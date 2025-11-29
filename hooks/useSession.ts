@@ -295,6 +295,7 @@ interface UseCurrentSessionResult {
   currentSession: localStorage.CurrentSessionData | null;
   loading: boolean;
   startSession: (session: Session) => Promise<void>;
+  endSession: () => Promise<void>;
   clearSession: () => Promise<void>;
 }
 
@@ -327,6 +328,27 @@ export function useCurrentSession(): UseCurrentSessionResult {
     setCurrentSession(data);
   }, []);
 
+  const endSession = useCallback(async (): Promise<void> => {
+    if (currentSession) {
+      const updatedSession: Session = {
+        ...currentSession.session,
+        isActive: false,
+        endTime: Date.now(),
+      };
+      await localStorage.saveSession(updatedSession);
+      
+      if (await isOnline()) {
+        try {
+          await sessionsFirebase.endSession(currentSession.session.id);
+        } catch (err) {
+          console.warn('Could not end session in cloud:', err);
+        }
+      }
+    }
+    await localStorage.clearCurrentSession();
+    setCurrentSession(null);
+  }, [currentSession]);
+
   const clearSession = useCallback(async (): Promise<void> => {
     await localStorage.clearCurrentSession();
     setCurrentSession(null);
@@ -336,6 +358,7 @@ export function useCurrentSession(): UseCurrentSessionResult {
     currentSession,
     loading,
     startSession,
+    endSession,
     clearSession,
   };
 }
