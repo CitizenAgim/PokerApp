@@ -1,6 +1,7 @@
 import { GRID_HEADERS, HAND_MATRIX } from '@/constants/hands';
 import { Range, SelectionState } from '@/types/poker';
 import { getHandState, toggleHandInRange } from '@/utils/handRanking';
+import { haptics } from '@/utils/haptics';
 import React, { useCallback } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -162,6 +163,7 @@ export const RangeGrid: React.FC<RangeGridProps> = ({
   
   const handleCellPress = useCallback((handId: string) => {
     if (readonly) return;
+    haptics.selectionChanged();
     const newRange = toggleHandInRange(range, handId);
     onRangeChange(newRange);
   }, [range, onRangeChange, readonly]);

@@ -1,18 +1,18 @@
 import { db } from '@/config/firebase';
 import { FriendRequest, FriendRequestStatus, User } from '@/types/poker';
 import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  Timestamp,
-  updateDoc,
-  where,
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    orderBy,
+    query,
+    serverTimestamp,
+    Timestamp,
+    updateDoc,
+    where,
 } from 'firebase/firestore';
 
 // ============================================

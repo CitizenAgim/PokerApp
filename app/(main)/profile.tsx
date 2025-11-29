@@ -1,18 +1,20 @@
+import { ProfileSkeleton } from '@/components/ui';
 import { auth } from '@/config/firebase';
 import { useCurrentUser, useFriends, usePlayers, useSessions } from '@/hooks';
+import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -30,12 +32,14 @@ export default function ProfileScreen() {
   const currentUser = auth.currentUser;
 
   const handleStartEdit = () => {
+    haptics.lightTap();
     setDisplayName(user?.displayName || currentUser?.displayName || '');
     setEditing(true);
   };
 
   const handleSaveProfile = async () => {
     if (!displayName.trim()) {
+      haptics.errorFeedback();
       Alert.alert('Error', 'Display name cannot be empty');
       return;
     }
@@ -43,9 +47,11 @@ export default function ProfileScreen() {
     try {
       setSaving(true);
       await updateProfile({ displayName: displayName.trim() });
+      haptics.successFeedback();
       setEditing(false);
       Alert.alert('Success', 'Profile updated successfully');
     } catch (error) {
+      haptics.errorFeedback();
       Alert.alert('Error', 'Failed to update profile');
       console.error(error);
     } finally {
@@ -54,6 +60,7 @@ export default function ProfileScreen() {
   };
 
   const handleSignOut = () => {
+    haptics.warningFeedback();
     Alert.alert(
       'Sign Out',
       'Are you sure you want to sign out?',
@@ -78,9 +85,7 @@ export default function ProfileScreen() {
   if (userLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0a7ea4" />
-        </View>
+        <ProfileSkeleton />
       </SafeAreaView>
     );
   }

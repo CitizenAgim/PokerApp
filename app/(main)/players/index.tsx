@@ -1,10 +1,11 @@
+import { PlayerCardSkeleton } from '@/components/ui';
 import { usePlayers } from '@/hooks';
 import { Player } from '@/types/poker';
+import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-    ActivityIndicator,
     FlatList,
     RefreshControl,
     StyleSheet,
@@ -33,7 +34,10 @@ export default function PlayersScreen() {
   const renderPlayer = ({ item }: { item: Player }) => (
     <TouchableOpacity
       style={styles.playerCard}
-      onPress={() => router.push(`/(main)/players/${item.id}`)}
+      onPress={() => {
+        haptics.lightTap();
+        router.push(`/(main)/players/${item.id}`);
+      }}
     >
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>
@@ -61,7 +65,10 @@ export default function PlayersScreen() {
       </Text>
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() => router.push('/(main)/players/new')}
+        onPress={() => {
+          haptics.lightTap();
+          router.push('/(main)/players/new');
+        }}
       >
         <Ionicons name="add" size={20} color="#fff" />
         <Text style={styles.addButtonText}>Add Player</Text>
@@ -71,8 +78,21 @@ export default function PlayersScreen() {
 
   if (loading && !refreshing) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0a7ea4" />
+      <View style={styles.container}>
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#888" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search players..."
+            placeholderTextColor="#888"
+            editable={false}
+          />
+        </View>
+        <View style={styles.listContent}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <PlayerCardSkeleton key={i} />
+          ))}
+        </View>
       </View>
     );
   }
@@ -128,7 +148,10 @@ export default function PlayersScreen() {
       {players.length > 0 && (
         <TouchableOpacity
           style={styles.fab}
-          onPress={() => router.push('/(main)/players/new')}
+          onPress={() => {
+            haptics.lightTap();
+            router.push('/(main)/players/new');
+          }}
         >
           <Ionicons name="add" size={28} color="#fff" />
         </TouchableOpacity>

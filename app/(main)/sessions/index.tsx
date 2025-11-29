@@ -1,10 +1,11 @@
+import { SessionCardSkeleton } from '@/components/ui';
 import { useSessions } from '@/hooks';
 import { Session } from '@/types/poker';
+import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-    ActivityIndicator,
     FlatList,
     RefreshControl,
     StyleSheet,
@@ -48,7 +49,10 @@ export default function SessionsScreen() {
   const renderSession = ({ item }: { item: Session }) => (
     <TouchableOpacity
       style={[styles.sessionCard, item.isActive && styles.sessionCardActive]}
-      onPress={() => router.push(`/(main)/sessions/${item.id}`)}
+      onPress={() => {
+        haptics.lightTap();
+        router.push(`/(main)/sessions/${item.id}`);
+      }}
     >
       <View style={styles.sessionHeader}>
         <View style={styles.sessionInfo}>
@@ -90,7 +94,10 @@ export default function SessionsScreen() {
       </Text>
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() => router.push('/(main)/sessions/new')}
+        onPress={() => {
+          haptics.lightTap();
+          router.push('/(main)/sessions/new');
+        }}
       >
         <Ionicons name="add" size={20} color="#fff" />
         <Text style={styles.addButtonText}>New Session</Text>
@@ -100,8 +107,12 @@ export default function SessionsScreen() {
 
   if (loading && !refreshing) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0a7ea4" />
+      <View style={styles.container}>
+        <View style={styles.listContent}>
+          {[1, 2, 3, 4].map((i) => (
+            <SessionCardSkeleton key={i} />
+          ))}
+        </View>
       </View>
     );
   }
@@ -148,7 +159,10 @@ export default function SessionsScreen() {
       {sessions.length > 0 && (
         <TouchableOpacity
           style={styles.fab}
-          onPress={() => router.push('/(main)/sessions/new')}
+          onPress={() => {
+            haptics.lightTap();
+            router.push('/(main)/sessions/new');
+          }}
         >
           <Ionicons name="add" size={28} color="#fff" />
         </TouchableOpacity>

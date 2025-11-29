@@ -1,18 +1,20 @@
+import { FriendCardSkeleton } from '@/components/ui';
 import { useFriends } from '@/hooks';
 import * as friendsFirebase from '@/services/firebase/friends';
 import { FriendRequest, User } from '@/types/poker';
+import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -25,12 +27,20 @@ interface FriendCardProps {
 
 function FriendCard({ friend, onRemove }: FriendCardProps) {
   const handleRemove = () => {
+    haptics.warningFeedback();
     Alert.alert(
       'Remove Friend',
       `Are you sure you want to remove ${friend.displayName} from your friends?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Remove', style: 'destructive', onPress: onRemove },
+        { 
+          text: 'Remove', 
+          style: 'destructive', 
+          onPress: () => {
+            haptics.mediumTap();
+            onRemove();
+          }
+        },
       ]
     );
   };
@@ -177,7 +187,10 @@ export default function FriendsScreen() {
         <Text style={styles.headerTitle}>Friends</Text>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => router.push('/(main)/friends/add')}
+          onPress={() => {
+            haptics.lightTap();
+            router.push('/(main)/friends/add');
+          }}
         >
           <Ionicons name="person-add" size={24} color="#0a7ea4" />
         </TouchableOpacity>
@@ -187,7 +200,10 @@ export default function FriendsScreen() {
       <View style={styles.tabs}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'friends' && styles.tabActive]}
-          onPress={() => setActiveTab('friends')}
+          onPress={() => {
+            haptics.selectionChanged();
+            setActiveTab('friends');
+          }}
         >
           <Text style={[styles.tabText, activeTab === 'friends' && styles.tabTextActive]}>
             Friends ({friends.length})
@@ -195,7 +211,10 @@ export default function FriendsScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'requests' && styles.tabActive]}
-          onPress={() => setActiveTab('requests')}
+          onPress={() => {
+            haptics.selectionChanged();
+            setActiveTab('requests');
+          }}
         >
           <Text style={[styles.tabText, activeTab === 'requests' && styles.tabTextActive]}>
             Requests
@@ -210,8 +229,10 @@ export default function FriendsScreen() {
 
       {/* Content */}
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0a7ea4" />
+        <View style={styles.listContent}>
+          {[1, 2, 3, 4].map((i) => (
+            <FriendCardSkeleton key={i} />
+          ))}
         </View>
       ) : activeTab === 'friends' ? (
         <FlatList
