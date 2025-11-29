@@ -1,10 +1,10 @@
-import NetInfo from '@react-native-community/netinfo';
 import { auth } from '@/config/firebase';
-import * as localStorage from './localStorage';
+import { Player, PlayerRanges, Session } from '@/types/poker';
+import NetInfo from '@react-native-community/netinfo';
 import * as playersFirebase from './firebase/players';
 import * as rangesFirebase from './firebase/ranges';
 import * as sessionsFirebase from './firebase/sessions';
-import { Player, PlayerRanges, Session } from '@/types/poker';
+import * as localStorage from './localStorage';
 
 // ============================================
 // SYNC STATUS

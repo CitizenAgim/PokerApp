@@ -1,13 +1,13 @@
 import { db } from '@/config/firebase';
 import { PlayerRanges, Range } from '@/types/poker';
 import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  serverTimestamp,
-  Timestamp,
+    deleteDoc,
+    doc,
+    getDoc,
+    serverTimestamp,
+    setDoc,
+    Timestamp,
+    updateDoc,
 } from 'firebase/firestore';
 
 // ============================================

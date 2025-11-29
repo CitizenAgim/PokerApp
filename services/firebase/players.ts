@@ -1,18 +1,18 @@
 import { db } from '@/config/firebase';
-import { Player, CreatePlayer, UpdatePlayer } from '@/types/poker';
+import { CreatePlayer, Player, UpdatePlayer } from '@/types/poker';
 import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  serverTimestamp,
-  Timestamp,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    orderBy,
+    query,
+    serverTimestamp,
+    setDoc,
+    Timestamp,
+    updateDoc,
+    where,
 } from 'firebase/firestore';
 
 // ============================================

@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Session, Table, Seat, Position } from '@/types/poker';
-import * as localStorage from '@/services/localStorage';
-import * as sessionsFirebase from '@/services/firebase/sessions';
 import { auth } from '@/config/firebase';
+import * as sessionsFirebase from '@/services/firebase/sessions';
+import * as localStorage from '@/services/localStorage';
 import { isOnline } from '@/services/sync';
+import { Position, Session, Table } from '@/types/poker';
 import { calculatePosition } from '@/utils/positionCalculator';
+import { useCallback, useEffect, useState } from 'react';
 
 // ============================================
 // USE SESSIONS HOOK

@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Action, PlayerRanges, Position, Range } from '@/types/poker';
-import * as localStorage from '@/services/localStorage';
 import * as rangesFirebase from '@/services/firebase/ranges';
+import * as localStorage from '@/services/localStorage';
 import { isOnline } from '@/services/sync';
+import { Action, PlayerRanges, Position, Range } from '@/types/poker';
 import { createEmptyRange } from '@/utils/handRanking';
+import { useCallback, useEffect, useState } from 'react';
 
 // ============================================
 // USE PLAYER RANGES HOOK

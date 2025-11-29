@@ -1,3 +1,4 @@
-export { usePlayers, usePlayer } from './usePlayer';
+export { usePlayer, usePlayers } from './usePlayer';
 export { usePlayerRanges, useRange } from './useRange';
-export { useSessions, useSession, useCurrentSession } from './useSession';
+export { useCurrentSession, useSession, useSessions } from './useSession';
+

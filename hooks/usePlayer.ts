@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Player, CreatePlayer, UpdatePlayer } from '@/types/poker';
-import * as localStorage from '@/services/localStorage';
-import * as playersFirebase from '@/services/firebase/players';
 import { auth } from '@/config/firebase';
+import * as playersFirebase from '@/services/firebase/players';
+import * as localStorage from '@/services/localStorage';
 import { isOnline } from '@/services/sync';
+import { CreatePlayer, Player, UpdatePlayer } from '@/types/poker';
+import { useCallback, useEffect, useState } from 'react';
 
 // ============================================
 // USE PLAYERS HOOK
