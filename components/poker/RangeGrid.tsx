@@ -182,7 +182,7 @@ export const RangeGrid: React.FC<RangeGridProps> = ({
         </View>
       )}
       
-      <View style={styles.grid}>
+      <View style={[styles.grid, { width: cellSize * 14 }]}>
         {/* Top-left empty corner */}
         <View style={[styles.cornerCell, { width: cellSize, height: cellSize }]} />
         
@@ -198,7 +198,7 @@ export const RangeGrid: React.FC<RangeGridProps> = ({
             <HeaderCell label={GRID_HEADERS[rowIndex]} cellSize={cellSize} />
             
             {/* Hand cells */}
-            {row.map((hand, colIndex) => (
+            {row.map((hand) => (
               <HandCell
                 key={hand.id}
                 handId={hand.id}

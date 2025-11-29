@@ -17,8 +17,8 @@ function generateHandMatrix(): Hand[][] {
     const rowHands: Hand[] = [];
     
     for (let col = 0; col < 13; col++) {
-      const rank1 = RANKS[row];
-      const rank2 = RANKS[col];
+      const rank1 = RANKS[row];  // Row rank (first card shown in row header)
+      const rank2 = RANKS[col];  // Col rank (second card shown in col header)
       
       let type: HandType;
       let id: string;
@@ -28,11 +28,11 @@ function generateHandMatrix(): Hand[][] {
         type = 'pair';
         id = `${rank1}${rank2}`;
       } else if (col > row) {
-        // Above diagonal = suited (row rank + col rank + 's')
+        // Above diagonal = suited (higher rank first)
         type = 'suited';
         id = `${rank1}${rank2}s`;
       } else {
-        // Below diagonal = offsuit (col rank + row rank + 'o')
+        // Below diagonal = offsuit (higher rank first, which is rank2 since col < row)
         type = 'offsuit';
         id = `${rank2}${rank1}o`;
       }
