@@ -1,4 +1,4 @@
-import { Action, Position, RangeCategory } from '@/types/poker';
+import { Action, Position } from '@/types/poker';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 

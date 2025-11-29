@@ -1,5 +1,5 @@
-import { Range, SelectionState } from '@/types/poker';
 import { HAND_MATRIX } from '@/constants/hands';
+import { Range } from '@/types/poker';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 

@@ -1,16 +1,16 @@
+import { PositionSelector, RangeGrid, RangeStats } from '@/components/poker';
 import { Action, Position, Range } from '@/types/poker';
-import { createEmptyRange, toggleHandInRange } from '@/utils/handRanking';
-import { RangeGrid, PositionSelector, RangeStats } from '@/components/poker';
+import { createEmptyRange } from '@/utils/handRanking';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Alert,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 // ============================================
