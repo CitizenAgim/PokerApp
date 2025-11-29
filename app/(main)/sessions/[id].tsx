@@ -1,19 +1,19 @@
-import { useSession, usePlayers, useCurrentSession } from '@/hooks';
-import { Seat, Position } from '@/types/poker';
+import { useCurrentSession, usePlayers, useSession } from '@/hooks';
+import { Seat } from '@/types/poker';
 import { getPositionName } from '@/utils/positionCalculator';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');

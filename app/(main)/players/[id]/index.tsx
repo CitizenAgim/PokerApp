@@ -1,15 +1,19 @@
-import { usePlayer, usePlayers, usePlayerRanges } from '@/hooks';
-import { Action, Position } from '@/types/poker';
+import { useFriends, usePlayer, usePlayerRanges, usePlayers } from '@/hooks';
+import * as playersFirebase from '@/services/firebase/players';
+import { Action, Position, User } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 const POSITIONS: { id: Position; label: string; color: string }[] = [
@@ -31,8 +35,12 @@ export default function PlayerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { player, loading, error } = usePlayer(id);
-  const { deletePlayer } = usePlayers();
+  const { deletePlayer, updatePlayer } = usePlayers();
   const { ranges } = usePlayerRanges(id);
+  const { friends } = useFriends();
+  
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const handleDelete = () => {
     Alert.alert(
@@ -50,6 +58,45 @@ export default function PlayerDetailScreen() {
         },
       ]
     );
+  };
+
+  const handleShareWithFriend = async (friend: User) => {
+    if (!player) return;
+    
+    try {
+      setSharing(true);
+      
+      // Add friend to sharedWith array
+      const newSharedWith = [...(player.sharedWith || [])];
+      if (!newSharedWith.includes(friend.id)) {
+        newSharedWith.push(friend.id);
+        
+        await playersFirebase.sharePlayer(id, friend.id);
+        await updatePlayer({ id, sharedWith: newSharedWith });
+        
+        Alert.alert('Shared', `${player.name} has been shared with ${friend.displayName}`);
+      } else {
+        Alert.alert('Already Shared', `${player.name} is already shared with ${friend.displayName}`);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to share player');
+      console.error(error);
+    } finally {
+      setSharing(false);
+      setShowShareModal(false);
+    }
+  };
+
+  const handleUnshare = async (friendId: string) => {
+    if (!player) return;
+    
+    try {
+      const newSharedWith = (player.sharedWith || []).filter(id => id !== friendId);
+      await updatePlayer({ id, sharedWith: newSharedWith });
+      Alert.alert('Unshared', 'Player access has been removed');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to unshare player');
+    }
   };
 
   const handleEditRange = (position: Position, action: Action) => {
@@ -101,6 +148,13 @@ export default function PlayerDetailScreen() {
           <Text style={styles.playerNotes}>{player.notes}</Text>
         )}
         <View style={styles.headerActions}>
+          <TouchableOpacity 
+            style={styles.shareButton} 
+            onPress={() => setShowShareModal(true)}
+          >
+            <Ionicons name="share-social" size={18} color="#27ae60" />
+            <Text style={styles.shareButtonText}>Share</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.editButton}>
             <Ionicons name="pencil" size={18} color="#0a7ea4" />
             <Text style={styles.editButtonText}>Edit</Text>
@@ -110,6 +164,15 @@ export default function PlayerDetailScreen() {
             <Text style={styles.deleteButtonText}>Delete</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Shared With */}
+        {player.sharedWith && player.sharedWith.length > 0 && (
+          <View style={styles.sharedSection}>
+            <Text style={styles.sharedLabel}>
+              Shared with {player.sharedWith.length} friend{player.sharedWith.length > 1 ? 's' : ''}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Ranges Overview */}
@@ -175,6 +238,85 @@ export default function PlayerDetailScreen() {
           </View>
         </View>
       </View>
+      
+      {/* Share Modal */}
+      <Modal
+        visible={showShareModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowShareModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Share Player</Text>
+              <TouchableOpacity onPress={() => setShowShareModal(false)}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            {friends.length === 0 ? (
+              <View style={styles.noFriendsContainer}>
+                <Ionicons name="people-outline" size={48} color="#ccc" />
+                <Text style={styles.noFriendsText}>
+                  Add friends to share player data
+                </Text>
+                <TouchableOpacity
+                  style={styles.addFriendsButton}
+                  onPress={() => {
+                    setShowShareModal(false);
+                    router.push('/(main)/friends/add');
+                  }}
+                >
+                  <Text style={styles.addFriendsButtonText}>Add Friends</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <FlatList
+                data={friends}
+                keyExtractor={item => item.id}
+                contentContainerStyle={styles.friendsList}
+                renderItem={({ item }) => {
+                  const isShared = player?.sharedWith?.includes(item.id);
+                  return (
+                    <View style={styles.friendItem}>
+                      <View style={styles.friendAvatar}>
+                        <Text style={styles.friendAvatarText}>
+                          {item.displayName.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={styles.friendInfo}>
+                        <Text style={styles.friendName}>{item.displayName}</Text>
+                        <Text style={styles.friendEmail}>{item.email}</Text>
+                      </View>
+                      {isShared ? (
+                        <TouchableOpacity
+                          style={styles.unshareButton}
+                          onPress={() => handleUnshare(item.id)}
+                        >
+                          <Text style={styles.unshareText}>Unshare</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.shareToButton}
+                          onPress={() => handleShareWithFriend(item)}
+                          disabled={sharing}
+                        >
+                          {sharing ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                          ) : (
+                            <Text style={styles.shareToText}>Share</Text>
+                          )}
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  );
+                }}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -249,7 +391,20 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     marginTop: 16,
-    gap: 16,
+    gap: 12,
+  },
+  shareButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#e8f5e9',
+    borderRadius: 20,
+  },
+  shareButtonText: {
+    color: '#27ae60',
+    fontWeight: '500',
   },
   editButton: {
     flexDirection: 'row',
@@ -275,6 +430,18 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     color: '#e74c3c',
+    fontWeight: '500',
+  },
+  sharedSection: {
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#e8f5e9',
+    borderRadius: 12,
+  },
+  sharedLabel: {
+    fontSize: 12,
+    color: '#27ae60',
     fontWeight: '500',
   },
   rangesSection: {
@@ -364,5 +531,111 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#888',
     marginTop: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  noFriendsContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  noFriendsText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  addFriendsButton: {
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: '#0a7ea4',
+    borderRadius: 10,
+  },
+  addFriendsButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  friendsList: {
+    padding: 16,
+  },
+  friendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+  friendAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#0a7ea4',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  friendAvatarText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  friendInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  friendName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  friendEmail: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2,
+  },
+  shareToButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#27ae60',
+    borderRadius: 8,
+  },
+  shareToText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  unshareButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+  },
+  unshareText: {
+    color: '#666',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

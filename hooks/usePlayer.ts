@@ -2,7 +2,7 @@ import { auth } from '@/config/firebase';
 import * as playersFirebase from '@/services/firebase/players';
 import * as localStorage from '@/services/localStorage';
 import { isOnline } from '@/services/sync';
-import { CreatePlayer, Player, UpdatePlayer } from '@/types/poker';
+import { Player, UpdatePlayer } from '@/types/poker';
 import { useCallback, useEffect, useState } from 'react';
 
 // ============================================

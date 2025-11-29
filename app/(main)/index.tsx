@@ -6,10 +6,10 @@ import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import { useEffect } from 'react';
 import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
