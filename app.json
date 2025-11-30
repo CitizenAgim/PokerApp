@@ -10,7 +10,11 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.PokerApp"
+      "bundleIdentifier": "com.anonymous.PokerApp",
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "This app uses the local network to connect to the development server during development.",
+        "NSBonjourServices": ["_http._tcp"]
+      }
     },
     "android": {
       "adaptiveIcon": {
