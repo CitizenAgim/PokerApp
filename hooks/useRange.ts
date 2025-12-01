@@ -19,6 +19,26 @@ function setCachedRanges(ranges: PlayerRanges): void {
   rangesCache.set(ranges.playerId, ranges);
 }
 
+// Update a specific range in the cache
+function updateCachedRange(playerId: string, rangeKey: string, range: Range): void {
+  const cached = rangesCache.get(playerId);
+  if (cached) {
+    rangesCache.set(playerId, {
+      ...cached,
+      ranges: { ...cached.ranges, [rangeKey]: range },
+      lastObserved: Date.now(),
+    });
+  } else {
+    // Create new cache entry
+    rangesCache.set(playerId, {
+      playerId,
+      ranges: { [rangeKey]: range },
+      lastObserved: Date.now(),
+      handsObserved: 1,
+    });
+  }
+}
+
 // ============================================
 // USE PLAYER RANGES HOOK
 // ============================================
@@ -310,6 +330,9 @@ export function useRange(
 
       // Save locally first (fast)
       await localStorage.updatePlayerRange(playerId, rangeKey, range);
+      
+      // Update the in-memory cache so other screens see the change
+      updateCachedRange(playerId, rangeKey, range);
 
       // Sync to cloud in background (don't await for UI)
       isOnline().then(online => {
@@ -334,6 +357,9 @@ export function useRange(
     try {
       setSaving(true);
       await localStorage.updatePlayerRange(playerId, rangeKey, emptyRange);
+      
+      // Update the in-memory cache
+      updateCachedRange(playerId, rangeKey, emptyRange);
 
       // Cloud sync in background
       isOnline().then(online => {
