@@ -1,11 +1,12 @@
 import { ProfileSkeleton } from '@/components/ui';
 import { auth } from '@/config/firebase';
 import { useCurrentUser, useFriends, usePlayers, useSessions } from '@/hooks';
+import { disableGuestMode, hasGuestData, isGuestMode, migrateGuestDataToUser, GUEST_USER_ID } from '@/services/guestMode';
 import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -22,19 +23,79 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, loading: userLoading, updateProfile } = useCurrentUser();
   const { friends } = useFriends();
-  const { players } = usePlayers();
+  const { players, refreshPlayers } = usePlayers();
   const { sessions } = useSessions();
   
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [guestModeActive, setGuestModeActive] = useState(false);
+  const [hasGuestDataPending, setHasGuestDataPending] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const currentUser = auth.currentUser;
+
+  // Check guest mode status on mount and when user changes
+  useEffect(() => {
+    const checkGuestStatus = async () => {
+      const isGuest = await isGuestMode();
+      setGuestModeActive(isGuest);
+      
+      // If logged in, check if there's guest data to migrate
+      if (currentUser && !isGuest) {
+        const hasData = await hasGuestData();
+        setHasGuestDataPending(hasData);
+      }
+    };
+    checkGuestStatus();
+  }, [currentUser]);
 
   const handleStartEdit = () => {
     haptics.lightTap();
     setDisplayName(user?.displayName || currentUser?.displayName || '');
     setEditing(true);
+  };
+
+  const handleCreateAccount = () => {
+    haptics.lightTap();
+    router.push('/(auth)/signup');
+  };
+
+  const handleSignIn = () => {
+    haptics.lightTap();
+    router.push('/(auth)/login');
+  };
+
+  const handleSyncGuestData = async () => {
+    if (!currentUser) return;
+    
+    haptics.lightTap();
+    Alert.alert(
+      'Sync Local Data',
+      'This will upload all your locally saved players and data to your account. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sync Now',
+          onPress: async () => {
+            try {
+              setSyncing(true);
+              await migrateGuestDataToUser(currentUser.uid);
+              await refreshPlayers();
+              setHasGuestDataPending(false);
+              haptics.successFeedback();
+              Alert.alert('Success', 'Your local data has been synced to your account!');
+            } catch (error) {
+              haptics.errorFeedback();
+              console.error('Sync error:', error);
+              Alert.alert('Error', 'Failed to sync data. Please try again.');
+            } finally {
+              setSyncing(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleSaveProfile = async () => {
@@ -61,25 +122,49 @@ export default function ProfileScreen() {
 
   const handleSignOut = () => {
     haptics.warningFeedback();
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut(auth);
-              router.replace('/');
-            } catch (error) {
-              console.error('Error signing out:', error);
-            }
+    
+    if (guestModeActive) {
+      // Guest mode - warn about data loss
+      Alert.alert(
+        'Exit Guest Mode',
+        'You are using the app as a guest. Your local data will be preserved, but you\'ll need to sign in to access cloud features.\n\nWould you like to create an account first?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Create Account', 
+            onPress: () => router.push('/(auth)/signup')
           },
-        },
-      ]
-    );
+          {
+            text: 'Exit',
+            style: 'destructive',
+            onPress: async () => {
+              await disableGuestMode();
+              router.replace('/');
+            },
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        'Sign Out',
+        'Are you sure you want to sign out?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Sign Out',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await signOut(auth);
+                router.replace('/');
+              } catch (error) {
+                console.error('Error signing out:', error);
+              }
+            },
+          },
+        ]
+      );
+    }
   };
 
   if (userLoading) {
@@ -90,17 +175,48 @@ export default function ProfileScreen() {
     );
   }
 
-  const displayUserName = user?.displayName || currentUser?.displayName || 'User';
-  const email = user?.email || currentUser?.email || '';
+  const displayUserName = guestModeActive ? 'Guest User' : (user?.displayName || currentUser?.displayName || 'User');
+  const email = guestModeActive ? 'Not signed in' : (user?.email || currentUser?.email || '');
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+        {/* Guest Mode Banner */}
+        {guestModeActive && (
+          <View style={styles.guestBanner}>
+            <Ionicons name="information-circle" size={24} color="#0a7ea4" />
+            <View style={styles.guestBannerText}>
+              <Text style={styles.guestBannerTitle}>You're using Guest Mode</Text>
+              <Text style={styles.guestBannerSubtitle}>
+                Create an account to sync your data across devices
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Sync Guest Data Banner */}
+        {hasGuestDataPending && !guestModeActive && (
+          <TouchableOpacity style={styles.syncBanner} onPress={handleSyncGuestData} disabled={syncing}>
+            <Ionicons name="cloud-upload" size={24} color="#fff" />
+            <View style={styles.syncBannerText}>
+              <Text style={styles.syncBannerTitle}>Local Data Available</Text>
+              <Text style={styles.syncBannerSubtitle}>
+                Tap to sync your guest data to your account
+              </Text>
+            </View>
+            {syncing ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Ionicons name="chevron-forward" size={20} color="#fff" />
+            )}
+          </TouchableOpacity>
+        )}
+
         {/* Profile Header */}
         <View style={styles.profileHeader}>
-          <View style={styles.avatarLarge}>
+          <View style={[styles.avatarLarge, guestModeActive && styles.avatarGuest]}>
             <Text style={styles.avatarLargeText}>
-              {displayUserName.charAt(0).toUpperCase()}
+              {guestModeActive ? '?' : displayUserName.charAt(0).toUpperCase()}
             </Text>
           </View>
           
@@ -133,6 +249,20 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+          ) : guestModeActive ? (
+            <>
+              <Text style={styles.profileName}>{displayUserName}</Text>
+              <Text style={styles.profileEmail}>{email}</Text>
+              <View style={styles.guestActions}>
+                <TouchableOpacity style={styles.createAccountButton} onPress={handleCreateAccount}>
+                  <Ionicons name="person-add" size={16} color="#fff" />
+                  <Text style={styles.createAccountText}>Create Account</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.signInButton} onPress={handleSignIn}>
+                  <Text style={styles.signInText}>Sign In</Text>
+                </TouchableOpacity>
+              </View>
+            </>
           ) : (
             <>
               <Text style={styles.profileName}>{displayUserName}</Text>
@@ -212,10 +342,10 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Sign Out */}
+        {/* Sign Out / Exit Guest Mode */}
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
           <Ionicons name="log-out-outline" size={22} color="#e74c3c" />
-          <Text style={styles.signOutText}>Sign Out</Text>
+          <Text style={styles.signOutText}>{guestModeActive ? 'Exit Guest Mode' : 'Sign Out'}</Text>
         </TouchableOpacity>
 
         {/* Version */}
@@ -241,6 +371,52 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 40,
   },
+  guestBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e3f2fd',
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    gap: 12,
+  },
+  guestBannerText: {
+    flex: 1,
+  },
+  guestBannerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0a7ea4',
+  },
+  guestBannerSubtitle: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2,
+  },
+  syncBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#27ae60',
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    gap: 12,
+  },
+  syncBannerText: {
+    flex: 1,
+  },
+  syncBannerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  syncBannerSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
   profileHeader: {
     alignItems: 'center',
     padding: 30,
@@ -257,6 +433,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  avatarGuest: {
+    backgroundColor: '#888',
+  },
   avatarLargeText: {
     fontSize: 40,
     fontWeight: '600',
@@ -272,6 +451,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#888',
     marginBottom: 16,
+  },
+  guestActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  createAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#0a7ea4',
+    borderRadius: 25,
+  },
+  createAccountText: {
+    fontSize: 15,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  signInButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: '#0a7ea4',
+  },
+  signInText: {
+    fontSize: 15,
+    color: '#0a7ea4',
+    fontWeight: '600',
   },
   editButton: {
     flexDirection: 'row',

@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { auth } from '@/config/firebase';
+import { disableGuestMode } from '@/services/guestMode';
 import * as Google from 'expo-auth-session/providers/google';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -38,10 +39,15 @@ export default function LoginScreen() {
       const { id_token } = response.params;
       const credential = GoogleAuthProvider.credential(id_token);
       setLoading(true);
-      signInWithCredential(auth, credential).catch((error) => {
-        Alert.alert('Error', error.message);
-        setLoading(false);
-      });
+      signInWithCredential(auth, credential)
+        .then(async () => {
+          // Disable guest mode when user signs in
+          await disableGuestMode();
+        })
+        .catch((error) => {
+          Alert.alert('Error', error.message);
+          setLoading(false);
+        });
     }
   }, [response]);
 
@@ -54,6 +60,8 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      // Disable guest mode when user signs in
+      await disableGuestMode();
     } catch (error: any) {
       Alert.alert('Error', error.message);
       setLoading(false);

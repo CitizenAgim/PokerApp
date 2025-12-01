@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { auth } from '@/config/firebase';
+import { disableGuestMode, isGuestMode } from '@/services/guestMode';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -10,7 +11,13 @@ export default function HomeScreen() {
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
+      // Check if guest mode and disable it
+      const guestMode = await isGuestMode();
+      if (guestMode) {
+        await disableGuestMode();
+      } else {
+        await signOut(auth);
+      }
       router.replace('/');
     } catch (error) {
       console.error('Error signing out: ', error);
@@ -19,6 +26,10 @@ export default function HomeScreen() {
 
   const handleOpenRangeEditor = () => {
     router.push('/range-editor');
+  };
+
+  const handleOpenPlayers = () => {
+    router.push('/(main)/players');
   };
 
   return (
@@ -37,12 +48,12 @@ export default function HomeScreen() {
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={[styles.menuButton, styles.menuButtonDisabled]}
-          disabled
+          style={styles.menuButton}
+          onPress={handleOpenPlayers}
         >
           <ThemedText style={styles.menuButtonText}>👥 Players</ThemedText>
           <ThemedText style={styles.menuDescription}>
-            Coming soon...
+            Track and manage player notes
           </ThemedText>
         </TouchableOpacity>
         

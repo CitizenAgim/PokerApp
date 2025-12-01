@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { auth } from '@/config/firebase';
+import { enableGuestMode } from '@/services/guestMode';
 import { useRouter } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useEffect, useState } from 'react';
@@ -25,6 +26,11 @@ export default function LandingScreen() {
     });
     return unsubscribe;
   }, []);
+
+  const handleContinueAsGuest = async () => {
+    await enableGuestMode();
+    router.replace('/home');
+  };
 
   if (loading) {
     return (
@@ -60,7 +66,20 @@ export default function LandingScreen() {
               Create Account
             </ThemedText>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.guestButton}
+            onPress={handleContinueAsGuest}
+          >
+            <ThemedText style={styles.guestButtonText}>
+              Continue as Guest
+            </ThemedText>
+          </TouchableOpacity>
         </View>
+
+        <ThemedText style={styles.guestNote}>
+          Your data will be saved locally. Sign in later to sync across devices.
+        </ThemedText>
       </View>
     </ThemedView>
   );
@@ -120,5 +139,24 @@ const styles = StyleSheet.create({
     color: '#0a7ea4',
     fontSize: 18,
     fontWeight: '600',
+  },
+  guestButton: {
+    backgroundColor: 'transparent',
+    padding: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  guestButtonText: {
+    color: '#888',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  guestNote: {
+    fontSize: 13,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 20,
+    paddingHorizontal: 20,
   },
 });
