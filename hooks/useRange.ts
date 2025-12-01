@@ -6,6 +6,20 @@ import { createEmptyRange } from '@/utils/handRanking';
 import { useCallback, useEffect, useState } from 'react';
 
 // ============================================
+// IN-MEMORY CACHE FOR FAST ACCESS
+// ============================================
+
+const rangesCache = new Map<string, PlayerRanges>();
+
+function getCachedRanges(playerId: string): PlayerRanges | null {
+  return rangesCache.get(playerId) || null;
+}
+
+function setCachedRanges(ranges: PlayerRanges): void {
+  rangesCache.set(ranges.playerId, ranges);
+}
+
+// ============================================
 // USE PLAYER RANGES HOOK
 // ============================================
 
@@ -20,13 +34,20 @@ interface UsePlayerRangesResult {
 }
 
 export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
-  const [ranges, setRanges] = useState<PlayerRanges | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [ranges, setRanges] = useState<PlayerRanges | null>(() => getCachedRanges(playerId));
+  const [loading, setLoading] = useState(!getCachedRanges(playerId));
   const [error, setError] = useState<Error | null>(null);
 
-  // Load local data immediately on mount
+  // Load local data immediately on mount (skip if already cached)
   useEffect(() => {
     if (!playerId) return;
+    
+    // If we have cached ranges, we're already good
+    if (getCachedRanges(playerId)) {
+      setRanges(getCachedRanges(playerId));
+      setLoading(false);
+      return;
+    }
     
     let mounted = true;
     
@@ -34,6 +55,9 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
       try {
         const localRanges = await localStorage.getPlayerRanges(playerId);
         if (mounted) {
+          if (localRanges) {
+            setCachedRanges(localRanges);
+          }
           setRanges(localRanges);
           setLoading(false);
         }
@@ -64,6 +88,7 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
             const localRanges = await localStorage.getPlayerRanges(playerId);
             if (!localRanges || cloudRanges.lastObserved > localRanges.lastObserved) {
               await localStorage.savePlayerRanges(cloudRanges);
+              setCachedRanges(cloudRanges);
               setRanges(cloudRanges);
             }
           }
@@ -83,6 +108,9 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
     setLoading(true);
     try {
       const localRanges = await localStorage.getPlayerRanges(playerId);
+      if (localRanges) {
+        setCachedRanges(localRanges);
+      }
       setRanges(localRanges);
       
       if (await isOnline()) {
@@ -90,6 +118,7 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
         if (cloudRanges) {
           if (!localRanges || cloudRanges.lastObserved > localRanges.lastObserved) {
             await localStorage.savePlayerRanges(cloudRanges);
+            setCachedRanges(cloudRanges);
             setRanges(cloudRanges);
           }
         }
@@ -193,46 +222,85 @@ export function useRange(
   position: Position,
   action: Action
 ): UseRangeResult {
-  const [range, setRange] = useState<Range>(createEmptyRange());
-  const [loading, setLoading] = useState(true);
+  const rangeKey = rangesFirebase.getRangeKey(position, action);
+  
+  // Try to get initial value from cache
+  const cachedRanges = getCachedRanges(playerId);
+  const initialRange = cachedRanges?.ranges[rangeKey] || createEmptyRange();
+  
+  const [range, setRange] = useState<Range>(initialRange);
+  const [loading, setLoading] = useState(!cachedRanges);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const rangeKey = rangesFirebase.getRangeKey(position, action);
-
-  const loadRange = useCallback(async () => {
+  // Load local data immediately on mount (skip if already cached)
+  useEffect(() => {
     if (!playerId) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Load from local
-      const localRanges = await localStorage.getPlayerRanges(playerId);
-      const localRange = localRanges?.ranges[rangeKey];
-      
-      if (localRange) {
-        setRange(localRange);
+    
+    // If we have cached ranges, use them immediately
+    const cached = getCachedRanges(playerId);
+    if (cached) {
+      const cachedRange = cached.ranges[rangeKey];
+      if (cachedRange) {
+        setRange(cachedRange);
       }
+      setLoading(false);
+      return;
+    }
+    
+    let mounted = true;
+    
+    const loadLocal = async () => {
+      try {
+        const localRanges = await localStorage.getPlayerRanges(playerId);
+        const localRange = localRanges?.ranges[rangeKey];
+        
+        if (mounted) {
+          if (localRanges) {
+            setCachedRanges(localRanges);
+          }
+          if (localRange) {
+            setRange(localRange);
+          }
+          setLoading(false);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err instanceof Error ? err : new Error('Failed to load range'));
+          setLoading(false);
+        }
+      }
+    };
+    
+    loadLocal();
+    
+    return () => { mounted = false; };
+  }, [playerId, rangeKey]);
 
-      // Try cloud
-      if (await isOnline()) {
-        try {
+  // Background cloud sync (non-blocking)
+  useEffect(() => {
+    if (!playerId) return;
+    
+    let mounted = true;
+    
+    const syncCloud = async () => {
+      try {
+        if (await isOnline()) {
           const cloudRanges = await rangesFirebase.getPlayerRanges(playerId);
           const cloudRange = cloudRanges?.ranges[rangeKey];
           
-          if (cloudRange) {
+          if (cloudRange && mounted) {
             setRange(cloudRange);
           }
-        } catch (err) {
-          console.warn('Could not fetch range from cloud:', err);
         }
+      } catch (err) {
+        console.warn('Could not fetch range from cloud:', err);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to load range'));
-    } finally {
-      setLoading(false);
-    }
+    };
+    
+    syncCloud();
+    
+    return () => { mounted = false; };
   }, [playerId, rangeKey]);
 
   const save = useCallback(async (): Promise<void> => {
@@ -240,17 +308,17 @@ export function useRange(
       setSaving(true);
       setError(null);
 
-      // Save locally
+      // Save locally first (fast)
       await localStorage.updatePlayerRange(playerId, rangeKey, range);
 
-      // Sync to cloud
-      if (await isOnline()) {
-        try {
-          await rangesFirebase.updatePlayerRange(playerId, rangeKey, range);
-        } catch (err) {
-          console.warn('Could not save range to cloud:', err);
+      // Sync to cloud in background (don't await for UI)
+      isOnline().then(online => {
+        if (online) {
+          rangesFirebase.updatePlayerRange(playerId, rangeKey, range).catch(err => {
+            console.warn('Could not save range to cloud:', err);
+          });
         }
-      }
+      });
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to save range'));
       throw err;
@@ -267,21 +335,18 @@ export function useRange(
       setSaving(true);
       await localStorage.updatePlayerRange(playerId, rangeKey, emptyRange);
 
-      if (await isOnline()) {
-        try {
-          await rangesFirebase.clearPlayerRange(playerId, rangeKey);
-        } catch (err) {
-          console.warn('Could not clear range in cloud:', err);
+      // Cloud sync in background
+      isOnline().then(online => {
+        if (online) {
+          rangesFirebase.clearPlayerRange(playerId, rangeKey).catch(err => {
+            console.warn('Could not clear range in cloud:', err);
+          });
         }
-      }
+      });
     } finally {
       setSaving(false);
     }
   }, [playerId, rangeKey]);
-
-  useEffect(() => {
-    loadRange();
-  }, [loadRange]);
 
   return {
     range,

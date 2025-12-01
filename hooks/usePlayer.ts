@@ -7,6 +7,24 @@ import { Player, UpdatePlayer } from '@/types/poker';
 import { useCallback, useEffect, useState } from 'react';
 
 // ============================================
+// IN-MEMORY CACHE FOR FAST ACCESS
+// ============================================
+
+const playerCache = new Map<string, Player>();
+
+function getCachedPlayer(id: string): Player | null {
+  return playerCache.get(id) || null;
+}
+
+function setCachedPlayer(player: Player): void {
+  playerCache.set(player.id, player);
+}
+
+function removeCachedPlayer(id: string): void {
+  playerCache.delete(id);
+}
+
+// ============================================
 // USE PLAYERS HOOK
 // ============================================
 
@@ -79,6 +97,7 @@ export function usePlayers(): UsePlayersResult {
 
     // Save locally first (always works)
     await localStorage.savePlayer(player);
+    setCachedPlayer(player);
     setPlayers(prev => [player, ...prev]);
 
     // Try to sync to cloud only if user is logged in (not guest)
@@ -108,6 +127,7 @@ export function usePlayers(): UsePlayersResult {
     };
 
     await localStorage.savePlayer(updatedPlayer);
+    setCachedPlayer(updatedPlayer);
     setPlayers(prev => prev.map(p => p.id === updatedPlayer.id ? updatedPlayer : p));
 
     // Try to sync to cloud only if user is logged in and player was created by them
@@ -126,6 +146,7 @@ export function usePlayers(): UsePlayersResult {
     
     // Delete locally
     await localStorage.deletePlayer(id);
+    removeCachedPlayer(id);
     setPlayers(prev => prev.filter(p => p.id !== id));
 
     // Try to sync to cloud only if user is logged in and player was created by them
@@ -167,19 +188,29 @@ interface UsePlayerResult {
 }
 
 export function usePlayer(playerId: string): UsePlayerResult {
-  const [player, setPlayer] = useState<Player | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [player, setPlayer] = useState<Player | null>(() => getCachedPlayer(playerId));
+  const [loading, setLoading] = useState(!getCachedPlayer(playerId));
   const [error, setError] = useState<Error | null>(null);
 
-  // Load local data immediately on mount
+  // Load local data immediately on mount (skip if already cached)
   useEffect(() => {
+    // If we have a cached player, we're already good
+    if (getCachedPlayer(playerId)) {
+      setPlayer(getCachedPlayer(playerId));
+      setLoading(false);
+      return;
+    }
+    
     let mounted = true;
     
     const loadLocal = async () => {
       try {
         const localPlayer = await localStorage.getPlayer(playerId);
-        if (mounted) {
+        if (mounted && localPlayer) {
+          setCachedPlayer(localPlayer);
           setPlayer(localPlayer);
+          setLoading(false);
+        } else if (mounted) {
           setLoading(false);
         }
       } catch (err) {
@@ -205,6 +236,7 @@ export function usePlayer(playerId: string): UsePlayerResult {
           const cloudPlayer = await playersFirebase.getPlayer(playerId);
           if (cloudPlayer && mounted) {
             await localStorage.savePlayer(cloudPlayer);
+            setCachedPlayer(cloudPlayer);
             setPlayer(cloudPlayer);
           }
         }
@@ -222,12 +254,16 @@ export function usePlayer(playerId: string): UsePlayerResult {
     setLoading(true);
     try {
       const localPlayer = await localStorage.getPlayer(playerId);
-      setPlayer(localPlayer);
+      if (localPlayer) {
+        setCachedPlayer(localPlayer);
+        setPlayer(localPlayer);
+      }
       
       if (await isOnline()) {
         const cloudPlayer = await playersFirebase.getPlayer(playerId);
         if (cloudPlayer) {
           await localStorage.savePlayer(cloudPlayer);
+          setCachedPlayer(cloudPlayer);
           setPlayer(cloudPlayer);
         }
       }
