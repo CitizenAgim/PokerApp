@@ -1,4 +1,5 @@
-import { useFriends, usePlayer, usePlayerRanges, usePlayers } from '@/hooks';
+import { usePlayer, usePlayerRanges, usePlayers } from '@/hooks';
+import { useFriends } from '@/hooks/useFriends';
 import * as playersFirebase from '@/services/firebase/players';
 import { Action, Position, User } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
@@ -40,16 +41,27 @@ export default function PlayerDetailScreen() {
   const { player, loading, error } = usePlayer(id);
   const { deletePlayer, updatePlayer } = usePlayers();
   const { ranges } = usePlayerRanges(id);
-  const { friends } = useFriends();
   
   const [showShareModal, setShowShareModal] = useState(false);
   const [sharing, setSharing] = useState(false);
+  
+  // Lazy load friends only when share modal is opened
+  const [friendsLoaded, setFriendsLoaded] = useState(false);
+  const { friends, loading: friendsLoading, refresh: refreshFriends } = useFriends();
   
   // Edit modal state
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  
+  // Load friends when share modal opens for the first time
+  useEffect(() => {
+    if (showShareModal && !friendsLoaded) {
+      setFriendsLoaded(true);
+      refreshFriends();
+    }
+  }, [showShareModal, friendsLoaded, refreshFriends]);
 
   // Initialize edit form when player loads or modal opens
   useEffect(() => {
@@ -311,7 +323,12 @@ export default function PlayerDetailScreen() {
               </TouchableOpacity>
             </View>
             
-            {friends.length === 0 ? (
+            {friendsLoading ? (
+              <View style={styles.noFriendsContainer}>
+                <ActivityIndicator size="large" color="#0a7ea4" />
+                <Text style={styles.noFriendsText}>Loading friends...</Text>
+              </View>
+            ) : friends.length === 0 ? (
               <View style={styles.noFriendsContainer}>
                 <Ionicons name="people-outline" size={48} color="#ccc" />
                 <Text style={styles.noFriendsText}>

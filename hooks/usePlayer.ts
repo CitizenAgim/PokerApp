@@ -171,25 +171,64 @@ export function usePlayer(playerId: string): UsePlayerResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const loadPlayer = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Load local data immediately on mount
+  useEffect(() => {
+    let mounted = true;
+    
+    const loadLocal = async () => {
+      try {
+        const localPlayer = await localStorage.getPlayer(playerId);
+        if (mounted) {
+          setPlayer(localPlayer);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err instanceof Error ? err : new Error('Failed to load player'));
+          setLoading(false);
+        }
+      }
+    };
+    
+    loadLocal();
+    
+    return () => { mounted = false; };
+  }, [playerId]);
 
-      // Load from local first
-      const localPlayer = await localStorage.getPlayer(playerId);
-      setPlayer(localPlayer);
-
-      // Try to get from cloud
-      if (await isOnline()) {
-        try {
+  // Background cloud sync (non-blocking)
+  useEffect(() => {
+    let mounted = true;
+    
+    const syncCloud = async () => {
+      try {
+        if (await isOnline()) {
           const cloudPlayer = await playersFirebase.getPlayer(playerId);
-          if (cloudPlayer) {
+          if (cloudPlayer && mounted) {
             await localStorage.savePlayer(cloudPlayer);
             setPlayer(cloudPlayer);
           }
-        } catch (cloudError) {
-          console.warn('Could not fetch player from cloud:', cloudError);
+        }
+      } catch (err) {
+        console.warn('Could not fetch player from cloud:', err);
+      }
+    };
+    
+    syncCloud();
+    
+    return () => { mounted = false; };
+  }, [playerId]);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const localPlayer = await localStorage.getPlayer(playerId);
+      setPlayer(localPlayer);
+      
+      if (await isOnline()) {
+        const cloudPlayer = await playersFirebase.getPlayer(playerId);
+        if (cloudPlayer) {
+          await localStorage.savePlayer(cloudPlayer);
+          setPlayer(cloudPlayer);
         }
       }
     } catch (err) {
@@ -199,15 +238,11 @@ export function usePlayer(playerId: string): UsePlayerResult {
     }
   }, [playerId]);
 
-  useEffect(() => {
-    loadPlayer();
-  }, [loadPlayer]);
-
   return {
     player,
     loading,
     error,
-    refresh: loadPlayer,
+    refresh,
   };
 }
 

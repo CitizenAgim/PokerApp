@@ -32,17 +32,38 @@ function setSyncStatus(status: SyncStatus): void {
 }
 
 // ============================================
-// CONNECTIVITY CHECK
+// CONNECTIVITY CHECK (cached for performance)
 // ============================================
 
+let cachedOnlineStatus: boolean | null = null;
+let lastOnlineCheck = 0;
+const ONLINE_CHECK_CACHE_MS = 5000; // Cache for 5 seconds
+
 export async function isOnline(): Promise<boolean> {
+  const now = Date.now();
+  
+  // Return cached value if fresh
+  if (cachedOnlineStatus !== null && now - lastOnlineCheck < ONLINE_CHECK_CACHE_MS) {
+    return cachedOnlineStatus;
+  }
+  
   try {
     const state = await NetInfo.fetch();
-    return state.isConnected === true && state.isInternetReachable === true;
+    cachedOnlineStatus = state.isConnected === true && state.isInternetReachable === true;
+    lastOnlineCheck = now;
+    return cachedOnlineStatus;
   } catch {
+    cachedOnlineStatus = false;
+    lastOnlineCheck = now;
     return false;
   }
 }
+
+// Invalidate cache when network changes
+NetInfo.addEventListener(state => {
+  cachedOnlineStatus = state.isConnected === true && state.isInternetReachable === true;
+  lastOnlineCheck = Date.now();
+});
 
 // ============================================
 // SYNC PENDING CHANGES

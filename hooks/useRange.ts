@@ -24,32 +24,74 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const loadRanges = useCallback(async () => {
+  // Load local data immediately on mount
+  useEffect(() => {
     if (!playerId) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Load from local first
-      const localRanges = await localStorage.getPlayerRanges(playerId);
-      if (localRanges) {
-        setRanges(localRanges);
+    
+    let mounted = true;
+    
+    const loadLocal = async () => {
+      try {
+        const localRanges = await localStorage.getPlayerRanges(playerId);
+        if (mounted) {
+          setRanges(localRanges);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err instanceof Error ? err : new Error('Failed to load ranges'));
+          setLoading(false);
+        }
       }
+    };
+    
+    loadLocal();
+    
+    return () => { mounted = false; };
+  }, [playerId]);
 
-      // Try to get from cloud
-      if (await isOnline()) {
-        try {
+  // Background cloud sync (non-blocking)
+  useEffect(() => {
+    if (!playerId) return;
+    
+    let mounted = true;
+    
+    const syncCloud = async () => {
+      try {
+        if (await isOnline()) {
           const cloudRanges = await rangesFirebase.getPlayerRanges(playerId);
-          if (cloudRanges) {
-            // Cloud is newer, use it
+          if (cloudRanges && mounted) {
+            const localRanges = await localStorage.getPlayerRanges(playerId);
             if (!localRanges || cloudRanges.lastObserved > localRanges.lastObserved) {
               await localStorage.savePlayerRanges(cloudRanges);
               setRanges(cloudRanges);
             }
           }
-        } catch (cloudError) {
-          console.warn('Could not fetch ranges from cloud:', cloudError);
+        }
+      } catch (err) {
+        console.warn('Could not fetch ranges from cloud:', err);
+      }
+    };
+    
+    syncCloud();
+    
+    return () => { mounted = false; };
+  }, [playerId]);
+
+  const loadRanges = useCallback(async () => {
+    if (!playerId) return;
+    setLoading(true);
+    try {
+      const localRanges = await localStorage.getPlayerRanges(playerId);
+      setRanges(localRanges);
+      
+      if (await isOnline()) {
+        const cloudRanges = await rangesFirebase.getPlayerRanges(playerId);
+        if (cloudRanges) {
+          if (!localRanges || cloudRanges.lastObserved > localRanges.lastObserved) {
+            await localStorage.savePlayerRanges(cloudRanges);
+            setRanges(cloudRanges);
+          }
         }
       }
     } catch (err) {
@@ -120,10 +162,6 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
       }
     }
   }, [playerId, updateRange]);
-
-  useEffect(() => {
-    loadRanges();
-  }, [loadRanges]);
 
   return {
     ranges,
