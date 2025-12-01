@@ -1,7 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '@/config/firebase';
-import * as localStorage from './localStorage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as playersFirebase from './firebase/players';
+import * as localStorage from './localStorage';
 
 // ============================================
 // GUEST MODE CONSTANTS

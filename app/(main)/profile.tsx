@@ -1,7 +1,7 @@
 import { ProfileSkeleton } from '@/components/ui';
 import { auth } from '@/config/firebase';
 import { useCurrentUser, useFriends, usePlayers, useSessions } from '@/hooks';
-import { disableGuestMode, hasGuestData, isGuestMode, migrateGuestDataToUser, GUEST_USER_ID } from '@/services/guestMode';
+import { disableGuestMode, hasGuestData, isGuestMode, migrateGuestDataToUser } from '@/services/guestMode';
 import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
