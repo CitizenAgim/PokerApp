@@ -3,15 +3,18 @@ import * as playersFirebase from '@/services/firebase/players';
 import { Action, Position, User } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
     FlatList,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
@@ -41,6 +44,59 @@ export default function PlayerDetailScreen() {
   
   const [showShareModal, setShowShareModal] = useState(false);
   const [sharing, setSharing] = useState(false);
+  
+  // Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Initialize edit form when player loads or modal opens
+  useEffect(() => {
+    if (player && showEditModal) {
+      setEditName(player.name);
+      setEditNotes(player.notes || '');
+    }
+  }, [player, showEditModal]);
+
+  const handleOpenEditModal = () => {
+    if (player) {
+      setEditName(player.name);
+      setEditNotes(player.notes || '');
+      setShowEditModal(true);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editName.trim()) {
+      Alert.alert('Error', 'Player name cannot be empty');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await updatePlayer({
+        id,
+        name: editName.trim(),
+        notes: editNotes.trim() || undefined,
+      });
+      setShowEditModal(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update player');
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setShowEditModal(false);
+    // Reset form to original values
+    if (player) {
+      setEditName(player.name);
+      setEditNotes(player.notes || '');
+    }
+  };
 
   const handleDelete = () => {
     Alert.alert(
@@ -155,7 +211,7 @@ export default function PlayerDetailScreen() {
             <Ionicons name="share-social" size={18} color="#27ae60" />
             <Text style={styles.shareButtonText}>Share</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.editButton}>
+          <TouchableOpacity style={styles.editButton} onPress={handleOpenEditModal}>
             <Ionicons name="pencil" size={18} color="#0a7ea4" />
             <Text style={styles.editButtonText}>Edit</Text>
           </TouchableOpacity>
@@ -316,6 +372,93 @@ export default function PlayerDetailScreen() {
             )}
           </View>
         </View>
+      </Modal>
+      
+      {/* Edit Modal */}
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        transparent
+        onRequestClose={handleCancelEdit}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.editModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Player</Text>
+              <TouchableOpacity onPress={handleCancelEdit}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView 
+              style={styles.editModalBody}
+              keyboardShouldPersistTaps="handled"
+            >
+              {/* Avatar Preview */}
+              <View style={styles.editAvatarContainer}>
+                <View style={styles.editAvatar}>
+                  <Text style={styles.editAvatarText}>
+                    {editName ? editName.charAt(0).toUpperCase() : '?'}
+                  </Text>
+                </View>
+              </View>
+              
+              {/* Name Input */}
+              <View style={styles.editInputGroup}>
+                <Text style={styles.editLabel}>Name *</Text>
+                <TextInput
+                  style={styles.editInput}
+                  value={editName}
+                  onChangeText={setEditName}
+                  placeholder="Enter player name"
+                  placeholderTextColor="#999"
+                />
+              </View>
+              
+              {/* Notes Input */}
+              <View style={styles.editInputGroup}>
+                <Text style={styles.editLabel}>Notes</Text>
+                <TextInput
+                  style={[styles.editInput, styles.editTextArea]}
+                  value={editNotes}
+                  onChangeText={setEditNotes}
+                  placeholder="Add notes about this player's tendencies..."
+                  placeholderTextColor="#999"
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+              </View>
+            </ScrollView>
+            
+            {/* Action Buttons */}
+            <View style={styles.editModalFooter}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleCancelEdit}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.saveEditButton,
+                  !editName.trim() && styles.saveEditButtonDisabled,
+                ]}
+                onPress={handleSaveEdit}
+                disabled={saving || !editName.trim()}
+              >
+                {saving ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.saveEditButtonText}>Save Changes</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ScrollView>
   );
@@ -637,5 +780,91 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 14,
     fontWeight: '500',
+  },
+  // Edit Modal Styles
+  editModalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+    marginTop: 'auto',
+  },
+  editModalBody: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  editAvatarContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  editAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#0a7ea4',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editAvatarText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  editInputGroup: {
+    marginBottom: 16,
+  },
+  editLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  editInput: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 16,
+    color: '#333',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  editTextArea: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  editModalFooter: {
+    flexDirection: 'row',
+    padding: 20,
+    paddingTop: 12,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  cancelButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 10,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  saveEditButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 10,
+    backgroundColor: '#0a7ea4',
+    alignItems: 'center',
+  },
+  saveEditButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  saveEditButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
