@@ -10,6 +10,16 @@ import { useCallback, useEffect, useState } from 'react';
 // ============================================
 
 const rangesCache = new Map<string, PlayerRanges>();
+const listeners = new Set<(playerId: string, ranges: PlayerRanges) => void>();
+
+function subscribeToCache(callback: (playerId: string, ranges: PlayerRanges) => void) {
+  listeners.add(callback);
+  return () => listeners.delete(callback);
+}
+
+function notifyListeners(playerId: string, ranges: PlayerRanges) {
+  listeners.forEach(listener => listener(playerId, ranges));
+}
 
 function getCachedRanges(playerId: string): PlayerRanges | null {
   return rangesCache.get(playerId) || null;
@@ -17,26 +27,32 @@ function getCachedRanges(playerId: string): PlayerRanges | null {
 
 function setCachedRanges(ranges: PlayerRanges): void {
   rangesCache.set(ranges.playerId, ranges);
+  notifyListeners(ranges.playerId, ranges);
 }
 
 // Update a specific range in the cache
 function updateCachedRange(playerId: string, rangeKey: string, range: Range): void {
   const cached = rangesCache.get(playerId);
+  let newRanges: PlayerRanges;
+
   if (cached) {
-    rangesCache.set(playerId, {
+    newRanges = {
       ...cached,
       ranges: { ...cached.ranges, [rangeKey]: range },
       lastObserved: Date.now(),
-    });
+    };
   } else {
     // Create new cache entry
-    rangesCache.set(playerId, {
+    newRanges = {
       playerId,
       ranges: { [rangeKey]: range },
       lastObserved: Date.now(),
       handsObserved: 1,
-    });
+    };
   }
+  
+  rangesCache.set(playerId, newRanges);
+  notifyListeners(playerId, newRanges);
 }
 
 // ============================================
@@ -57,6 +73,15 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
   const [ranges, setRanges] = useState<PlayerRanges | null>(() => getCachedRanges(playerId));
   const [loading, setLoading] = useState(!getCachedRanges(playerId));
   const [error, setError] = useState<Error | null>(null);
+
+  // Subscribe to cache updates
+  useEffect(() => {
+    return subscribeToCache((updatedPlayerId, updatedRanges) => {
+      if (updatedPlayerId === playerId) {
+        setRanges(updatedRanges);
+      }
+    });
+  }, [playerId]);
 
   // Load local data immediately on mount (skip if already cached)
   useEffect(() => {
