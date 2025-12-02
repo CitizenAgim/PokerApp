@@ -47,11 +47,6 @@ const COLORS = {
     suited: '#43A047',    // Strong green
     offsuit: '#FB8C00',   // Strong orange
   },
-  autoSelected: {
-    pair: '#64B5F6',      // Medium blue
-    suited: '#81C784',    // Medium green
-    offsuit: '#FFCC80',   // Medium orange
-  },
   manualUnselected: {
     pair: '#BBDEFB',      // Faded blue with indicator
     suited: '#C8E6C9',    // Faded green with indicator
@@ -84,9 +79,8 @@ const HandCell: React.FC<HandCellProps> = React.memo(({
   const getBackgroundColor = (): string => {
     switch (state) {
       case 'manual-selected':
-        return COLORS.selected[type];
       case 'auto-selected':
-        return COLORS.autoSelected[type];
+        return COLORS.selected[type];
       case 'manual-unselected':
         return COLORS.manualUnselected[type];
       default:
@@ -95,7 +89,7 @@ const HandCell: React.FC<HandCellProps> = React.memo(({
   };
   
   const getTextColor = (): string => {
-    if (state === 'manual-selected') {
+    if (state === 'manual-selected' || state === 'auto-selected') {
       return COLORS.textLight;
     }
     return COLORS.textDark;
@@ -128,9 +122,6 @@ const HandCell: React.FC<HandCellProps> = React.memo(({
       >
         {label}
       </Text>
-      {state === 'auto-selected' && (
-        <View style={styles.autoIndicator} />
-      )}
     </TouchableOpacity>
   );
 });
@@ -289,15 +280,6 @@ const styles = StyleSheet.create({
   },
   cellTextSmall: {
     fontSize: 8,
-  },
-  autoIndicator: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.7)',
   },
   legend: {
     flexDirection: 'row',

@@ -1,6 +1,7 @@
 import { usePlayer, usePlayerRanges, usePlayers } from '@/hooks';
 import { useFriends } from '@/hooks/useFriends';
 import * as playersFirebase from '@/services/firebase/players';
+import { HAND_MAP } from '@/constants/hands';
 import { Action, Position, User } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -171,15 +172,25 @@ export default function PlayerDetailScreen() {
     router.push(`/(main)/players/${id}/range?position=${position}&action=${action}`);
   };
 
-  const getRangePercentage = (position: Position, action: Action): number => {
+  const getRangePercentage = (position: Position, action: Action): string => {
     const key = `${position}_${action}`;
     const range = ranges?.ranges[key];
-    if (!range) return 0;
+    if (!range) return "0.0";
     
-    const selected = Object.values(range).filter(
-      s => s === 'manual-selected' || s === 'auto-selected'
-    ).length;
-    return Math.round((selected / 169) * 100);
+    let selectedCombos = 0;
+    const totalCombos = 1326;
+
+    Object.entries(range).forEach(([handId, state]) => {
+      if (state === 'manual-selected' || state === 'auto-selected') {
+        const hand = HAND_MAP[handId];
+        if (hand) {
+           const combos = hand.type === 'pair' ? 6 : hand.type === 'suited' ? 4 : 12;
+           selectedCombos += combos;
+        }
+      }
+    });
+
+    return (selectedCombos / totalCombos * 100).toFixed(1);
   };
 
   if (loading) {
@@ -257,7 +268,7 @@ export default function PlayerDetailScreen() {
             <View style={styles.actionsGrid}>
               {ACTIONS.map(action => {
                 const percentage = getRangePercentage(pos.id, action.id);
-                const hasRange = percentage > 0;
+                const hasRange = parseFloat(percentage) > 0;
                 
                 return (
                   <TouchableOpacity
