@@ -1,24 +1,24 @@
+import { HAND_MAP } from '@/constants/hands';
 import { usePlayer, usePlayerRanges, usePlayers } from '@/hooks';
 import { useFriends } from '@/hooks/useFriends';
 import * as playersFirebase from '@/services/firebase/players';
-import { HAND_MAP } from '@/constants/hands';
 import { Action, Position, User } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 const POSITIONS: { id: Position; label: string; color: string }[] = [
