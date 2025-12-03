@@ -55,6 +55,14 @@ function updateCachedRange(playerId: string, rangeKey: string, range: Range): vo
   notifyListeners(playerId, newRanges);
 }
 
+function isOfflineError(error: any): boolean {
+  return (
+    error?.code === 'unavailable' ||
+    error?.message?.includes('offline') ||
+    error?.message?.includes('network')
+  );
+}
+
 // ============================================
 // USE PLAYER RANGES HOOK
 // ============================================
@@ -139,7 +147,9 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
           }
         }
       } catch (err) {
-        console.warn('Could not fetch ranges from cloud:', err);
+        if (!isOfflineError(err)) {
+          console.warn('Could not fetch ranges from cloud:', err);
+        }
       }
     };
     
@@ -213,7 +223,9 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
       try {
         await rangesFirebase.updatePlayerRange(playerId, key, range);
       } catch (err) {
-        console.warn('Could not sync range to cloud:', err);
+        if (!isOfflineError(err)) {
+          console.warn('Could not sync range to cloud:', err);
+        }
       }
     }
   }, [playerId]);
@@ -221,7 +233,7 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
   const clearRange = useCallback(async (
     position: Position,
     action: Action
-  ): Promise<void> => {
+  ): Promise<void> {
     const key = rangesFirebase.getRangeKey(position, action);
     const emptyRange = createEmptyRange();
 
@@ -232,11 +244,12 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
       try {
         await rangesFirebase.clearPlayerRange(playerId, key);
       } catch (err) {
-        console.warn('Could not clear range in cloud:', err);
+        if (!isOfflineError(err)) {
+          console.warn('Could not clear range in cloud:', err);
+        }
       }
     }
   }, [playerId, updateRange]);
-
   return {
     ranges,
     loading,
@@ -362,7 +375,9 @@ export function useRange(
           }
         }
       } catch (err) {
-        console.warn('Could not fetch range from cloud:', err);
+        if (!isOfflineError(err)) {
+          console.warn('Could not fetch range from cloud:', err);
+        }
       }
     };
     
@@ -386,7 +401,9 @@ export function useRange(
       isOnline().then(online => {
         if (online) {
           rangesFirebase.updatePlayerRange(playerId, rangeKey, range).catch(err => {
-            console.warn('Could not save range to cloud:', err);
+            if (!isOfflineError(err)) {
+              console.warn('Could not save range to cloud:', err);
+            }
           });
         }
       });
@@ -413,7 +430,9 @@ export function useRange(
       isOnline().then(online => {
         if (online) {
           rangesFirebase.clearPlayerRange(playerId, rangeKey).catch(err => {
-            console.warn('Could not clear range in cloud:', err);
+            if (!isOfflineError(err)) {
+              console.warn('Could not clear range in cloud:', err);
+            }
           });
         }
       });

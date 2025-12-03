@@ -53,7 +53,9 @@ export async function getPlayerRanges(playerId: string): Promise<PlayerRanges | 
     
     return toPlayerRanges(rangesDoc.data() as FirestorePlayerRanges);
   } catch (error) {
-    console.error('Error fetching player ranges:', error);
+    if (!isOfflineError(error)) {
+      console.error('Error fetching player ranges:', error);
+    }
     throw error;
   }
 }
@@ -72,9 +74,19 @@ export async function savePlayerRanges(playerRanges: PlayerRanges): Promise<void
       handsObserved: playerRanges.handsObserved,
     }, { merge: true });
   } catch (error) {
-    console.error('Error saving player ranges:', error);
+    if (!isOfflineError(error)) {
+      console.error('Error saving player ranges:', error);
+    }
     throw error;
   }
+}
+
+function isOfflineError(error: any): boolean {
+  return (
+    error?.code === 'unavailable' ||
+    error?.message?.includes('offline') ||
+    error?.message?.includes('network')
+  );
 }
 
 /**
@@ -106,7 +118,9 @@ export async function updatePlayerRange(
       });
     }
   } catch (error) {
-    console.error('Error updating player range:', error);
+    if (!isOfflineError(error)) {
+      console.error('Error updating player range:', error);
+    }
     throw error;
   }
 }
