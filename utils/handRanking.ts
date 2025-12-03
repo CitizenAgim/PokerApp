@@ -227,11 +227,29 @@ export function countSelectedHands(range: Range): number {
 }
 
 /**
- * Calculate percentage of hands selected (out of 169)
+ * Count selected combos in a range (weighted)
+ */
+export function countSelectedCombos(range: Range): number {
+  let combos = 0;
+  Object.entries(range).forEach(([handId, state]) => {
+    if (state === 'manual-selected' || state === 'auto-selected') {
+      const hand = HAND_MAP[handId];
+      if (hand) {
+        combos += hand.type === 'pair' ? 6 : hand.type === 'suited' ? 4 : 12;
+      }
+    }
+  });
+  return combos;
+}
+
+/**
+ * Calculate percentage of hands selected (weighted by combos)
+ * Returns a number with 1 decimal place (e.g. 15.4)
  */
 export function getSelectionPercentage(range: Range): number {
-  const count = countSelectedHands(range);
-  return Math.round((count / 169) * 100);
+  const combos = countSelectedCombos(range);
+  // Total combos = 1326
+  return Math.round((combos / 1326) * 1000) / 10;
 }
 
 // ============================================
