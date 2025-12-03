@@ -2,7 +2,7 @@ import { PositionSelector, RangeGrid, RangeStats } from '@/components/poker';
 import { usePlayer, useRange } from '@/hooks';
 import { Action, Position } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import {
     ActivityIndicator,
     Alert,
@@ -33,6 +33,8 @@ export default function PlayerRangeScreen() {
     setRange,
     save,
     clear,
+    undo,
+    canUndo,
   } = useRange(id, position, action);
 
   const handlePositionChange = (newPosition: Position, newAction: Action) => {
@@ -76,6 +78,19 @@ export default function PlayerRangeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={undo}
+              disabled={!canUndo}
+              style={{ opacity: canUndo ? 1 : 0.5 }}
+            >
+              <Ionicons name="arrow-undo-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+          ),
+        }}
+      />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}

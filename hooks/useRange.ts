@@ -260,6 +260,8 @@ interface UseRangeResult {
   setRange: (range: Range) => void;
   save: () => Promise<void>;
   clear: () => Promise<void>;
+  undo: () => void;
+  canUndo: boolean;
 }
 
 export function useRange(
@@ -273,10 +275,31 @@ export function useRange(
   const cachedRanges = getCachedRanges(playerId);
   const initialRange = cachedRanges?.ranges[rangeKey] || createEmptyRange();
   
-  const [range, setRange] = useState<Range>(initialRange);
+  const [range, _setRange] = useState<Range>(initialRange);
+  const [history, setHistory] = useState<Range[]>([]);
   const [loading, setLoading] = useState(!cachedRanges);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+
+  // Wrapper for setRange to track history
+  const setRange = useCallback((newRange: Range) => {
+    setHistory(prev => [...prev, range]);
+    _setRange(newRange);
+  }, [range]);
+
+  const undo = useCallback(() => {
+    setHistory(prev => {
+      if (prev.length === 0) return prev;
+      const newHistory = [...prev];
+      const previousRange = newHistory.pop();
+      if (previousRange) {
+        _setRange(previousRange);
+      }
+      return newHistory;
+    });
+  }, []);
+
+  const canUndo = history.length > 0;
 
   // Load local data immediately on mount (skip if already cached)
   useEffect(() => {
@@ -287,7 +310,7 @@ export function useRange(
     if (cached) {
       const cachedRange = cached.ranges[rangeKey];
       if (cachedRange) {
-        setRange(cachedRange);
+        _setRange(cachedRange);
       }
       setLoading(false);
       return;
@@ -305,7 +328,7 @@ export function useRange(
             setCachedRanges(localRanges);
           }
           if (localRange) {
-            setRange(localRange);
+            _setRange(localRange);
           }
           setLoading(false);
         }
@@ -335,7 +358,7 @@ export function useRange(
           const cloudRange = cloudRanges?.ranges[rangeKey];
           
           if (cloudRange && mounted) {
-            setRange(cloudRange);
+            _setRange(cloudRange);
           }
         }
       } catch (err) {
@@ -377,7 +400,7 @@ export function useRange(
 
   const clear = useCallback(async (): Promise<void> => {
     const emptyRange = createEmptyRange();
-    setRange(emptyRange);
+    setRange(emptyRange); // Use wrapper to save history
 
     try {
       setSaving(true);
@@ -397,7 +420,7 @@ export function useRange(
     } finally {
       setSaving(false);
     }
-  }, [playerId, rangeKey]);
+  }, [playerId, rangeKey, setRange]);
 
   return {
     range,
@@ -407,5 +430,7 @@ export function useRange(
     setRange,
     save,
     clear,
+    undo,
+    canUndo,
   };
 }
