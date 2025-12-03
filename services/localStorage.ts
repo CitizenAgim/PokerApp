@@ -190,6 +190,47 @@ export async function deleteSession(id: string): Promise<void> {
 }
 
 // ============================================
+// CLOUD SYNC HELPERS (No pending sync)
+// ============================================
+
+export async function savePlayerFromCloud(player: Player): Promise<void> {
+  const players = await getPlayers();
+  const index = players.findIndex(p => p.id === player.id);
+  
+  if (index >= 0) {
+    players[index] = { ...player, updatedAt: Date.now() };
+  } else {
+    players.push({ ...player, createdAt: Date.now(), updatedAt: Date.now() });
+  }
+  
+  await setItem(KEYS.PLAYERS, players);
+}
+
+export async function savePlayerRangesFromCloud(playerRanges: PlayerRanges): Promise<void> {
+  const allRanges = await getAllPlayerRanges();
+  
+  allRanges[playerRanges.playerId] = {
+    ...playerRanges,
+    lastObserved: Date.now(),
+  };
+  
+  await setItem(KEYS.PLAYER_RANGES, allRanges);
+}
+
+export async function saveSessionFromCloud(session: Session): Promise<void> {
+  const sessions = await getSessions();
+  const index = sessions.findIndex(s => s.id === session.id);
+  
+  if (index >= 0) {
+    sessions[index] = session;
+  } else {
+    sessions.push(session);
+  }
+  
+  await setItem(KEYS.SESSIONS, sessions);
+}
+
+// ============================================
 // CURRENT SESSION (Active Session)
 // ============================================
 

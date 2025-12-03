@@ -233,7 +233,7 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
   const clearRange = useCallback(async (
     position: Position,
     action: Action
-  ): Promise<void> {
+  ): Promise<void> => {
     const key = rangesFirebase.getRangeKey(position, action);
     const emptyRange = createEmptyRange();
 

@@ -21,7 +21,8 @@ import {
 WebBrowser.maybeCompleteAuthSession();
 
 const GOOGLE_WEB_CLIENT_ID = '432275305630-fd33knmjq7nouo9ra7lldjrg86jio2r0.apps.googleusercontent.com';
-const GOOGLE_IOS_CLIENT_ID = '432275305630-fd33knmjq7nouo9ra7lldjrg86jio2r0.apps.googleusercontent.com';
+// TODO: Replace with your actual iOS Client ID from Google Cloud Console
+const GOOGLE_IOS_CLIENT_ID = 'YOUR_IOS_CLIENT_ID_HERE';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');

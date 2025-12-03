@@ -139,7 +139,7 @@ async function syncPlayer(
         await playersFirebase.createPlayer(
           {
             name: player.name,
-            photoUrl: player.photoUrl,
+            photoUrl: player.photoUrl || null,
             notes: player.notes,
             createdBy: userId,
             sharedWith: player.sharedWith || [],
@@ -150,7 +150,7 @@ async function syncPlayer(
         await playersFirebase.updatePlayer({
           id: player.id,
           name: player.name,
-          photoUrl: player.photoUrl,
+          photoUrl: player.photoUrl || null,
           notes: player.notes,
           sharedWith: player.sharedWith,
         });
@@ -235,26 +235,29 @@ export async function pullFromCloud(): Promise<void> {
     // Pull players
     const cloudPlayers = await playersFirebase.getPlayers(userId);
     for (const player of cloudPlayers) {
-      await localStorage.savePlayer(player);
+      await localStorage.savePlayerFromCloud(player);
     }
 
     // Pull ranges for each player
     for (const player of cloudPlayers) {
       const ranges = await rangesFirebase.getPlayerRanges(player.id);
       if (ranges) {
-        await localStorage.savePlayerRanges(ranges);
+        await localStorage.savePlayerRangesFromCloud(ranges);
       }
     }
 
     // Pull sessions
     const cloudSessions = await sessionsFirebase.getSessions(userId);
     for (const session of cloudSessions) {
-      await localStorage.saveSession(session);
+      await localStorage.saveSessionFromCloud(session);
     }
 
     // Clear pending sync since we just pulled fresh data
-    await localStorage.clearPendingSync();
-
+    // NOTE: We don't clear pending sync here anymore because we are using
+    // save...FromCloud methods which don't add to pending sync.
+    // However, if there were pending changes that conflicted, we might want to resolve them.
+    // For now, we assume cloud is truth for initial pull.
+    
     setSyncStatus('idle');
   } catch (error) {
     console.error('Pull error:', error);
@@ -282,8 +285,8 @@ let syncInterval: ReturnType<typeof setInterval> | null = null;
 let unsubscribeNetInfo: (() => void) | null = null;
 
 export function startAutoSync(intervalMs: number = 30000): void {
-  // Sync immediately
-  syncPendingChanges();
+  // Sync immediately (Full sync to ensure we get cloud data on startup)
+  fullSync();
 
   // Set up interval
   if (syncInterval) {
