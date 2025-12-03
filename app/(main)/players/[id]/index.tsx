@@ -4,6 +4,8 @@ import { useFriends } from '@/hooks/useFriends';
 import * as playersFirebase from '@/services/firebase/players';
 import { Action, Position, User } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -54,6 +56,7 @@ export default function PlayerDetailScreen() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState('');
   const [editNotes, setEditNotes] = useState('');
+  const [editPhotoUrl, setEditPhotoUrl] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   
   // Load friends when share modal opens for the first time
@@ -69,6 +72,7 @@ export default function PlayerDetailScreen() {
     if (player && showEditModal) {
       setEditName(player.name);
       setEditNotes(player.notes || '');
+      setEditPhotoUrl(player.photoUrl);
     }
   }, [player, showEditModal]);
 
@@ -76,7 +80,21 @@ export default function PlayerDetailScreen() {
     if (player) {
       setEditName(player.name);
       setEditNotes(player.notes || '');
+      setEditPhotoUrl(player.photoUrl);
       setShowEditModal(true);
+    }
+  };
+
+  const handlePickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      setEditPhotoUrl(result.assets[0].uri);
     }
   };
 
@@ -92,6 +110,7 @@ export default function PlayerDetailScreen() {
         id,
         name: editName.trim(),
         notes: editNotes.trim() || undefined,
+        photoUrl: editPhotoUrl,
       });
       setShowEditModal(false);
     } catch (error) {
@@ -108,6 +127,7 @@ export default function PlayerDetailScreen() {
     if (player) {
       setEditName(player.name);
       setEditNotes(player.notes || '');
+      setEditPhotoUrl(player.photoUrl);
     }
   };
 
@@ -217,11 +237,15 @@ export default function PlayerDetailScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Player Header */}
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {player.name.charAt(0).toUpperCase()}
-          </Text>
-        </View>
+        {player.photoUrl ? (
+          <Image source={{ uri: player.photoUrl }} style={styles.avatar} />
+        ) : (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {player.name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
         <Text style={styles.playerName}>{player.name}</Text>
         {player.notes && (
           <Text style={styles.playerNotes}>{player.notes}</Text>
@@ -427,11 +451,22 @@ export default function PlayerDetailScreen() {
             >
               {/* Avatar Preview */}
               <View style={styles.editAvatarContainer}>
-                <View style={styles.editAvatar}>
-                  <Text style={styles.editAvatarText}>
-                    {editName ? editName.charAt(0).toUpperCase() : '?'}
+                <TouchableOpacity onPress={handlePickImage}>
+                  {editPhotoUrl ? (
+                    <Image source={{ uri: editPhotoUrl }} style={styles.editAvatar} />
+                  ) : (
+                    <View style={styles.editAvatar}>
+                      <Text style={styles.editAvatarText}>
+                        {editName ? editName.charAt(0).toUpperCase() : '?'}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handlePickImage} style={{ marginTop: 8 }}>
+                  <Text style={{ color: '#0a7ea4', fontWeight: '500' }}>
+                    {editPhotoUrl ? 'Change Photo' : 'Add Photo'}
                   </Text>
-                </View>
+                </TouchableOpacity>
               </View>
               
               {/* Name Input */}
