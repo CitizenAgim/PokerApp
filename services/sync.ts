@@ -140,7 +140,7 @@ async function syncPlayer(
           {
             name: player.name,
             photoUrl: player.photoUrl || null,
-            notes: player.notes,
+            notes: player.notes || null,
             createdBy: userId,
             sharedWith: player.sharedWith || [],
           },
@@ -151,7 +151,7 @@ async function syncPlayer(
           id: player.id,
           name: player.name,
           photoUrl: player.photoUrl || null,
-          notes: player.notes,
+          notes: player.notes || null,
           sharedWith: player.sharedWith,
         });
       }
