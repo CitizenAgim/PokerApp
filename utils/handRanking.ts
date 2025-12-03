@@ -92,6 +92,16 @@ export function getAutoSelectHands(selectedHand: Hand): string[] {
       const betterSuited = HAND_MATRIX[selectedHand.row][col];
       handsToAutoSelect.push(betterSuited.id);
     }
+
+    // Also select better suited hands with same gap (e.g. 89s -> 9Ts, JTs...)
+    let r = selectedHand.row - 1;
+    let c = selectedHand.col - 1;
+    while (r >= 0 && c >= 0) {
+      const betterGapHand = HAND_MATRIX[r][c];
+      handsToAutoSelect.push(betterGapHand.id);
+      r--;
+      c--;
+    }
   } else {
     // For offsuit hands: select all better offsuit hands with same high card
     // If player plays K2o, they likely play K3o, K4o... KQo
@@ -100,6 +110,21 @@ export function getAutoSelectHands(selectedHand: Hand): string[] {
     for (let row = selectedHand.col + 1; row < selectedHand.row; row++) {
       const betterOffsuit = HAND_MATRIX[row][selectedHand.col];
       handsToAutoSelect.push(betterOffsuit.id);
+    }
+
+    // Also select better offsuit hands with same gap (e.g. 89o -> 9To, JTo...)
+    let r = selectedHand.row - 1;
+    let c = selectedHand.col - 1;
+    while (r >= 0 && c >= 0) {
+      // Offsuit hands are below diagonal, so we need to check bounds carefully
+      // But since we decrement both, we move up the diagonal parallel to main diagonal
+      // Just need to ensure we don't cross into suited territory (which shouldn't happen if we start offsuit)
+      // Actually, offsuit is row > col. If we decrement both, row > col is maintained.
+      // Until c < 0.
+      const betterGapHand = HAND_MATRIX[r][c];
+      handsToAutoSelect.push(betterGapHand.id);
+      r--;
+      c--;
     }
   }
   
@@ -127,11 +152,31 @@ export function getAutoDeselectHands(deselectedHand: Hand): string[] {
       const worseSuited = HAND_MATRIX[deselectedHand.row][col];
       handsToAutoDeselect.push(worseSuited.id);
     }
+
+    // Also deselect worse suited hands with same gap (e.g. 9Ts -> 89s, 78s...)
+    let r = deselectedHand.row + 1;
+    let c = deselectedHand.col + 1;
+    while (r < 13 && c < 13) {
+      const worseGapHand = HAND_MATRIX[r][c];
+      handsToAutoDeselect.push(worseGapHand.id);
+      r++;
+      c++;
+    }
   } else {
     // Deselect all worse offsuit hands with same high card
     for (let row = deselectedHand.row + 1; row < 13; row++) {
       const worseOffsuit = HAND_MATRIX[row][deselectedHand.col];
       handsToAutoDeselect.push(worseOffsuit.id);
+    }
+
+    // Also deselect worse offsuit hands with same gap (e.g. 9To -> 89o, 78o...)
+    let r = deselectedHand.row + 1;
+    let c = deselectedHand.col + 1;
+    while (r < 13 && c < 13) {
+      const worseGapHand = HAND_MATRIX[r][c];
+      handsToAutoDeselect.push(worseGapHand.id);
+      r++;
+      c++;
     }
   }
   
