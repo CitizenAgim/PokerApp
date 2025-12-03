@@ -4,8 +4,8 @@ import { useFriends } from '@/hooks/useFriends';
 import * as playersFirebase from '@/services/firebase/players';
 import { Action, Position, User } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
