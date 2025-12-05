@@ -90,6 +90,11 @@ export async function syncPendingChanges(): Promise<void> {
     return;
   }
 
+  if (syncStatus === 'syncing') {
+    console.log('[Sync] Sync already in progress, skipping');
+    return;
+  }
+
   setSyncStatus('syncing');
 
   try {
@@ -98,8 +103,31 @@ export async function syncPendingChanges(): Promise<void> {
         console.log(`[Sync] Processing item ${item.id} (${item.collection}/${item.operation})`);
         await syncItem(item, userId);
         await localStorage.removePendingSync(item.id);
-      } catch (error) {
+      } catch (error: any) {
         console.error(`Error syncing item ${item.id}:`, error);
+        
+        // If document not found during update/delete, it's already gone from server
+        // So we can safely remove it from pending sync
+        if (error?.code === 'not-found' || error?.message?.includes('No document to update')) {
+          console.log(`[Sync] Document not found, removing pending sync item ${item.id}`);
+          
+          // Extract target ID to remove ALL pending operations for this missing document
+          let targetId: string | undefined;
+          if (item.collection === 'players') {
+            targetId = (item.data as Player | { id: string })?.id;
+          } else if (item.collection === 'sessions') {
+            targetId = (item.data as Session | { id: string })?.id;
+          } else if (item.collection === 'playerRanges') {
+            targetId = (item.data as PlayerRanges | { playerId: string })?.playerId;
+          }
+
+          if (targetId) {
+             console.log(`[Sync] Removing all pending operations for target ${targetId}`);
+             await localStorage.removePendingSyncByTargetId(item.collection, targetId);
+          } else {
+             await localStorage.removePendingSync(item.id);
+          }
+        }
         // Continue with other items
       }
     }

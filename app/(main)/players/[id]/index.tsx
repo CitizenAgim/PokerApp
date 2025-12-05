@@ -49,13 +49,13 @@ export default function PlayerDetailScreen() {
   const [editPhotoUrl, setEditPhotoUrl] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
-  
-  // Load friends when share modal opens for the first time
+
+  // Initialize edit form when player loads or modal opens
   useEffect(() => {
-    if (showShareModal && !friendsLoaded) {
-      setFriendsLoaded(true);
-      refreshFriends();
-    }
+    if (player && showEditModal) {
+      setEditName(player.name);
+      setEditNotes(player.notes || '');
+      setEditPhotoUrl(player.photoUrl);
     }
   }, [player, showEditModal]);
 
@@ -132,22 +132,22 @@ export default function PlayerDetailScreen() {
     );
   };
 
-  const handleShareWithFriend = async (friend: User) => {
-    if (!player) return;
+  const handleEditRange = (position: Position, action: Action) => {
+    router.push(`/(main)/players/${id}/range?position=${position}&action=${action}`);
+  };
+
+  const getRangePercentage = (position: Position, action: Action): string => {
+    const key = `${position}_${action}`;
+    const range = ranges?.ranges[key];
+    if (!range) return "0.0";
     
-    try {
-      setSharing(true);
-      
-      // Add friend to sharedWith array
-      const newSharedWith = [...(player.sharedWith || [])];
-      if (!newSharedWith.includes(friend.id)) {
-        newSharedWith.push(friend.id);
-        
-        await playersFirebase.sharePlayer(id, friend.id);
-        await updatePlayer({ id, sharedWith: newSharedWith });
-        
-        Alert.alert('Shared', `${player.name} has been shared with ${friend.displayName}`);
-      } else {nd) {
+    let selectedCombos = 0;
+    const totalCombos = 1326;
+
+    Object.entries(range).forEach(([handId, state]) => {
+      if (state === 'manual-selected' || state === 'auto-selected') {
+        const hand = HAND_MAP[handId];
+        if (hand) {
            const combos = hand.type === 'pair' ? 6 : hand.type === 'suited' ? 4 : 12;
            selectedCombos += combos;
         }
@@ -192,13 +192,6 @@ export default function PlayerDetailScreen() {
         )}
         <Text style={styles.playerName}>{player.name}</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity 
-            style={styles.shareButton} 
-            onPress={() => setShowShareModal(true)}
-          >
-            <Ionicons name="share-social" size={18} color="#27ae60" />
-            <Text style={styles.shareButtonText}>Share</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.editButton} onPress={handleOpenEditModal}>
             <Ionicons name="pencil" size={18} color="#0a7ea4" />
             <Text style={styles.editButtonText}>Edit</Text>
@@ -208,15 +201,6 @@ export default function PlayerDetailScreen() {
             <Text style={styles.deleteButtonText}>Delete</Text>
           </TouchableOpacity>
         </View>
-
-        {/* Shared With */}
-        {player.sharedWith && player.sharedWith.length > 0 && (
-          <View style={styles.sharedSection}>
-            <Text style={styles.sharedLabel}>
-              Shared with {player.sharedWith.length} friend{player.sharedWith.length > 1 ? 's' : ''}
-            </Text>
-          </View>
-        )}
       </View>
 
       {/* Notes Section */}
@@ -239,15 +223,29 @@ export default function PlayerDetailScreen() {
             {player.notes ? (
               <Text style={styles.noteText}>{player.notes}</Text>
             ) : (
-              <Text style={sstyle={styles.editButton} onPress={handleOpenEditModal}>
-            <Ionicons name="pencil" size={18} color="#0a7ea4" />
-            <Text style={styles.editButtonText}>Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-            <Ionicons name="trash" size={18} color="#e74c3c" />
-            <Text style={styles.deleteButtonText}>Delete</Text>
-          </TouchableOpacity>
-        </View>          key={action.id}
+              <Text style={styles.emptyNoteText}>No notes added yet.</Text>
+            )}
+          </View>
+        )}
+      </View>
+
+      {/* Ranges Grid */}
+      <View style={styles.rangesSection}>
+        <Text style={styles.sectionTitle}>Ranges</Text>
+        {POSITIONS.map((pos) => (
+          <View key={pos.id} style={styles.positionCard}>
+            <View style={styles.positionHeader}>
+              <View style={[styles.positionDot, { backgroundColor: pos.color }]} />
+              <Text style={styles.positionLabel}>{pos.label}</Text>
+            </View>
+            <View style={styles.actionsGrid}>
+              {ACTIONS.map((action) => {
+                const percentage = getRangePercentage(pos.id, action.id);
+                const hasRange = percentage !== "0.0";
+                
+                return (
+                  <TouchableOpacity
+                    key={action.id}
                     style={[
                       styles.actionCell,
                       hasRange && styles.actionCellActive,
@@ -293,69 +291,69 @@ export default function PlayerDetailScreen() {
         </View>
       </View>
       
-      {/* Share Modal */}
+      {/* Edit Modal */}
       <Modal
-        visible={showShareModal}
+        visible={showEditModal}
         animationType="slide"
         transparent
-        onRequestClose={() => setShowShareModal(false)}
+        onRequestClose={handleCancelEdit}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+        >
+          <View style={styles.editModalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Share Player</Text>
-              <TouchableOpacity onPress={() => setShowShareModal(false)}>
+              <Text style={styles.modalTitle}>Edit Player</Text>
+              <TouchableOpacity onPress={handleCancelEdit}>
                 <Ionicons name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
             
-            {friendsLoading ? (
-              <View style={styles.noFriendsContainer}>
-                <ActivityIndicator size="large" color="#0a7ea4" />
-                <Text style={styles.noFriendsText}>Loading friends...</Text>
-              </View>
-            ) : friends.length === 0 ? (
-              <View style={styles.noFriendsContainer}>
-                <Ionicons name="people-outline" size={48} color="#ccc" />
-                <Text style={styles.noFriendsText}>
-                  Add friends to share player data
-                </Text>
-                <TouchableOpacity
-                  style={styles.addFriendsButton}
-                  onPress={() => {
-                    setShowShareModal(false);
-                    router.push('/(main)/friends/add');
-                  }}
-                >
-                  <Text style={styles.addFriendsButtonText}>Add Friends</Text>
+            <ScrollView 
+              style={styles.editModalBody}
+              keyboardShouldPersistTaps="handled"
+            >
+              {/* Avatar Preview */}
+              <View style={styles.editAvatarContainer}>
+                <TouchableOpacity onPress={handlePickImage}>
+                  {editPhotoUrl ? (
+                    <Image source={{ uri: editPhotoUrl }} style={styles.editAvatar} />
+                  ) : (
+                    <View style={styles.editAvatar}>
+                      <Text style={styles.editAvatarText}>
+                        {editName ? editName.charAt(0).toUpperCase() : '?'}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handlePickImage} style={{ marginTop: 8 }}>
+                  <Text style={{ color: '#0a7ea4', fontWeight: '500' }}>
+                    {editPhotoUrl ? 'Change Photo' : 'Add Photo'}
+                  </Text>
                 </TouchableOpacity>
               </View>
-            ) : (
-              <FlatList
-                data={friends}
-                keyExtractor={item => item.id}
-                contentContainerStyle={styles.friendsList}
-                renderItem={({ item }) => {
-                  const isShared = player?.sharedWith?.includes(item.id);
-                  return (
-                    <View style={styles.friendItem}>
-                      <View style={styles.friendAvatar}>
-                        <Text style={styles.friendAvatarText}>
-                          {item.displayName.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                      <View style={styles.friendInfo}>
-                        <Text style={styles.friendName}>{item.displayName}</Text>
-                        <Text style={styles.friendEmail}>{item.email}</Text>
-                      </View>
-                      {isShared ? (
-                        <TouchableOpacity
-                          style={styles.unshareButton}
-                          onPress={() => handleUnshare(item.id)}
-                        >
-                          <Text style={styles.unshareText}>Unshare</Text>
-                        </TouchableOpacity>
-                      ) : (
+              
+              {/* Name Input */}
+              <View style={styles.editInputGroup}>
+                <Text style={styles.editLabel}>Name *</Text>
+                <TextInput
+                  style={styles.editInput}
+                  value={editName}
+                  onChangeText={setEditName}
+                  placeholder="Enter player name"
+                  placeholderTextColor="#999"
+                />
+              </View>
+              
+              {/* Notes Input */}
+              <View style={styles.editInputGroup}>
+                <Text style={styles.editLabel}>Notes</Text>
+                <TextInput
+                  style={[styles.editInput, styles.editTextArea]}
+                  value={editNotes}
+                  onChangeText={setEditNotes}
                   placeholder="Add notes about this player's tendencies..."
                   placeholderTextColor="#999"
                   multiline
@@ -605,18 +603,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
-  noFriendsContainer: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  noFriendsText: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  addFriendsButton: {
-    marginTop: 20,
   editAvatarContainer: {
     alignItems: 'center',
     paddingVertical: 20,

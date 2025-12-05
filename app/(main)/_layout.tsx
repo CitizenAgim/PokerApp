@@ -50,16 +50,7 @@ export default function MainLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="friends"
-        options={{
-          title: 'Friends',
-          headerShown: false,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-add" size={size} color={color} />
-          ),
-        }}
-      />
+
       <Tabs.Screen
         name="profile"
         options={{

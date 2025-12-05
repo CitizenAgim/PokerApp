@@ -288,8 +288,8 @@ export default function ProfileScreen() {
               <Text style={styles.statValue}>{sessions.length}</Text>
               <Text style={styles.statLabel}>Sessions</Text>
             </View>
-            <View style={styles.statCard}>
-          View>
+          </View>
+        </View>
 
         {/* Settings */}
         <View style={styles.settingsSection}>
@@ -343,7 +343,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
         {/* Version */}
-        <Text style={styles.version}>Version 1.0.0</Text>
+        <Text style={styles.version}>Version 1.0.0 </Text>
       </ScrollView>
     </SafeAreaView>
   );

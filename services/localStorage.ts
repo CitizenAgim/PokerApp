@@ -285,6 +285,34 @@ export async function removePendingSync(id: string): Promise<void> {
   await setItem(KEYS.PENDING_SYNC, filtered);
 }
 
+export async function removePendingSyncByTargetId(
+  collection: PendingSyncItem['collection'],
+  targetId: string
+): Promise<void> {
+  const pending = await getPendingSync();
+  const filtered = pending.filter(p => {
+    // Keep item if collection doesn't match
+    if (p.collection !== collection) return true;
+    
+    // Check ID in data based on collection type
+    let id: string | undefined;
+    if (collection === 'players') {
+      id = (p.data as Player | { id: string })?.id;
+    } else if (collection === 'sessions') {
+      id = (p.data as Session | { id: string })?.id;
+    } else if (collection === 'playerRanges') {
+      id = (p.data as PlayerRanges | { playerId: string })?.playerId;
+    }
+    
+    // Remove if ID matches targetId
+    return id !== targetId;
+  });
+  
+  if (filtered.length !== pending.length) {
+    await setItem(KEYS.PENDING_SYNC, filtered);
+  }
+}
+
 export async function clearPendingSync(): Promise<void> {
   await setItem(KEYS.PENDING_SYNC, []);
 }
