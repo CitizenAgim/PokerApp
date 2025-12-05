@@ -1,6 +1,6 @@
 import { auth, db } from '@/config/firebase';
 import { User } from '@/types/poker';
-import { onAuthStateChanged, updateProfile as firebaseUpdateProfile } from 'firebase/auth';
+import { updateProfile as firebaseUpdateProfile, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 
