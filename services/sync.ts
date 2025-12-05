@@ -75,6 +75,8 @@ export async function syncPendingChanges(): Promise<void> {
     console.log('No user logged in, skipping sync');
     return;
   }
+  
+  console.log(`[Sync] Starting sync for user: ${userId}`);
 
   const online = await isOnline();
   if (!online) {
@@ -93,6 +95,7 @@ export async function syncPendingChanges(): Promise<void> {
   try {
     for (const item of pending) {
       try {
+        console.log(`[Sync] Processing item ${item.id} (${item.collection}/${item.operation})`);
         await syncItem(item, userId);
         await localStorage.removePendingSync(item.id);
       } catch (error) {
@@ -136,6 +139,7 @@ async function syncPlayer(
     case 'update':
       const player = data as Player;
       if (operation === 'create') {
+        console.log(`[Sync] Creating player with createdBy: ${userId}`);
         await playersFirebase.createPlayer(
           {
             name: player.name,

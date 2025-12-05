@@ -58,6 +58,7 @@ export default function PlayerDetailScreen() {
   const [editNotes, setEditNotes] = useState('');
   const [editPhotoUrl, setEditPhotoUrl] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
   
   // Load friends when share modal opens for the first time
   useEffect(() => {
@@ -247,9 +248,6 @@ export default function PlayerDetailScreen() {
           </View>
         )}
         <Text style={styles.playerName}>{player.name}</Text>
-        {player.notes && (
-          <Text style={styles.playerNotes}>{player.notes}</Text>
-        )}
         <View style={styles.headerActions}>
           <TouchableOpacity 
             style={styles.shareButton} 
@@ -274,6 +272,32 @@ export default function PlayerDetailScreen() {
             <Text style={styles.sharedLabel}>
               Shared with {player.sharedWith.length} friend{player.sharedWith.length > 1 ? 's' : ''}
             </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Notes Section */}
+      <View style={styles.sectionContainer}>
+        <TouchableOpacity 
+          style={styles.sectionHeader} 
+          onPress={() => setShowNotes(!showNotes)}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Notes</Text>
+          <Ionicons 
+            name={showNotes ? "chevron-up" : "chevron-down"} 
+            size={24} 
+            color="#666" 
+          />
+        </TouchableOpacity>
+        
+        {showNotes && (
+          <View style={styles.notesContent}>
+            {player.notes ? (
+              <Text style={styles.noteText}>{player.notes}</Text>
+            ) : (
+              <Text style={styles.emptyNoteText}>No notes added yet.</Text>
+            )}
           </View>
         )}
       </View>
@@ -436,6 +460,7 @@ export default function PlayerDetailScreen() {
         <KeyboardAvoidingView
           style={styles.modalOverlay}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
         >
           <View style={styles.editModalContent}>
             <View style={styles.modalHeader}>
@@ -929,5 +954,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  sectionContainer: {
+    padding: 20,
+    paddingBottom: 0,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  notesContent: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  noteText: {
+    fontSize: 15,
+    color: '#333',
+    lineHeight: 22,
+  },
+  emptyNoteText: {
+    fontSize: 15,
+    color: '#999',
+    fontStyle: 'italic',
   },
 });

@@ -1,5 +1,5 @@
 import { HAND_MAP, HAND_MATRIX } from '@/constants/hands';
-import { Hand, Range, RANKS, SelectionState } from '@/types/poker';
+import { Range, RANKS, SelectionState } from '@/types/poker';
 
 // ============================================
 // HAND RANKING & COMPARISON
