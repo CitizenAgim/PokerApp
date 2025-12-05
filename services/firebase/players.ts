@@ -31,7 +31,6 @@ interface FirestorePlayer {
   photoUrl?: string;
   notes?: string;
   createdBy: string;
-  sharedWith: string[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -43,7 +42,6 @@ function toPlayer(id: string, data: FirestorePlayer): Player {
     photoUrl: data.photoUrl,
     notes: data.notes,
     createdBy: data.createdBy,
-    sharedWith: data.sharedWith || [],
     createdAt: data.createdAt?.toMillis() || Date.now(),
     updatedAt: data.updatedAt?.toMillis() || Date.now(),
   };
@@ -56,7 +54,6 @@ function toFirestoreData(player: CreatePlayer | UpdatePlayer): Partial<Firestore
   if ('photoUrl' in player) data.photoUrl = player.photoUrl;
   if ('notes' in player) data.notes = player.notes;
   if ('createdBy' in player && player.createdBy !== undefined) data.createdBy = player.createdBy;
-  if ('sharedWith' in player && player.sharedWith !== undefined) data.sharedWith = player.sharedWith;
   
   return data as Partial<FirestorePlayer>;
 }
@@ -66,7 +63,7 @@ function toFirestoreData(player: CreatePlayer | UpdatePlayer): Partial<Firestore
 // ============================================
 
 /**
- * Get all players created by or shared with the current user
+ * Get all players created by the current user
  */
 export async function getPlayers(userId: string): Promise<Player[]> {
   try {
@@ -78,29 +75,9 @@ export async function getPlayers(userId: string): Promise<Player[]> {
     );
     
     const createdBySnapshot = await getDocs(createdByQuery);
-    const createdPlayers = createdBySnapshot.docs.map(doc => 
+    return createdBySnapshot.docs.map(doc => 
       toPlayer(doc.id, doc.data() as FirestorePlayer)
     );
-    
-    // Get players shared with user
-    const sharedWithQuery = query(
-      playersCollection,
-      where('sharedWith', 'array-contains', userId),
-      orderBy('updatedAt', 'desc')
-    );
-    
-    const sharedSnapshot = await getDocs(sharedWithQuery);
-    const sharedPlayers = sharedSnapshot.docs.map(doc =>
-      toPlayer(doc.id, doc.data() as FirestorePlayer)
-    );
-    
-    // Combine and deduplicate
-    const allPlayers = [...createdPlayers, ...sharedPlayers];
-    const uniquePlayers = Array.from(
-      new Map(allPlayers.map(p => [p.id, p])).values()
-    );
-    
-    return uniquePlayers;
   } catch (error) {
     console.error('Error fetching players:', error);
     throw error;
@@ -151,7 +128,6 @@ export async function createPlayer(
       photoUrl: player.photoUrl,
       notes: player.notes,
       createdBy: player.createdBy,
-      sharedWith: player.sharedWith || [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -188,67 +164,6 @@ export async function deletePlayer(playerId: string): Promise<void> {
     await deleteDoc(doc(db, COLLECTION_NAME, playerId));
   } catch (error) {
     console.error('Error deleting player:', error);
-    throw error;
-  }
-}
-
-/**
- * Share a player with another user
- */
-export async function sharePlayer(
-  playerId: string,
-  shareWithUserId: string
-): Promise<void> {
-  try {
-    const playerRef = doc(db, COLLECTION_NAME, playerId);
-    const playerDoc = await getDoc(playerRef);
-    
-    if (!playerDoc.exists()) {
-      throw new Error('Player not found');
-    }
-    
-    const data = playerDoc.data() as FirestorePlayer;
-    const sharedWith = data.sharedWith || [];
-    
-    if (!sharedWith.includes(shareWithUserId)) {
-      sharedWith.push(shareWithUserId);
-      await updateDoc(playerRef, { 
-        sharedWith,
-        updatedAt: serverTimestamp(),
-      });
-    }
-  } catch (error) {
-    console.error('Error sharing player:', error);
-    throw error;
-  }
-}
-
-/**
- * Unshare a player with a user
- */
-export async function unsharePlayer(
-  playerId: string,
-  unshareWithUserId: string
-): Promise<void> {
-  try {
-    const playerRef = doc(db, COLLECTION_NAME, playerId);
-    const playerDoc = await getDoc(playerRef);
-    
-    if (!playerDoc.exists()) {
-      throw new Error('Player not found');
-    }
-    
-    const data = playerDoc.data() as FirestorePlayer;
-    const sharedWith = (data.sharedWith || []).filter(
-      id => id !== unshareWithUserId
-    );
-    
-    await updateDoc(playerRef, { 
-      sharedWith,
-      updatedAt: serverTimestamp(),
-    });
-  } catch (error) {
-    console.error('Error unsharing player:', error);
     throw error;
   }
 }

@@ -81,7 +81,6 @@ export interface Player {
   createdAt: number;      // Unix timestamp
   updatedAt: number;      // Unix timestamp
   createdBy: string;      // User ID who created this player
-  sharedWith: string[];   // User IDs who can view/edit
 }
 
 export interface PlayerRanges {
@@ -119,7 +118,7 @@ export interface Table {
 }
 
 // ============================================
-// USER & SOCIAL TYPES
+// USER TYPES
 // ============================================
 
 export interface User {
@@ -127,17 +126,6 @@ export interface User {
   email: string;
   displayName: string;
   photoUrl?: string;
-  friends: string[];      // User IDs
-  createdAt: number;      // Unix timestamp
-}
-
-export type FriendRequestStatus = 'pending' | 'accepted' | 'rejected';
-
-export interface FriendRequest {
-  id: string;
-  fromUserId: string;
-  toUserId: string;
-  status: FriendRequestStatus;
   createdAt: number;      // Unix timestamp
 }
 

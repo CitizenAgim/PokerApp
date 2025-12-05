@@ -1,8 +1,6 @@
 import { HAND_MAP } from '@/constants/hands';
 import { usePlayer, usePlayerRanges, usePlayers } from '@/hooks';
-import { useFriends } from '@/hooks/useFriends';
-import * as playersFirebase from '@/services/firebase/players';
-import { Action, Position, User } from '@/types/poker';
+import { Action, Position } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -11,7 +9,6 @@ import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
-    FlatList,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -45,13 +42,6 @@ export default function PlayerDetailScreen() {
   const { deletePlayer, updatePlayer } = usePlayers();
   const { ranges } = usePlayerRanges(id);
   
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [sharing, setSharing] = useState(false);
-  
-  // Lazy load friends only when share modal is opened
-  const [friendsLoaded, setFriendsLoaded] = useState(false);
-  const { friends, loading: friendsLoading, refresh: refreshFriends } = useFriends();
-  
   // Edit modal state
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState('');
@@ -66,14 +56,6 @@ export default function PlayerDetailScreen() {
       setFriendsLoaded(true);
       refreshFriends();
     }
-  }, [showShareModal, friendsLoaded, refreshFriends]);
-
-  // Initialize edit form when player loads or modal opens
-  useEffect(() => {
-    if (player && showEditModal) {
-      setEditName(player.name);
-      setEditNotes(player.notes || '');
-      setEditPhotoUrl(player.photoUrl);
     }
   }, [player, showEditModal]);
 
@@ -165,46 +147,7 @@ export default function PlayerDetailScreen() {
         await updatePlayer({ id, sharedWith: newSharedWith });
         
         Alert.alert('Shared', `${player.name} has been shared with ${friend.displayName}`);
-      } else {
-        Alert.alert('Already Shared', `${player.name} is already shared with ${friend.displayName}`);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to share player');
-      console.error(error);
-    } finally {
-      setSharing(false);
-      setShowShareModal(false);
-    }
-  };
-
-  const handleUnshare = async (friendId: string) => {
-    if (!player) return;
-    
-    try {
-      const newSharedWith = (player.sharedWith || []).filter(id => id !== friendId);
-      await updatePlayer({ id, sharedWith: newSharedWith });
-      Alert.alert('Unshared', 'Player access has been removed');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to unshare player');
-    }
-  };
-
-  const handleEditRange = (position: Position, action: Action) => {
-    router.push(`/(main)/players/${id}/range?position=${position}&action=${action}`);
-  };
-
-  const getRangePercentage = (position: Position, action: Action): string => {
-    const key = `${position}_${action}`;
-    const range = ranges?.ranges[key];
-    if (!range) return "0.0";
-    
-    let selectedCombos = 0;
-    const totalCombos = 1326;
-
-    Object.entries(range).forEach(([handId, state]) => {
-      if (state === 'manual-selected' || state === 'auto-selected') {
-        const hand = HAND_MAP[handId];
-        if (hand) {
+      } else {nd) {
            const combos = hand.type === 'pair' ? 6 : hand.type === 'suited' ? 4 : 12;
            selectedCombos += combos;
         }
@@ -296,31 +239,15 @@ export default function PlayerDetailScreen() {
             {player.notes ? (
               <Text style={styles.noteText}>{player.notes}</Text>
             ) : (
-              <Text style={styles.emptyNoteText}>No notes added yet.</Text>
-            )}
-          </View>
-        )}
-      </View>
-
-      {/* Ranges Overview */}
-      <View style={styles.rangesSection}>
-        <Text style={styles.sectionTitle}>Hand Ranges</Text>
-        
-        {POSITIONS.map(pos => (
-          <View key={pos.id} style={styles.positionCard}>
-            <View style={styles.positionHeader}>
-              <View style={[styles.positionDot, { backgroundColor: pos.color }]} />
-              <Text style={styles.positionLabel}>{pos.label}</Text>
-            </View>
-            
-            <View style={styles.actionsGrid}>
-              {ACTIONS.map(action => {
-                const percentage = getRangePercentage(pos.id, action.id);
-                const hasRange = parseFloat(percentage) > 0;
-                
-                return (
-                  <TouchableOpacity
-                    key={action.id}
+              <Text style={sstyle={styles.editButton} onPress={handleOpenEditModal}>
+            <Ionicons name="pencil" size={18} color="#0a7ea4" />
+            <Text style={styles.editButtonText}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+            <Ionicons name="trash" size={18} color="#e74c3c" />
+            <Text style={styles.deleteButtonText}>Delete</Text>
+          </TouchableOpacity>
+        </View>          key={action.id}
                     style={[
                       styles.actionCell,
                       hasRange && styles.actionCellActive,
@@ -429,90 +356,6 @@ export default function PlayerDetailScreen() {
                           <Text style={styles.unshareText}>Unshare</Text>
                         </TouchableOpacity>
                       ) : (
-                        <TouchableOpacity
-                          style={styles.shareToButton}
-                          onPress={() => handleShareWithFriend(item)}
-                          disabled={sharing}
-                        >
-                          {sharing ? (
-                            <ActivityIndicator size="small" color="#fff" />
-                          ) : (
-                            <Text style={styles.shareToText}>Share</Text>
-                          )}
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  );
-                }}
-              />
-            )}
-          </View>
-        </View>
-      </Modal>
-      
-      {/* Edit Modal */}
-      <Modal
-        visible={showEditModal}
-        animationType="slide"
-        transparent
-        onRequestClose={handleCancelEdit}
-      >
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-        >
-          <View style={styles.editModalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Player</Text>
-              <TouchableOpacity onPress={handleCancelEdit}>
-                <Ionicons name="close" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView 
-              style={styles.editModalBody}
-              keyboardShouldPersistTaps="handled"
-            >
-              {/* Avatar Preview */}
-              <View style={styles.editAvatarContainer}>
-                <TouchableOpacity onPress={handlePickImage}>
-                  {editPhotoUrl ? (
-                    <Image source={{ uri: editPhotoUrl }} style={styles.editAvatar} />
-                  ) : (
-                    <View style={styles.editAvatar}>
-                      <Text style={styles.editAvatarText}>
-                        {editName ? editName.charAt(0).toUpperCase() : '?'}
-                      </Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handlePickImage} style={{ marginTop: 8 }}>
-                  <Text style={{ color: '#0a7ea4', fontWeight: '500' }}>
-                    {editPhotoUrl ? 'Change Photo' : 'Add Photo'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              
-              {/* Name Input */}
-              <View style={styles.editInputGroup}>
-                <Text style={styles.editLabel}>Name *</Text>
-                <TextInput
-                  style={styles.editInput}
-                  value={editName}
-                  onChangeText={setEditName}
-                  placeholder="Enter player name"
-                  placeholderTextColor="#999"
-                />
-              </View>
-              
-              {/* Notes Input */}
-              <View style={styles.editInputGroup}>
-                <Text style={styles.editLabel}>Notes</Text>
-                <TextInput
-                  style={[styles.editInput, styles.editTextArea]}
-                  value={editNotes}
-                  onChangeText={setEditNotes}
                   placeholder="Add notes about this player's tendencies..."
                   placeholderTextColor="#999"
                   multiline
@@ -624,19 +467,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     gap: 12,
   },
-  shareButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#e8f5e9',
-    borderRadius: 20,
-  },
-  shareButtonText: {
-    color: '#27ae60',
-    fontWeight: '500',
-  },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -661,18 +491,6 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     color: '#e74c3c',
-    fontWeight: '500',
-  },
-  sharedSection: {
-    marginTop: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#e8f5e9',
-    borderRadius: 12,
-  },
-  sharedLabel: {
-    fontSize: 12,
-    color: '#27ae60',
     fontWeight: '500',
   },
   rangesSection: {
@@ -799,88 +617,6 @@ const styles = StyleSheet.create({
   },
   addFriendsButton: {
     marginTop: 20,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    backgroundColor: '#0a7ea4',
-    borderRadius: 10,
-  },
-  addFriendsButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  friendsList: {
-    padding: 16,
-  },
-  friendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 10,
-    marginBottom: 8,
-  },
-  friendAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#0a7ea4',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  friendAvatarText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  friendInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  friendName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-  },
-  friendEmail: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 2,
-  },
-  shareToButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#27ae60',
-    borderRadius: 8,
-  },
-  shareToText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  unshareButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-  },
-  unshareText: {
-    color: '#666',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  // Edit Modal Styles
-  editModalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
-    marginTop: 'auto',
-  },
-  editModalBody: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
   editAvatarContainer: {
     alignItems: 'center',
     paddingVertical: 20,

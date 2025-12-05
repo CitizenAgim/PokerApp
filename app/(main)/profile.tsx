@@ -1,6 +1,6 @@
 import { ProfileSkeleton } from '@/components/ui';
 import { auth } from '@/config/firebase';
-import { useCurrentUser, useFriends, usePlayers, useSessions } from '@/hooks';
+import { useCurrentUser, usePlayers, useSessions } from '@/hooks';
 import { disableGuestMode, hasGuestData, isGuestMode, migrateGuestDataToUser } from '@/services/guestMode';
 import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +22,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, loading: userLoading, updateProfile } = useCurrentUser();
-  const { friends } = useFriends();
   const { players, refreshPlayers } = usePlayers();
   const { sessions } = useSessions();
   
@@ -290,12 +289,7 @@ export default function ProfileScreen() {
               <Text style={styles.statLabel}>Sessions</Text>
             </View>
             <View style={styles.statCard}>
-              <Ionicons name="person-add" size={24} color="#9b59b6" />
-              <Text style={styles.statValue}>{friends.length}</Text>
-              <Text style={styles.statLabel}>Friends</Text>
-            </View>
-          </View>
-        </View>
+          View>
 
         {/* Settings */}
         <View style={styles.settingsSection}>
