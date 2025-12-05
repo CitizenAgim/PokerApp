@@ -3,7 +3,7 @@
 > **META INSTRUCTION FOR AI AGENTS:**
 > This file serves as the primary context handover. **You must update this file** whenever you complete a significant task, change architecture, or resolve a blocker. Keep the "Last Updated" date current.
 
-**Last Updated:** December 3, 2025
+**Last Updated:** December 5, 2025
 
 ## Project Overview
 Poker Range Manager app built with **React Native (Expo)** and **Firebase**.
@@ -13,7 +13,7 @@ Poker Range Manager app built with **React Native (Expo)** and **Firebase**.
 ## Recent Implementations
 
 ### 1. Range Editor Logic
-- **Auto-Selection:** Implemented "Gap/Shape" logic in `handRanking.ts`. Selecting a hand (e.g., 89s) auto-selects superior hands with the same shape (e.g., 9Ts, JQs) and vertical kickers.
+- **Selection Logic:** Removed auto-selection logic (previously "Gap/Shape" logic). Selecting a hand now only toggles that specific hand.
 - **Undo/Redo:** Added history stack to `useRange.ts` and UI controls in the header.
 
 ### 2. Synchronization Engine (`services/sync.ts`)
