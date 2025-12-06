@@ -12,6 +12,16 @@ import { useCallback, useEffect, useState } from 'react';
 // ============================================
 
 const playerCache = new Map<string, Player>();
+const playerListeners = new Set<(playerId: string, player: Player) => void>();
+
+function subscribeToPlayerCache(callback: (playerId: string, player: Player) => void) {
+  playerListeners.add(callback);
+  return () => playerListeners.delete(callback);
+}
+
+function notifyPlayerListeners(playerId: string, player: Player) {
+  playerListeners.forEach(listener => listener(playerId, player));
+}
 
 function getCachedPlayer(id: string): Player | null {
   return playerCache.get(id) || null;
@@ -19,6 +29,7 @@ function getCachedPlayer(id: string): Player | null {
 
 function setCachedPlayer(player: Player): void {
   playerCache.set(player.id, player);
+  notifyPlayerListeners(player.id, player);
 }
 
 function removeCachedPlayer(id: string): void {
@@ -192,6 +203,15 @@ export function usePlayer(playerId: string): UsePlayerResult {
   const [player, setPlayer] = useState<Player | null>(() => getCachedPlayer(playerId));
   const [loading, setLoading] = useState(!getCachedPlayer(playerId));
   const [error, setError] = useState<Error | null>(null);
+
+  // Subscribe to cache updates
+  useEffect(() => {
+    return subscribeToPlayerCache((updatedPlayerId, updatedPlayer) => {
+      if (updatedPlayerId === playerId) {
+        setPlayer(updatedPlayer);
+      }
+    });
+  }, [playerId]);
 
   // Load local data immediately on mount (skip if already cached)
   useEffect(() => {

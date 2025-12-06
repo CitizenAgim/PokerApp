@@ -1,6 +1,6 @@
 import { HAND_MAP } from '@/constants/hands';
 import { usePlayer, usePlayerRanges, usePlayers } from '@/hooks';
-import { Action, Position } from '@/types/poker';
+import { Action, NoteEntry, Position } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -53,6 +53,12 @@ export default function PlayerDetailScreen() {
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [addingNote, setAddingNote] = useState(false);
+  
+  // Note selection & editing state
+  const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [editingNote, setEditingNote] = useState<NoteEntry | null>(null);
+  const [editNoteContent, setEditNoteContent] = useState('');
 
   // Initialize edit form when player loads or modal opens
   useEffect(() => {
@@ -140,6 +146,98 @@ export default function PlayerDetailScreen() {
       console.error(error);
     } finally {
       setAddingNote(false);
+    }
+  };
+
+  const handleLongPressNote = (noteId: string) => {
+    if (!isSelectionMode) {
+      setIsSelectionMode(true);
+      setSelectedNoteIds(new Set([noteId]));
+    }
+  };
+
+  const handlePressNote = (noteId: string) => {
+    if (isSelectionMode) {
+      const newSelected = new Set(selectedNoteIds);
+      if (newSelected.has(noteId)) {
+        newSelected.delete(noteId);
+        if (newSelected.size === 0) {
+          setIsSelectionMode(false);
+        }
+      } else {
+        newSelected.add(noteId);
+      }
+      setSelectedNoteIds(newSelected);
+    }
+  };
+
+  const handleCancelSelection = () => {
+    setIsSelectionMode(false);
+    setSelectedNoteIds(new Set());
+  };
+
+  const handleDeleteSelectedNotes = () => {
+    Alert.alert(
+      'Delete Notes',
+      `Are you sure you want to delete ${selectedNoteIds.size} note${selectedNoteIds.size > 1 ? 's' : ''}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const updatedNotesList = (player?.notesList || []).filter(
+                note => !selectedNoteIds.has(note.id)
+              );
+              
+              await updatePlayer({
+                id,
+                notesList: updatedNotesList,
+              });
+              
+              handleCancelSelection();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete notes');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleEditSelectedNote = () => {
+    if (selectedNoteIds.size !== 1) return;
+    
+    const noteId = Array.from(selectedNoteIds)[0];
+    const note = player?.notesList?.find(n => n.id === noteId);
+    
+    if (note) {
+      setEditingNote(note);
+      setEditNoteContent(note.content);
+      handleCancelSelection();
+    }
+  };
+
+  const handleUpdateNote = async () => {
+    if (!editingNote || !editNoteContent.trim()) return;
+
+    try {
+      const updatedNotesList = (player?.notesList || []).map(note => 
+        note.id === editingNote.id 
+          ? { ...note, content: editNoteContent.trim() }
+          : note
+      );
+
+      await updatePlayer({
+        id,
+        notesList: updatedNotesList,
+      });
+      
+      setEditingNote(null);
+      setEditNoteContent('');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update note');
     }
   };
 
@@ -235,27 +333,50 @@ export default function PlayerDetailScreen() {
       {/* Notes Section */}
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
-          <TouchableOpacity 
-            style={styles.sectionHeaderTitle} 
-            onPress={() => setShowNotes(!showNotes)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Notes</Text>
-            <Ionicons 
-              name={showNotes ? "chevron-up" : "chevron-down"} 
-              size={24} 
-              color="#666" 
-            />
-          </TouchableOpacity>
-          
-          {showNotes && !isAddingNote && (
-            <TouchableOpacity 
-              style={styles.addNoteButton}
-              onPress={() => setIsAddingNote(true)}
-            >
-              <Ionicons name="add" size={16} color="#0a7ea4" />
-              <Text style={styles.addNoteButtonText}>Add Note</Text>
-            </TouchableOpacity>
+          {isSelectionMode ? (
+            <View style={styles.selectionHeader}>
+              <TouchableOpacity onPress={handleCancelSelection}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+              <Text style={styles.selectionTitle}>
+                {selectedNoteIds.size} selected
+              </Text>
+              <View style={styles.selectionActions}>
+                {selectedNoteIds.size === 1 && (
+                  <TouchableOpacity onPress={handleEditSelectedNote} style={styles.selectionAction}>
+                    <Ionicons name="pencil" size={20} color="#0a7ea4" />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity onPress={handleDeleteSelectedNotes} style={styles.selectionAction}>
+                  <Ionicons name="trash" size={20} color="#e74c3c" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <>
+              <TouchableOpacity 
+                style={styles.sectionHeaderTitle} 
+                onPress={() => setShowNotes(!showNotes)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Notes</Text>
+                <Ionicons 
+                  name={showNotes ? "chevron-up" : "chevron-down"} 
+                  size={24} 
+                  color="#666" 
+                />
+              </TouchableOpacity>
+              
+              {showNotes && !isAddingNote && (
+                <TouchableOpacity 
+                  style={styles.addNoteButton}
+                  onPress={() => setIsAddingNote(true)}
+                >
+                  <Ionicons name="add" size={16} color="#0a7ea4" />
+                  <Text style={styles.addNoteButtonText}>Add Note</Text>
+                </TouchableOpacity>
+              )}
+            </>
           )}
         </View>
         
@@ -302,14 +423,36 @@ export default function PlayerDetailScreen() {
 
             <View style={styles.notesList}>
               {player.notesList && player.notesList.length > 0 ? (
-                player.notesList.map(note => (
-                  <View key={note.id} style={styles.noteItem}>
-                    <Text style={styles.noteDate}>
-                      {new Date(note.timestamp).toLocaleDateString()}
-                    </Text>
-                    <Text style={styles.noteContent}>{note.content}</Text>
-                  </View>
-                ))
+                player.notesList.map(note => {
+                  const isSelected = selectedNoteIds.has(note.id);
+                  return (
+                    <TouchableOpacity
+                      key={note.id}
+                      style={[
+                        styles.noteItem,
+                        isSelected && styles.noteItemSelected,
+                        isSelectionMode && !isSelected && styles.noteItemUnselected
+                      ]}
+                      onLongPress={() => handleLongPressNote(note.id)}
+                      onPress={() => handlePressNote(note.id)}
+                      activeOpacity={0.7}
+                      delayLongPress={300}
+                    >
+                      <View style={styles.noteHeader}>
+                        <Text style={styles.noteDate}>
+                          {new Date(note.timestamp).toLocaleDateString()}
+                        </Text>
+                        {isSelected && (
+                          <Ionicons name="checkmark-circle" size={20} color="#0a7ea4" />
+                        )}
+                        {isSelectionMode && !isSelected && (
+                          <Ionicons name="ellipse-outline" size={20} color="#ccc" />
+                        )}
+                      </View>
+                      <Text style={styles.noteContent}>{note.content}</Text>
+                    </TouchableOpacity>
+                  );
+                })
               ) : player.notes ? (
                 // Legacy notes fallback
                 <View style={styles.noteItem}>
@@ -464,6 +607,49 @@ export default function PlayerDetailScreen() {
                 ) : (
                   <Text style={styles.saveEditButtonText}>Save Changes</Text>
                 )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Edit Note Modal */}
+      <Modal
+        visible={!!editingNote}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setEditingNote(null)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.editNoteModalContent}>
+            <Text style={styles.modalTitle}>Edit Note</Text>
+            <TextInput
+              style={styles.editNoteInput}
+              value={editNoteContent}
+              onChangeText={setEditNoteContent}
+              multiline
+              autoFocus
+              textAlignVertical="top"
+            />
+            <View style={styles.editNoteActions}>
+              <TouchableOpacity 
+                style={styles.cancelButton} 
+                onPress={() => setEditingNote(null)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[
+                  styles.saveEditButton,
+                  !editNoteContent.trim() && styles.saveEditButtonDisabled
+                ]} 
+                onPress={handleUpdateNote}
+                disabled={!editNoteContent.trim()}
+              >
+                <Text style={styles.saveEditButtonText}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -861,5 +1047,66 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     marginTop: 8,
+  },
+  selectionHeader: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e3f2fd',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 12,
+  },
+  selectionTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0a7ea4',
+  },
+  selectionActions: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  selectionAction: {
+    padding: 4,
+  },
+  noteItemSelected: {
+    backgroundColor: '#e3f2fd',
+    borderLeftColor: '#0a7ea4',
+    borderColor: '#0a7ea4',
+    borderWidth: 1,
+  },
+  noteItemUnselected: {
+    opacity: 0.7,
+  },
+  noteHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  editNoteModalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  editNoteInput: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 16,
+    color: '#333',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    minHeight: 120,
+    marginBottom: 20,
+    marginTop: 12,
+  },
+  editNoteActions: {
+    flexDirection: 'row',
+    gap: 12,
   },
 });
