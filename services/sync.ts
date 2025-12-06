@@ -97,8 +97,25 @@ export async function syncPendingChanges(): Promise<void> {
 
   setSyncStatus('syncing');
 
+  const skippedTargetIds = new Set<string>();
+
   try {
     for (const item of pending) {
+      // Check if this item's target has been marked for skipping
+      let currentTargetId: string | undefined;
+      if (item.collection === 'players') {
+        currentTargetId = (item.data as Player | { id: string })?.id;
+      } else if (item.collection === 'sessions') {
+        currentTargetId = (item.data as Session | { id: string })?.id;
+      } else if (item.collection === 'playerRanges') {
+        currentTargetId = (item.data as PlayerRanges | { playerId: string })?.playerId;
+      }
+
+      if (currentTargetId && skippedTargetIds.has(currentTargetId)) {
+        console.log(`[Sync] Skipping item ${item.id} because target ${currentTargetId} was removed`);
+        continue;
+      }
+
       try {
         console.log(`[Sync] Processing item ${item.id} (${item.collection}/${item.operation})`);
         await syncItem(item, userId);
@@ -124,6 +141,7 @@ export async function syncPendingChanges(): Promise<void> {
           if (targetId) {
              console.log(`[Sync] Removing all pending operations for target ${targetId}`);
              await localStorage.removePendingSyncByTargetId(item.collection, targetId);
+             skippedTargetIds.add(targetId);
           } else {
              await localStorage.removePendingSync(item.id);
           }

@@ -51,8 +51,10 @@ function toFirestoreData(player: CreatePlayer | UpdatePlayer): Partial<Firestore
   const data: Record<string, unknown> = {};
   
   if ('name' in player && player.name !== undefined) data.name = player.name;
-  if ('photoUrl' in player) data.photoUrl = player.photoUrl;
-  if ('notes' in player) data.notes = player.notes;
+  // Only include photoUrl if it's defined (not undefined)
+  if ('photoUrl' in player && player.photoUrl !== undefined) data.photoUrl = player.photoUrl;
+  // Only include notes if it's defined (not undefined)
+  if ('notes' in player && player.notes !== undefined) data.notes = player.notes;
   if ('createdBy' in player && player.createdBy !== undefined) data.createdBy = player.createdBy;
   
   return data as Partial<FirestorePlayer>;
