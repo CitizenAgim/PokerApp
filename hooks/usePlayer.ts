@@ -16,7 +16,9 @@ const playerListeners = new Set<(playerId: string, player: Player) => void>();
 
 function subscribeToPlayerCache(callback: (playerId: string, player: Player) => void) {
   playerListeners.add(callback);
-  return () => playerListeners.delete(callback);
+  return () => {
+    playerListeners.delete(callback);
+  };
 }
 
 function notifyPlayerListeners(playerId: string, player: Player) {
@@ -101,6 +103,7 @@ export function usePlayers(): UsePlayersResult {
     const player: Player = {
       id,
       ...playerData,
+      notesList: [],
       createdBy: userId,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -115,7 +118,7 @@ export function usePlayers(): UsePlayersResult {
     if (auth.currentUser?.uid && await isOnline()) {
       try {
         await playersFirebase.createPlayer(
-          { ...playerData, createdBy: auth.currentUser.uid },
+          { ...playerData, notesList: [], createdBy: auth.currentUser.uid },
           id
         );
       } catch (err) {

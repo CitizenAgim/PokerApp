@@ -191,8 +191,9 @@ async function syncPlayer(
             name: player.name,
             photoUrl: player.photoUrl || null,
             notes: player.notes || null,
+            notesList: player.notesList || [],
             createdBy: userId,
-          },
+          } as any,
           player.id
         );
       } else {
@@ -201,7 +202,8 @@ async function syncPlayer(
           name: player.name,
           photoUrl: player.photoUrl || null,
           notes: player.notes || null,
-        });
+          notesList: player.notesList || [],
+        } as any);
       }
       break;
     case 'delete':
