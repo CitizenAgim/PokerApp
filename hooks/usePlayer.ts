@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 const playerCache = new Map<string, Player>();
 const playerListeners = new Set<(playerId: string, player: Player) => void>();
+const playersListListeners = new Set<() => void>();
 
 function subscribeToPlayerCache(callback: (playerId: string, player: Player) => void) {
   playerListeners.add(callback);
@@ -21,8 +22,19 @@ function subscribeToPlayerCache(callback: (playerId: string, player: Player) => 
   };
 }
 
+function subscribeToPlayersList(callback: () => void) {
+  playersListListeners.add(callback);
+  return () => {
+    playersListListeners.delete(callback);
+  };
+}
+
 function notifyPlayerListeners(playerId: string, player: Player) {
   playerListeners.forEach(listener => listener(playerId, player));
+}
+
+function notifyPlayersListListeners() {
+  playersListListeners.forEach(listener => listener());
 }
 
 function getCachedPlayer(id: string): Player | null {
@@ -113,6 +125,7 @@ export function usePlayers(): UsePlayersResult {
     await localStorage.savePlayer(player);
     setCachedPlayer(player);
     setPlayers(prev => [player, ...prev]);
+    notifyPlayersListListeners();
 
     // Try to sync to cloud only if user is logged in (not guest)
     if (auth.currentUser?.uid && await isOnline()) {
@@ -143,6 +156,7 @@ export function usePlayers(): UsePlayersResult {
     await localStorage.savePlayer(updatedPlayer);
     setCachedPlayer(updatedPlayer);
     setPlayers(prev => prev.map(p => p.id === updatedPlayer.id ? updatedPlayer : p));
+    notifyPlayersListListeners();
 
     // Try to sync to cloud only if user is logged in and player was created by them
     const userId = auth.currentUser?.uid;
@@ -162,6 +176,7 @@ export function usePlayers(): UsePlayersResult {
     await localStorage.deletePlayer(id);
     removeCachedPlayer(id);
     setPlayers(prev => prev.filter(p => p.id !== id));
+    notifyPlayersListListeners();
 
     // Try to sync to cloud only if user is logged in and player was created by them
     const userId = auth.currentUser?.uid;
@@ -177,6 +192,9 @@ export function usePlayers(): UsePlayersResult {
 
   useEffect(() => {
     loadPlayers();
+    return subscribeToPlayersList(() => {
+      loadPlayers();
+    });
   }, [loadPlayers]);
 
   return {
