@@ -129,7 +129,6 @@ export async function migrateGuestDataToUser(newUserId: string): Promise<void> {
           notes: updatedPlayer.notes,
           photoUrl: updatedPlayer.photoUrl,
           createdBy: newUserId,
-          sharedWith: [],
         }, updatedPlayer.id);
       } catch (error) {
         console.warn('Could not sync migrated player to cloud:', error);

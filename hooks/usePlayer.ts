@@ -91,7 +91,6 @@ export function usePlayers(): UsePlayersResult {
       id,
       ...playerData,
       createdBy: userId,
-      sharedWith: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -105,7 +104,7 @@ export function usePlayers(): UsePlayersResult {
     if (auth.currentUser?.uid && await isOnline()) {
       try {
         await playersFirebase.createPlayer(
-          { ...playerData, createdBy: auth.currentUser.uid, sharedWith: [] },
+          { ...playerData, createdBy: auth.currentUser.uid },
           id
         );
       } catch (err) {
