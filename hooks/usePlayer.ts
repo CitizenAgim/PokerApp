@@ -1,5 +1,6 @@
 import { auth } from '@/config/firebase';
 import * as playersFirebase from '@/services/firebase/players';
+import * as rangesFirebase from '@/services/firebase/ranges';
 import { GUEST_USER_ID } from '@/services/guestMode';
 import * as localStorage from '@/services/localStorage';
 import { isOnline } from '@/services/sync';
@@ -154,6 +155,7 @@ export function usePlayers(): UsePlayersResult {
     if (userId && existingPlayer?.createdBy === userId && await isOnline()) {
       try {
         await playersFirebase.deletePlayer(id);
+        await rangesFirebase.deletePlayerRanges(id);
       } catch (err) {
         console.warn('Could not sync player deletion to cloud:', err);
       }
