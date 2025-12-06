@@ -1,5 +1,5 @@
 import { db } from '@/config/firebase';
-import { CreatePlayer, Player, UpdatePlayer } from '@/types/poker';
+import { CreatePlayer, NoteEntry, Player, UpdatePlayer } from '@/types/poker';
 import {
     collection,
     deleteDoc,
@@ -30,6 +30,7 @@ interface FirestorePlayer {
   name: string;
   photoUrl?: string;
   notes?: string;
+  notesList?: NoteEntry[];
   createdBy: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -41,6 +42,7 @@ function toPlayer(id: string, data: FirestorePlayer): Player {
     name: data.name,
     photoUrl: data.photoUrl,
     notes: data.notes,
+    notesList: data.notesList || [],
     createdBy: data.createdBy,
     createdAt: data.createdAt?.toMillis() || Date.now(),
     updatedAt: data.updatedAt?.toMillis() || Date.now(),
@@ -55,6 +57,7 @@ function toFirestoreData(player: CreatePlayer | UpdatePlayer): Partial<Firestore
   if ('photoUrl' in player && player.photoUrl !== undefined) data.photoUrl = player.photoUrl;
   // Only include notes if it's defined (not undefined)
   if ('notes' in player && player.notes !== undefined) data.notes = player.notes;
+  if ('notesList' in player && player.notesList !== undefined) data.notesList = player.notesList;
   if ('createdBy' in player && player.createdBy !== undefined) data.createdBy = player.createdBy;
   
   return data as Partial<FirestorePlayer>;
@@ -129,6 +132,7 @@ export async function createPlayer(
       name: player.name,
       photoUrl: player.photoUrl,
       notes: player.notes,
+      notesList: player.notesList || [],
       createdBy: player.createdBy,
       createdAt: Date.now(),
       updatedAt: Date.now(),

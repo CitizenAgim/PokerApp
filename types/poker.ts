@@ -73,11 +73,18 @@ export function getRangeKey(position: Position, action: Action): string {
 // PLAYER TYPES
 // ============================================
 
+export interface NoteEntry {
+  id: string;
+  content: string;
+  timestamp: number;
+}
+
 export interface Player {
   id: string;
   name: string;
   photoUrl?: string;
-  notes?: string;
+  notes?: string; // Deprecated, kept for backward compatibility
+  notesList?: NoteEntry[];
   createdAt: number;      // Unix timestamp
   updatedAt: number;      // Unix timestamp
   createdBy: string;      // User ID who created this player

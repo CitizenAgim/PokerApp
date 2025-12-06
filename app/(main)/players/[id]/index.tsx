@@ -45,16 +45,19 @@ export default function PlayerDetailScreen() {
   // Edit modal state
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState('');
-  const [editNotes, setEditNotes] = useState('');
   const [editPhotoUrl, setEditPhotoUrl] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
-  const [showNotes, setShowNotes] = useState(false);
+  
+  // Notes state
+  const [showNotes, setShowNotes] = useState(true);
+  const [isAddingNote, setIsAddingNote] = useState(false);
+  const [newNote, setNewNote] = useState('');
+  const [addingNote, setAddingNote] = useState(false);
 
   // Initialize edit form when player loads or modal opens
   useEffect(() => {
     if (player && showEditModal) {
       setEditName(player.name);
-      setEditNotes(player.notes || '');
       setEditPhotoUrl(player.photoUrl);
     }
   }, [player, showEditModal]);
@@ -62,7 +65,6 @@ export default function PlayerDetailScreen() {
   const handleOpenEditModal = () => {
     if (player) {
       setEditName(player.name);
-      setEditNotes(player.notes || '');
       setEditPhotoUrl(player.photoUrl);
       setShowEditModal(true);
     }
@@ -92,7 +94,6 @@ export default function PlayerDetailScreen() {
       await updatePlayer({
         id,
         name: editName.trim(),
-        notes: editNotes.trim() || undefined,
         photoUrl: editPhotoUrl,
       });
       setShowEditModal(false);
@@ -109,8 +110,36 @@ export default function PlayerDetailScreen() {
     // Reset form to original values
     if (player) {
       setEditName(player.name);
-      setEditNotes(player.notes || '');
       setEditPhotoUrl(player.photoUrl);
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!newNote.trim()) return;
+
+    try {
+      setAddingNote(true);
+      const noteEntry = {
+        id: Date.now().toString(),
+        content: newNote.trim(),
+        timestamp: Date.now(),
+      };
+
+      // Prepend new note to existing list
+      const updatedNotesList = [noteEntry, ...(player?.notesList || [])];
+
+      await updatePlayer({
+        id,
+        notesList: updatedNotesList,
+      });
+      
+      setNewNote('');
+      setIsAddingNote(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add note');
+      console.error(error);
+    } finally {
+      setAddingNote(false);
     }
   };
 
@@ -205,26 +234,92 @@ export default function PlayerDetailScreen() {
 
       {/* Notes Section */}
       <View style={styles.sectionContainer}>
-        <TouchableOpacity 
-          style={styles.sectionHeader} 
-          onPress={() => setShowNotes(!showNotes)}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Notes</Text>
-          <Ionicons 
-            name={showNotes ? "chevron-up" : "chevron-down"} 
-            size={24} 
-            color="#666" 
-          />
-        </TouchableOpacity>
+        <View style={styles.sectionHeader}>
+          <TouchableOpacity 
+            style={styles.sectionHeaderTitle} 
+            onPress={() => setShowNotes(!showNotes)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Notes</Text>
+            <Ionicons 
+              name={showNotes ? "chevron-up" : "chevron-down"} 
+              size={24} 
+              color="#666" 
+            />
+          </TouchableOpacity>
+          
+          {showNotes && !isAddingNote && (
+            <TouchableOpacity 
+              style={styles.addNoteButton}
+              onPress={() => setIsAddingNote(true)}
+            >
+              <Ionicons name="add" size={16} color="#0a7ea4" />
+              <Text style={styles.addNoteButtonText}>Add Note</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         
         {showNotes && (
-          <View style={styles.notesContent}>
-            {player.notes ? (
-              <Text style={styles.noteText}>{player.notes}</Text>
-            ) : (
-              <Text style={styles.emptyNoteText}>No notes added yet.</Text>
+          <View style={styles.notesContainer}>
+            {isAddingNote && (
+              <View style={styles.addNoteContainer}>
+                <TextInput
+                  style={styles.addNoteInput}
+                  value={newNote}
+                  onChangeText={setNewNote}
+                  placeholder="Write a new note..."
+                  placeholderTextColor="#999"
+                  multiline
+                  autoFocus
+                />
+                <View style={styles.addNoteActions}>
+                  <TouchableOpacity 
+                    style={styles.cancelNoteButton}
+                    onPress={() => {
+                      setIsAddingNote(false);
+                      setNewNote('');
+                    }}
+                  >
+                    <Text style={styles.cancelNoteText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[
+                      styles.saveNoteButton,
+                      !newNote.trim() && styles.saveNoteButtonDisabled
+                    ]}
+                    onPress={handleAddNote}
+                    disabled={!newNote.trim() || addingNote}
+                  >
+                    {addingNote ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.saveNoteText}>Save</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
             )}
+
+            <View style={styles.notesList}>
+              {player.notesList && player.notesList.length > 0 ? (
+                player.notesList.map(note => (
+                  <View key={note.id} style={styles.noteItem}>
+                    <Text style={styles.noteDate}>
+                      {new Date(note.timestamp).toLocaleDateString()}
+                    </Text>
+                    <Text style={styles.noteContent}>{note.content}</Text>
+                  </View>
+                ))
+              ) : player.notes ? (
+                // Legacy notes fallback
+                <View style={styles.noteItem}>
+                  <Text style={styles.noteDate}>Legacy Note</Text>
+                  <Text style={styles.noteContent}>{player.notes}</Text>
+                </View>
+              ) : !isAddingNote && (
+                <Text style={styles.emptyNoteText}>No notes added yet.</Text>
+              )}
+            </View>
           </View>
         )}
       </View>
@@ -344,21 +439,6 @@ export default function PlayerDetailScreen() {
                   onChangeText={setEditName}
                   placeholder="Enter player name"
                   placeholderTextColor="#999"
-                />
-              </View>
-              
-              {/* Notes Input */}
-              <View style={styles.editInputGroup}>
-                <Text style={styles.editLabel}>Notes</Text>
-                <TextInput
-                  style={[styles.editInput, styles.editTextArea]}
-                  value={editNotes}
-                  onChangeText={setEditNotes}
-                  placeholder="Add notes about this player's tendencies..."
-                  placeholderTextColor="#999"
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
                 />
               </View>
             </ScrollView>
@@ -584,11 +664,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
-  modalContent: {
+  editModalContent: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '70%',
+  },
+  editModalBody: {
+    padding: 20,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -605,7 +688,7 @@ const styles = StyleSheet.create({
   },
   editAvatarContainer: {
     alignItems: 'center',
-    paddingVertical: 20,
+    marginBottom: 20,
   },
   editAvatar: {
     width: 80,
@@ -687,13 +770,87 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  notesContent: {
+  sectionHeaderTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  addNoteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#e3f2fd',
+    borderRadius: 16,
+  },
+  addNoteButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0a7ea4',
+  },
+  notesContainer: {
+    gap: 16,
+  },
+  addNoteContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  addNoteInput: {
+    fontSize: 15,
+    color: '#333',
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: 12,
+  },
+  addNoteActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  cancelNoteButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  cancelNoteText: {
+    color: '#666',
+    fontWeight: '500',
+  },
+  saveNoteButton: {
+    backgroundColor: '#0a7ea4',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    minWidth: 70,
+    alignItems: 'center',
+  },
+  saveNoteButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  saveNoteText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  notesList: {
+    gap: 12,
+  },
+  noteItem: {
     backgroundColor: '#fff',
     padding: 16,
     borderRadius: 12,
-    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#0a7ea4',
   },
-  noteText: {
+  noteDate: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  noteContent: {
     fontSize: 15,
     color: '#333',
     lineHeight: 22,
@@ -702,5 +859,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#999',
     fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 8,
   },
 });

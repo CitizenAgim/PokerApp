@@ -25,9 +25,13 @@ export function useCurrentUser() {
               id: firebaseUser.uid,
               email: firebaseUser.email || '',
               displayName: firebaseUser.displayName || 'User',
-              photoUrl: firebaseUser.photoURL || undefined,
               createdAt: Date.now(),
             };
+            
+            if (firebaseUser.photoURL) {
+              newUser.photoUrl = firebaseUser.photoURL;
+            }
+
             await setDoc(userDocRef, newUser);
             setUser(newUser);
           }
@@ -59,7 +63,10 @@ export function useCurrentUser() {
 
       // Update Firestore document
       const userDocRef = doc(db, 'users', auth.currentUser.uid);
-      await updateDoc(userDocRef, data);
+      
+      // Sanitize data to remove undefined values
+      const firestoreData = JSON.parse(JSON.stringify(data));
+      await updateDoc(userDocRef, firestoreData);
 
       // Update local state
       setUser(prev => prev ? { ...prev, ...data } : null);
