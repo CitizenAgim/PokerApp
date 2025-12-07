@@ -112,10 +112,21 @@ export interface Session {
   createdBy: string;      // User ID
 }
 
+export interface TablePlayer {
+  id: string;
+  name: string;
+  photoUrl?: string;
+  isTemp: boolean; // True if the player is not saved to the global database
+}
+
 export interface Seat {
-  seatNumber: number;     // 1-9
-  playerId?: string;      // Reference to Player (undefined = empty seat)
-  position?: Position;    // Calculated based on button position
+  index: number;       // 0-8
+  player?: TablePlayer | null;
+}
+
+export interface TableState {
+  seats: Seat[];       // Fixed array of 9 seats
+  heroSeatIndex: number; // Default to 4 (bottom center)
 }
 
 export interface Table {

@@ -102,6 +102,17 @@ export default function SessionsScreen() {
         <Ionicons name="add" size={20} color="#fff" />
         <Text style={styles.addButtonText}>New Session</Text>
       </TouchableOpacity>
+      
+      <TouchableOpacity
+        style={[styles.addButton, styles.tableButton]}
+        onPress={() => {
+          haptics.lightTap();
+          router.push('/(main)/sessions/table');
+        }}
+      >
+        <Ionicons name="grid-outline" size={20} color="#0a7ea4" />
+        <Text style={[styles.addButtonText, styles.tableButtonText]}>Current Table</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -155,8 +166,18 @@ export default function SessionsScreen() {
         }
       />
 
-      {/* FAB */}
-      {sessions.length > 0 && (
+      {/* FAB Group */}
+      <View style={styles.fabContainer}>
+        <TouchableOpacity
+          style={[styles.fab, styles.fabSecondary]}
+          onPress={() => {
+            haptics.lightTap();
+            router.push('/(main)/sessions/table');
+          }}
+        >
+          <Ionicons name="grid-outline" size={24} color="#0a7ea4" />
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.fab}
           onPress={() => {
@@ -166,7 +187,7 @@ export default function SessionsScreen() {
         >
           <Ionicons name="add" size={28} color="#fff" />
         </TouchableOpacity>
-      )}
+      </View>
     </View>
   );
 }
@@ -316,10 +337,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
-  fab: {
+  tableButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#0a7ea4',
+    marginTop: 12,
+  },
+  tableButtonText: {
+    color: '#0a7ea4',
+  },
+  fabContainer: {
     position: 'absolute',
     bottom: 24,
     right: 24,
+    alignItems: 'center',
+    gap: 16,
+  },
+  fab: {
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -331,5 +365,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+  },
+  fabSecondary: {
+    backgroundColor: '#fff',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
 });
