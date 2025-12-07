@@ -8,7 +8,7 @@ interface PokerTableProps {
   heroSeatIndex?: number;
 }
 
-export function PokerTable({ seats, onSeatPress, heroSeatIndex = 8 }: PokerTableProps) {
+export function PokerTable({ seats, onSeatPress, heroSeatIndex = 6 }: PokerTableProps) {
   // Calculate seat positions
   // We want an oval shape. 
   // Center is (0,0) relative to the table container.
@@ -20,18 +20,17 @@ export function PokerTable({ seats, onSeatPress, heroSeatIndex = 8 }: PokerTable
   const RY = TABLE_HEIGHT / 2; // Vertical radius
   
   // Seat positions (0-8)
-  // We want Seat 1 to be at the old Seat 2 position (Left Bottom)
-  // And the order to be Clockwise.
-  // Old Seat 2 was at ~170 degrees.
-  // Formula: angleDeg = 130 + index * 40
-  // 0: 130 (Bottom Left)
-  // 1: 170 (Left Bottom)
-  // 2: 210 (Left Top)
+  // Seat 1 (Index 0) is Top Left (approx 210 degrees)
+  // Order is Clockwise.
+  // Formula: angleDeg = 210 + index * 40
+  // 0: 210 (Top Left)
+  // 1: 250 (Top)
+  // 2: 290 (Top Right)
   // ...
-  // 8: 450 -> 90 (Bottom Center - Hero)
+  // 6: 450 -> 90 (Bottom Center - Hero)
   
   const getPosition = (index: number) => {
-    const angleDeg = 130 + index * 40;
+    const angleDeg = 210 + index * 40;
     const angleRad = (angleDeg * Math.PI) / 180;
     
     // Calculate position relative to center
