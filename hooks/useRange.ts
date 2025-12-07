@@ -3,6 +3,7 @@ import * as localStorage from '@/services/localStorage';
 import { isOnline } from '@/services/sync';
 import { Action, PlayerRanges, Position, Range } from '@/types/poker';
 import { createEmptyRange } from '@/utils/handRanking';
+import { propagateRangeUpdates } from '@/utils/rangePropagation';
 import { useCallback, useEffect, useState } from 'react';
 
 // ============================================
@@ -391,13 +392,48 @@ export function useRange(
       setSaving(true);
       setError(null);
 
-      // Save locally first (fast)
+      // 1. Save the current range (as before)
       await localStorage.updatePlayerRange(playerId, rangeKey, range);
-      
-      // Update the in-memory cache so other screens see the change
       updateCachedRange(playerId, rangeKey, range);
 
-      // Sync to cloud in background (don't await for UI)
+      // 2. Propagate updates
+      const updates = await propagateRangeUpdates(
+        position,
+        action,
+        range,
+        async (pos, act) => {
+          const key = rangesFirebase.getRangeKey(pos, act);
+          // Try cache first
+          const cached = getCachedRanges(playerId);
+          if (cached && cached.ranges[key]) return cached.ranges[key];
+          
+          // Fallback to local storage
+          const local = await localStorage.getPlayerRanges(playerId);
+          return local?.ranges[key] || createEmptyRange();
+        }
+      );
+
+      // 3. Save propagated updates
+      for (const update of updates) {
+        const updateKey = rangesFirebase.getRangeKey(update.position, update.action);
+        
+        // Save locally
+        await localStorage.updatePlayerRange(playerId, updateKey, update.range);
+        updateCachedRange(playerId, updateKey, update.range);
+        
+        // Sync to cloud (fire and forget)
+        isOnline().then(online => {
+          if (online) {
+            rangesFirebase.updatePlayerRange(playerId, updateKey, update.range).catch(err => {
+              if (!isOfflineError(err)) {
+                console.warn('Could not sync propagated range to cloud:', err);
+              }
+            });
+          }
+        });
+      }
+
+      // Sync current range to cloud (fire and forget)
       isOnline().then(online => {
         if (online) {
           rangesFirebase.updatePlayerRange(playerId, rangeKey, range).catch(err => {
@@ -413,7 +449,7 @@ export function useRange(
     } finally {
       setSaving(false);
     }
-  }, [playerId, rangeKey, range]);
+  }, [playerId, rangeKey, range, position, action]);
 
   const clear = useCallback(async (): Promise<void> => {
     const emptyRange = createEmptyRange();
