@@ -1,4 +1,4 @@
-import { Seat as SeatType, TablePlayer } from '@/types/poker';
+import { Seat as SeatType } from '@/types/poker';
 import { StyleSheet, View } from 'react-native';
 import { Seat } from './Seat';
 
@@ -12,10 +12,10 @@ export function PokerTable({ seats, onSeatPress, heroSeatIndex = 4 }: PokerTable
   // Calculate seat positions
   // We want an oval shape. 
   // Center is (0,0) relative to the table container.
-  // Table dimensions: let's say 300x500 (vertical oval)
+  // Table dimensions: Reduced to fit better on screen
   
-  const TABLE_WIDTH = 300;
-  const TABLE_HEIGHT = 520;
+  const TABLE_WIDTH = 260;
+  const TABLE_HEIGHT = 440;
   const RX = TABLE_WIDTH / 2; // Horizontal radius
   const RY = TABLE_HEIGHT / 2; // Vertical radius
   
@@ -44,8 +44,8 @@ export function PokerTable({ seats, onSeatPress, heroSeatIndex = 4 }: PokerTable
     
     // Calculate position relative to center
     // We push seats slightly outside the table edge
-    const x = (RX + 35) * Math.cos(angleRad);
-    const y = (RY + 35) * Math.sin(angleRad);
+    const x = (RX + 30) * Math.cos(angleRad);
+    const y = (RY + 30) * Math.sin(angleRad);
     
     return { x, y };
   };
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
-    minHeight: 600,
+    minHeight: 500,
   },
   table: {
     backgroundColor: '#27ae60',

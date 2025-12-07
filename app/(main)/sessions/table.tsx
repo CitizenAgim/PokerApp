@@ -9,7 +9,7 @@ import { Alert, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, 
 
 export default function CurrentTableScreen() {
   const router = useRouter();
-  const { players } = usePlayers();
+  const { players, createPlayer } = usePlayers();
   
   // Local state for now (will move to global/context later)
   const [seats, setSeats] = useState<Seat[]>([]);
@@ -73,6 +73,25 @@ export default function CurrentTableScreen() {
     };
     
     addPlayerToSeat(newPlayer);
+  };
+
+  const handleCreateNewPlayer = async () => {
+    if (!searchQuery.trim()) return;
+    
+    try {
+      const newPlayer = await createPlayer({ name: searchQuery.trim() });
+      
+      const tablePlayer: TablePlayer = {
+        id: newPlayer.id,
+        name: newPlayer.name,
+        photoUrl: newPlayer.photoUrl,
+        isTemp: false,
+      };
+      
+      addPlayerToSeat(tablePlayer);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create new player');
+    }
   };
 
   const handleSelectExistingPlayer = (player: Player) => {
@@ -184,6 +203,15 @@ export default function CurrentTableScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {searchQuery.trim().length > 0 && !filteredPlayers.some(p => p.name.toLowerCase() === searchQuery.toLowerCase()) && (
+              <TouchableOpacity 
+                style={styles.createButton} 
+                onPress={handleCreateNewPlayer}
+              >
+                <Text style={styles.createText}>Create New Player</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>
@@ -316,6 +344,20 @@ const styles = StyleSheet.create({
   },
   addText: {
     color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  createButton: {
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#0a7ea4',
+    alignItems: 'center',
+  },
+  createText: {
+    color: '#0a7ea4',
     fontWeight: '600',
     fontSize: 16,
   },
