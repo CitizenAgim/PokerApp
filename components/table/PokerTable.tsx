@@ -8,7 +8,7 @@ interface PokerTableProps {
   heroSeatIndex?: number;
 }
 
-export function PokerTable({ seats, onSeatPress, heroSeatIndex = 4 }: PokerTableProps) {
+export function PokerTable({ seats, onSeatPress, heroSeatIndex = 8 }: PokerTableProps) {
   // Calculate seat positions
   // We want an oval shape. 
   // Center is (0,0) relative to the table container.
@@ -20,26 +20,18 @@ export function PokerTable({ seats, onSeatPress, heroSeatIndex = 4 }: PokerTable
   const RY = TABLE_HEIGHT / 2; // Vertical radius
   
   // Seat positions (0-8)
-  // 4 is Hero (Bottom Center) -> 90 degrees (or 270 depending on coordinate system)
-  // Let's distribute them evenly. 360 / 9 = 40 degrees per seat.
-  // If 4 is at 90 degrees (bottom), then:
-  // 4: 90
-  // 3: 50
-  // 2: 10
-  // 1: -30 (330)
-  // 0: -70 (290)
-  // 8: -110 (250)
-  // 7: -150 (210)
-  // 6: -190 (170)
-  // 5: -230 (130)
+  // We want Seat 1 to be at the old Seat 2 position (Left Bottom)
+  // And the order to be Clockwise.
+  // Old Seat 2 was at ~170 degrees.
+  // Formula: angleDeg = 130 + index * 40
+  // 0: 130 (Bottom Left)
+  // 1: 170 (Left Bottom)
+  // 2: 210 (Left Top)
+  // ...
+  // 8: 450 -> 90 (Bottom Center - Hero)
   
   const getPosition = (index: number) => {
-    // Adjust index so Hero (4) is at the bottom
-    // Standard circle: 0 is right, 90 is bottom, 180 is left, 270 is top
-    // We want index 4 to be at 90 degrees.
-    // Angle = 90 - (index - 4) * 40
-    
-    const angleDeg = 90 - (index - 4) * 40;
+    const angleDeg = 130 + index * 40;
     const angleRad = (angleDeg * Math.PI) / 180;
     
     // Calculate position relative to center
