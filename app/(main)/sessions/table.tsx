@@ -30,6 +30,16 @@ export default function CurrentTableScreen() {
         'What would you like to do?',
         [
           { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Player Details',
+            onPress: () => {
+              if (!seat.player?.isTemp) {
+                router.push(`/(main)/players/${seat.player?.id}`);
+              } else {
+                Alert.alert('Info', 'Temporary players do not have a details page.');
+              }
+            }
+          },
           { 
             text: 'Remove Player', 
             style: 'destructive',
