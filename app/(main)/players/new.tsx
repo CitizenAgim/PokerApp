@@ -1,4 +1,5 @@
 import { usePlayers } from '@/hooks';
+import { resizeImage } from '@/utils/image';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -35,7 +36,8 @@ export default function NewPlayerScreen() {
     });
 
     if (!result.canceled) {
-      setPhotoUrl(result.assets[0].uri);
+      const resizedUri = await resizeImage(result.assets[0].uri);
+      setPhotoUrl(resizedUri);
     }
   };
 

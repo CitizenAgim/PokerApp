@@ -1,6 +1,7 @@
 import { auth } from '@/config/firebase';
 import * as playersFirebase from '@/services/firebase/players';
 import * as rangesFirebase from '@/services/firebase/ranges';
+import * as storageFirebase from '@/services/firebase/storage';
 import { GUEST_USER_ID } from '@/services/guestMode';
 import * as localStorage from '@/services/localStorage';
 import { isOnline } from '@/services/sync';
@@ -130,8 +131,30 @@ export function usePlayers(): UsePlayersResult {
     // Try to sync to cloud only if user is logged in (not guest)
     if (auth.currentUser?.uid && await isOnline()) {
       try {
+        let finalPhotoUrl = playerData.photoUrl;
+
+        // If there is a photo and it's a local file, upload it
+        if (playerData.photoUrl && !playerData.photoUrl.startsWith('http')) {
+           try {
+             finalPhotoUrl = await storageFirebase.uploadPlayerPhoto(userId, id, playerData.photoUrl);
+             
+             // Update local player with the new remote URL
+             const updatedPlayer = { ...player, photoUrl: finalPhotoUrl };
+             await localStorage.savePlayer(updatedPlayer);
+             setCachedPlayer(updatedPlayer);
+             setPlayers(prev => prev.map(p => p.id === id ? updatedPlayer : p));
+           } catch (uploadErr) {
+             console.warn('Failed to upload photo:', uploadErr);
+           }
+        }
+
         await playersFirebase.createPlayer(
-          { ...playerData, notesList: [], createdBy: auth.currentUser.uid },
+          { 
+            ...playerData, 
+            photoUrl: finalPhotoUrl,
+            notesList: [], 
+            createdBy: auth.currentUser.uid 
+          },
           id
         );
       } catch (err) {
@@ -162,7 +185,27 @@ export function usePlayers(): UsePlayersResult {
     const userId = auth.currentUser?.uid;
     if (userId && existingPlayer.createdBy === userId && await isOnline()) {
       try {
-        await playersFirebase.updatePlayer(playerUpdate);
+        let finalPhotoUrl = playerUpdate.photoUrl;
+
+        // If photoUrl is being updated and it's a local file, upload it
+        if (finalPhotoUrl && !finalPhotoUrl.startsWith('http')) {
+           try {
+             finalPhotoUrl = await storageFirebase.uploadPlayerPhoto(userId, playerUpdate.id, finalPhotoUrl);
+             
+             // Update local player with the new remote URL
+             const playerWithRemoteUrl = { ...updatedPlayer, photoUrl: finalPhotoUrl };
+             await localStorage.savePlayer(playerWithRemoteUrl);
+             setCachedPlayer(playerWithRemoteUrl);
+             setPlayers(prev => prev.map(p => p.id === playerUpdate.id ? playerWithRemoteUrl : p));
+           } catch (uploadErr) {
+             console.warn('Failed to upload photo:', uploadErr);
+           }
+        }
+
+        await playersFirebase.updatePlayer({
+          ...playerUpdate,
+          photoUrl: finalPhotoUrl
+        });
       } catch (err) {
         console.warn('Could not sync player update to cloud:', err);
       }

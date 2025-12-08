@@ -1,5 +1,6 @@
 import { HAND_MAP } from '@/constants/hands';
 import { usePlayer, usePlayerRanges, usePlayers } from '@/hooks';
+import { resizeImage } from '@/utils/image';
 import { Action, NoteEntry, Position } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -85,7 +86,8 @@ export default function PlayerDetailScreen() {
     });
 
     if (!result.canceled) {
-      setEditPhotoUrl(result.assets[0].uri);
+      const resizedUri = await resizeImage(result.assets[0].uri);
+      setEditPhotoUrl(resizedUri);
     }
   };
 

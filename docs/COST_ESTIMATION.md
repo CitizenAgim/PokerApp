@@ -25,11 +25,19 @@ For a typical user, the cost is negligible because the data being stored (text, 
 *   **Cost**: Firebase charges ~$0.108 per 100,000 writes.
 *   **Total**: **~$0.02 / year**.
 
-### 3. Storage
-*   **Scenario**: Storing player profiles, hand ranges, and session history.
-*   **Volume**: Text data is tiny. Even with 5 years of history, a user would likely use less than 10MB of database storage.
-*   **Cost**: The first 1GB is usually free. Even above that, it's ~$0.10 per **GB**.
-*   **Total**: **$0.00 / year**.
+### 3. Storage (Including Photos)
+*   **Scenario**: Storing player profiles, hand ranges, session history, and **player photos**.
+*   **Text Data**: Negligible (< 10MB).
+*   **Photos (Optimized)**:
+    *   Assuming 100 players per user.
+    *   Photos are now resized to max 400px width (avg **20KB**).
+    *   Total storage: ~2MB per user.
+    *   **Storage Cost**: $0.026/GB => Effectively $0.
+    *   **Bandwidth Cost**: Downloading photos (cached locally). Est. 20MB/month => $0.0024/month => ~$0.03 / year.
+*   **Total**: **~$0.03 / year**.
+
+## Total Estimated Cost
+**~$0.11 per user / year** (including photo storage and bandwidth).
 
 ## Potential Cost Risks (Scale)
 While individual users are cheap, here are things that could increase costs:

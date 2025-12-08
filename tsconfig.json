@@ -6,7 +6,9 @@
       "@/*": [
         "./*"
       ]
-    }
+    },
+    "emitDeclarationOnly": false,
+    "declaration": false
   },
   "include": [
     "**/*.ts",
