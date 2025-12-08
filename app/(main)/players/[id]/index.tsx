@@ -1,7 +1,7 @@
 import { HAND_MAP } from '@/constants/hands';
 import { usePlayer, usePlayerRanges, usePlayers } from '@/hooks';
-import { resizeImage } from '@/utils/image';
 import { Action, NoteEntry, Position } from '@/types/poker';
+import { resizeImage } from '@/utils/image';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
