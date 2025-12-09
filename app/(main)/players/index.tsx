@@ -3,6 +3,7 @@ import { usePlayers } from '@/hooks';
 import { Player } from '@/types/poker';
 import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -39,11 +40,15 @@ export default function PlayersScreen() {
         router.push(`/(main)/players/${item.id}`);
       }}
     >
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>
-          {item.name.charAt(0).toUpperCase()}
-        </Text>
-      </View>
+      {item.photoUrl ? (
+        <Image source={{ uri: item.photoUrl }} style={styles.avatar} />
+      ) : (
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {item.name.charAt(0).toUpperCase()}
+          </Text>
+        </View>
+      )}
       <View style={styles.playerInfo}>
         <Text style={styles.playerName}>{item.name}</Text>
         {item.notes && (

@@ -2,6 +2,7 @@ import { useCurrentSession, usePlayers, useSession } from '@/hooks';
 import { Seat } from '@/types/poker';
 import { getPositionName } from '@/utils/positionCalculator';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
@@ -64,10 +65,19 @@ function SeatView({ seat, isButton, isHero, onPress, buttonPosition }: SeatViewC
     >
       {player ? (
         <>
-          <Text style={styles.seatPlayerName} numberOfLines={1}>
+          {player.photoUrl && (
+            <>
+              <Image 
+                source={{ uri: player.photoUrl }} 
+                style={[StyleSheet.absoluteFill, { borderRadius: SEAT_SIZE / 2 }]} 
+              />
+              <View style={styles.seatOverlay} />
+            </>
+          )}
+          <Text style={[styles.seatPlayerName, player.photoUrl && styles.seatTextLight]} numberOfLines={1}>
             {player.name}
           </Text>
-          <Text style={styles.seatPosition}>
+          <Text style={[styles.seatPosition, player.photoUrl && styles.seatTextLight]}>
             {positionName}
           </Text>
         </>
@@ -467,10 +477,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     textAlign: 'center',
+    zIndex: 1,
   },
   seatPosition: {
     fontSize: 9,
     color: '#666',
+    zIndex: 1,
+  },
+  seatTextLight: {
+    color: '#fff',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  seatOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: SEAT_SIZE / 2,
   },
   seatNumber: {
     fontSize: 8,

@@ -145,6 +145,8 @@ export function usePlayers(): UsePlayersResult {
              setPlayers(prev => prev.map(p => p.id === id ? updatedPlayer : p));
            } catch (uploadErr) {
              console.warn('Failed to upload photo:', uploadErr);
+             // If upload fails, do not save local URI to cloud
+             finalPhotoUrl = undefined;
            }
         }
 
@@ -199,6 +201,7 @@ export function usePlayers(): UsePlayersResult {
              setPlayers(prev => prev.map(p => p.id === playerUpdate.id ? playerWithRemoteUrl : p));
            } catch (uploadErr) {
              console.warn('Failed to upload photo:', uploadErr);
+             finalPhotoUrl = undefined;
            }
         }
 

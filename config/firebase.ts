@@ -4,6 +4,7 @@ import { FirebaseApp, getApp, getApps, initializeApp } from "firebase/app";
 //@ts-ignore
 import { Auth, getAuth, getReactNativePersistence, initializeAuth } from 'firebase/auth';
 import { Firestore, getFirestore } from 'firebase/firestore';
+import { FirebaseStorage, getStorage } from 'firebase/storage';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -20,6 +21,7 @@ const firebaseConfig = {
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
+let storage: FirebaseStorage;
 
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);
@@ -27,11 +29,13 @@ if (!getApps().length) {
     persistence: getReactNativePersistence(AsyncStorage)
   });
   db = getFirestore(app);
+  storage = getStorage(app);
 } else {
   app = getApp();
   auth = getAuth(app);
   db = getFirestore(app);
+  storage = getStorage(app);
 }
 
-export { app, auth, db };
+export { app, auth, db, storage };
 
