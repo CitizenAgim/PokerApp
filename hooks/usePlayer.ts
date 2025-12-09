@@ -230,6 +230,7 @@ export function usePlayers(): UsePlayersResult {
       try {
         await playersFirebase.deletePlayer(id);
         await rangesFirebase.deletePlayerRanges(id);
+        await storageFirebase.deletePlayerPhoto(userId, id);
       } catch (err) {
         console.warn('Could not sync player deletion to cloud:', err);
       }

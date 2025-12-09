@@ -311,11 +311,25 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItem}>
+          <TouchableOpacity 
+            style={styles.settingItem}
+            onPress={() => router.push('/legal/privacy')}
+          >
             <View style={styles.settingIcon}>
               <Ionicons name="shield-checkmark-outline" size={22} color="#666" />
             </View>
-            <Text style={styles.settingText}>Privacy</Text>
+            <Text style={styles.settingText}>Privacy Policy</Text>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.settingItem}
+            onPress={() => router.push('/legal/terms')}
+          >
+            <View style={styles.settingIcon}>
+              <Ionicons name="document-text-outline" size={22} color="#666" />
+            </View>
+            <Text style={styles.settingText}>Terms of Service</Text>
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
 

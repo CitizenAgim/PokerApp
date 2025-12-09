@@ -134,6 +134,25 @@ export default function SignUpScreen() {
           <ThemedText style={styles.buttonText}>Sign Up</ThemedText>
         </TouchableOpacity>
 
+        <View style={styles.legalContainer}>
+          <ThemedText style={styles.legalText}>
+            By creating an account, you agree to our{' '}
+            <ThemedText 
+              style={styles.legalLink} 
+              onPress={() => router.push('/legal/terms')}
+            >
+              Terms of Service
+            </ThemedText>
+            {' '}and{' '}
+            <ThemedText 
+              style={styles.legalLink} 
+              onPress={() => router.push('/legal/privacy')}
+            >
+              Privacy Policy
+            </ThemedText>
+          </ThemedText>
+        </View>
+
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
           <ThemedText style={styles.dividerText}>or</ThemedText>
@@ -237,5 +256,18 @@ const styles = StyleSheet.create({
   switchText: {
     color: '#0a7ea4',
     fontSize: 14,
+  },
+  legalContainer: {
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  legalText: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+  },
+  legalLink: {
+    color: '#0a7ea4',
+    fontWeight: '600',
   },
 });

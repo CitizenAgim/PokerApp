@@ -1,5 +1,5 @@
 import { storage } from '@/config/firebase';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
 /**
  * Uploads a player photo to Firebase Storage.
@@ -26,5 +26,20 @@ export async function uploadPlayerPhoto(userId: string, playerId: string, uri: s
   } catch (error) {
     console.error('Error uploading player photo:', error);
     throw error;
+  }
+}
+
+/**
+ * Deletes a player photo from Firebase Storage.
+ */
+export async function deletePlayerPhoto(userId: string, playerId: string): Promise<void> {
+  try {
+    const storageRef = ref(storage, `players/${userId}/${playerId}.jpg`);
+    await deleteObject(storageRef);
+  } catch (error: any) {
+    // Ignore error if file doesn't exist
+    if (error.code !== 'storage/object-not-found') {
+      console.warn('Error deleting player photo:', error);
+    }
   }
 }
