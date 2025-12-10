@@ -1,4 +1,4 @@
-import { useCurrentSession, usePlayers, useSession } from '@/hooks';
+import { useCurrentSession, usePlayers, useSession, useSettings } from '@/hooks';
 import { Seat } from '@/types/poker';
 import { getPositionName } from '@/utils/positionCalculator';
 import { Ionicons } from '@expo/vector-icons';
@@ -47,8 +47,11 @@ interface SeatViewComponentProps extends SeatViewProps {
 
 function SeatView({ seat, isButton, isHero, onPress, buttonPosition }: SeatViewComponentProps) {
   const { players } = usePlayers();
+  const { ninjaMode } = useSettings();
   const player = players.find(p => p.id === seat.playerId);
   const positionName = getPositionName(seat.seatNumber, buttonPosition);
+
+  const showPhoto = player?.photoUrl && !ninjaMode;
 
   return (
     <TouchableOpacity
@@ -65,7 +68,7 @@ function SeatView({ seat, isButton, isHero, onPress, buttonPosition }: SeatViewC
     >
       {player ? (
         <>
-          {player.photoUrl && (
+          {showPhoto && (
             <>
               <Image 
                 source={{ uri: player.photoUrl }} 
@@ -74,10 +77,10 @@ function SeatView({ seat, isButton, isHero, onPress, buttonPosition }: SeatViewC
               <View style={styles.seatOverlay} />
             </>
           )}
-          <Text style={[styles.seatPlayerName, player.photoUrl && styles.seatTextLight]} numberOfLines={1}>
+          <Text style={[styles.seatPlayerName, showPhoto && styles.seatTextLight]} numberOfLines={1}>
             {player.name}
           </Text>
-          <Text style={[styles.seatPosition, player.photoUrl && styles.seatTextLight]}>
+          <Text style={[styles.seatPosition, showPhoto && styles.seatTextLight]}>
             {positionName}
           </Text>
         </>

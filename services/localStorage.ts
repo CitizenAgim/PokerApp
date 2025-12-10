@@ -15,6 +15,29 @@ const KEYS = {
 } as const;
 
 // ============================================
+// USER PREFERENCES
+// ============================================
+
+export interface UserPreferences {
+  ninjaMode: boolean;
+}
+
+const DEFAULT_PREFERENCES: UserPreferences = {
+  ninjaMode: false,
+};
+
+export async function getUserPreferences(): Promise<UserPreferences> {
+  const prefs = await getItem<UserPreferences>(KEYS.USER_PREFERENCES);
+  return { ...DEFAULT_PREFERENCES, ...prefs };
+}
+
+export async function saveUserPreferences(prefs: Partial<UserPreferences>): Promise<void> {
+  const current = await getUserPreferences();
+  const updated = { ...current, ...prefs };
+  await setItem(KEYS.USER_PREFERENCES, updated);
+}
+
+// ============================================
 // SYNC QUEUE TYPES
 // ============================================
 

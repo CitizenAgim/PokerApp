@@ -1,3 +1,4 @@
+import { useSettings } from '@/hooks';
 import { TablePlayer } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -11,6 +12,8 @@ interface SeatProps {
 }
 
 export function Seat({ player, onPress, isActive, style }: SeatProps) {
+  const { ninjaMode } = useSettings();
+
   if (!player) {
     return (
       <TouchableOpacity 
@@ -29,7 +32,7 @@ export function Seat({ player, onPress, isActive, style }: SeatProps) {
       onPress={onPress}
       activeOpacity={0.8}
     >
-      {player.photoUrl ? (
+      {!ninjaMode && player.photoUrl ? (
         <Image source={{ uri: player.photoUrl }} style={styles.avatar} />
       ) : (
         <View style={[styles.avatar, styles.avatarPlaceholder]}>

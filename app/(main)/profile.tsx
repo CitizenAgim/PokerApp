@@ -1,6 +1,6 @@
 import { ProfileSkeleton } from '@/components/ui';
 import { auth } from '@/config/firebase';
-import { useCurrentUser, usePlayers, useSessions } from '@/hooks';
+import { useCurrentUser, usePlayers, useSessions, useSettings } from '@/hooks';
 import { disableGuestMode, hasGuestData, isGuestMode, migrateGuestDataToUser } from '@/services/guestMode';
 import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import {
     Alert,
     ScrollView,
     StyleSheet,
+    Switch,
     Text,
     TextInput,
     TouchableOpacity,
@@ -24,6 +25,7 @@ export default function ProfileScreen() {
   const { user, loading: userLoading, updateProfile } = useCurrentUser();
   const { players, refreshPlayers } = usePlayers();
   const { sessions } = useSessions();
+  const { ninjaMode, toggleNinjaMode } = useSettings();
   
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState('');
@@ -295,6 +297,25 @@ export default function ProfileScreen() {
         <View style={styles.settingsSection}>
           <Text style={styles.sectionTitle}>Settings</Text>
           
+          <View style={styles.settingItem}>
+            <View style={styles.settingIcon}>
+              <Ionicons name={ninjaMode ? "eye-off-outline" : "eye-outline"} size={22} color="#666" />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={styles.settingText}>Hide Pictures (Ninja Mode)</Text>
+              <Text style={styles.settingSubtext}>Hide player photos for privacy</Text>
+            </View>
+            <Switch
+              value={ninjaMode}
+              onValueChange={() => {
+                haptics.lightTap();
+                toggleNinjaMode();
+              }}
+              trackColor={{ false: '#e0e0e0', true: '#81c784' }}
+              thumbColor={ninjaMode ? '#27ae60' : '#f5f5f5'}
+            />
+          </View>
+
           <TouchableOpacity style={styles.settingItem}>
             <View style={styles.settingIcon}>
               <Ionicons name="notifications-outline" size={22} color="#666" />
@@ -607,9 +628,16 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   settingText: {
-    flex: 1,
     fontSize: 16,
     color: '#333',
+  },
+  settingContent: {
+    flex: 1,
+  },
+  settingSubtext: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2,
   },
   signOutButton: {
     flexDirection: 'row',

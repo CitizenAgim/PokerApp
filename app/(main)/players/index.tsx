@@ -1,5 +1,5 @@
 import { PlayerCardSkeleton } from '@/components/ui';
-import { usePlayers } from '@/hooks';
+import { usePlayers, useSettings } from '@/hooks';
 import { Player } from '@/types/poker';
 import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +19,7 @@ import {
 export default function PlayersScreen() {
   const router = useRouter();
   const { players, loading, error, refresh } = usePlayers();
+  const { ninjaMode } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -40,7 +41,7 @@ export default function PlayersScreen() {
         router.push(`/(main)/players/${item.id}`);
       }}
     >
-      {item.photoUrl ? (
+      {!ninjaMode && item.photoUrl ? (
         <Image source={{ uri: item.photoUrl }} style={styles.avatar} />
       ) : (
         <View style={styles.avatar}>

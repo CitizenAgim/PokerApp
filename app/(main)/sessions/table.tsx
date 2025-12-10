@@ -1,5 +1,5 @@
 import { PokerTable } from '@/components/table/PokerTable';
-import { usePlayers } from '@/hooks/usePlayer';
+import { usePlayers, useSettings } from '@/hooks';
 import { Player, Seat, TablePlayer } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -10,6 +10,7 @@ import { Alert, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, 
 export default function CurrentTableScreen() {
   const router = useRouter();
   const { players, createPlayer } = usePlayers();
+  const { ninjaMode } = useSettings();
   
   // Local state for now (will move to global/context later)
   const [seats, setSeats] = useState<Seat[]>([]);
@@ -182,7 +183,7 @@ export default function CurrentTableScreen() {
                       style={styles.playerItem}
                       onPress={() => handleSelectExistingPlayer(item)}
                     >
-                      {item.photoUrl ? (
+                      {!ninjaMode && item.photoUrl ? (
                         <Image source={{ uri: item.photoUrl }} style={styles.playerAvatar} />
                       ) : (
                         <View style={styles.playerAvatarPlaceholder}>

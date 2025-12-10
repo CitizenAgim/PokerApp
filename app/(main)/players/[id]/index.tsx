@@ -1,5 +1,5 @@
 import { HAND_MAP } from '@/constants/hands';
-import { usePlayer, usePlayerRanges, usePlayers } from '@/hooks';
+import { usePlayer, usePlayerRanges, usePlayers, useSettings } from '@/hooks';
 import { Action, NoteEntry, Position } from '@/types/poker';
 import { resizeImage } from '@/utils/image';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,6 +42,7 @@ export default function PlayerDetailScreen() {
   const { player, loading, error } = usePlayer(id);
   const { deletePlayer, updatePlayer } = usePlayers();
   const { ranges } = usePlayerRanges(id);
+  const { ninjaMode } = useSettings();
   
   // Edit modal state
   const [showEditModal, setShowEditModal] = useState(false);
@@ -310,7 +311,7 @@ export default function PlayerDetailScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Player Header */}
       <View style={styles.header}>
-        {player.photoUrl ? (
+        {!ninjaMode && player.photoUrl ? (
           <Image source={{ uri: player.photoUrl }} style={styles.avatar} />
         ) : (
           <View style={styles.avatar}>
