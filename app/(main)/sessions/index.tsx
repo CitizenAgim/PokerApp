@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
+    Alert,
     FlatList,
     RefreshControl,
     StyleSheet,
@@ -16,13 +17,57 @@ import {
 
 export default function SessionsScreen() {
   const router = useRouter();
-  const { sessions, loading, error, refresh } = useSessions();
+  const { sessions, loading, error, refresh, deleteSession } = useSessions();
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     await refresh();
     setRefreshing(false);
+  };
+
+  const handleLongPress = (session: Session) => {
+    haptics.lightTap();
+    Alert.alert(
+      session.name,
+      'Choose an action',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Edit',
+          onPress: () => {
+             // Placeholder for now
+             Alert.alert('Info', 'Edit feature coming soon');
+          }
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Delete Session',
+              'Are you sure you want to delete this session? This action cannot be undone.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await deleteSession(session.id);
+                      haptics.successFeedback();
+                    } catch (error) {
+                      haptics.errorFeedback();
+                      Alert.alert('Error', 'Failed to delete session');
+                    }
+                  }
+                }
+              ]
+            );
+          }
+        }
+      ]
+    );
   };
 
   const formatDate = (timestamp: number): string => {
@@ -53,6 +98,8 @@ export default function SessionsScreen() {
         haptics.lightTap();
         router.push(`/(main)/sessions/${item.id}`);
       }}
+      onLongPress={() => handleLongPress(item)}
+      delayLongPress={500}
     >
       <View style={styles.sessionHeader}>
         <View style={styles.sessionInfo}>
