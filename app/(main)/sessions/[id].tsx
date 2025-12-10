@@ -18,21 +18,51 @@ import {
 } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const TABLE_SIZE = SCREEN_WIDTH - 60;
+
+// Vertical Table Layout
+const TABLE_WIDTH = 220;
+const TABLE_HEIGHT = 380;
+const RX = TABLE_WIDTH / 2;
+const RY = TABLE_HEIGHT / 2;
+const SEAT_OFFSET = 35;
 const SEAT_SIZE = 60;
 
-// Seat positions around an oval table (9 seats)
-const SEAT_POSITIONS = [
-  { x: 0.5, y: 0.92 },   // Seat 1 (bottom center)
-  { x: 0.18, y: 0.82 },  // Seat 2 (bottom left)
-  { x: 0.05, y: 0.55 },  // Seat 3 (left upper)
-  { x: 0.05, y: 0.30 },  // Seat 4 (left lower)
-  { x: 0.22, y: 0.08 },  // Seat 5 (top left)
-  { x: 0.5, y: 0.02 },   // Seat 6 (top center)
-  { x: 0.78, y: 0.08 },  // Seat 7 (top right)
-  { x: 0.95, y: 0.30 },  // Seat 8 (right lower)
-  { x: 0.95, y: 0.55 },  // Seat 9 (right upper)
-];
+// Calculate seat position (index 0-8)
+// We want Seat 1 to be at the bottom center (90 degrees)
+// But let's follow the standard poker table numbering if possible, or just distribute evenly.
+// Let's align with PokerTable.tsx which starts at 210 degrees for index 0.
+// But here we want Seat 1 to be Bottom Center to match previous logic? 
+// Previous logic: Seat 1 (bottom center).
+// Let's keep Seat 1 at Bottom Center (90 degrees).
+// 9 seats, 40 degrees apart.
+// Seat 1: 90
+// Seat 2: 130
+// Seat 3: 170
+// Seat 4: 210
+// Seat 5: 250 (Top)
+// Seat 6: 290
+// Seat 7: 330
+// Seat 8: 370 (10)
+// Seat 9: 50
+const getSeatPosition = (seatNumber: number) => {
+  // seatNumber is 1-9
+  // We want Seat 1 at 90 degrees (Bottom)
+  // Increasing seat number goes clockwise (increasing angle in standard math? No, usually clockwise is decreasing in math, but let's see).
+  // Screen coords: y is down.
+  // 0 deg = Right. 90 deg = Bottom. 180 deg = Left. 270 deg = Top.
+  
+  // Let's place Seat 1 at Bottom (90).
+  // Seat 2 at Bottom Left (130).
+  // Seat 3 at Left (170).
+  // ...
+  const angleDeg = 90 + (seatNumber - 1) * 40;
+  const angleRad = (angleDeg * Math.PI) / 180;
+  
+  const x = (RX + SEAT_OFFSET) * Math.cos(angleRad);
+  const y = (RY + SEAT_OFFSET) * Math.sin(angleRad);
+  
+  return { x, y };
+};
 
 interface SeatViewProps {
   seat: Seat;
@@ -52,14 +82,17 @@ function SeatView({ seat, isButton, isHero, onPress, buttonPosition }: SeatViewC
   const positionName = getPositionName(seat.seatNumber, buttonPosition);
 
   const showPhoto = player?.photoUrl && !ninjaMode;
+  const { x, y } = getSeatPosition(seat.seatNumber);
 
   return (
     <TouchableOpacity
       style={[
         styles.seat,
         {
-          left: SEAT_POSITIONS[seat.seatNumber - 1].x * TABLE_SIZE - SEAT_SIZE / 2,
-          top: SEAT_POSITIONS[seat.seatNumber - 1].y * (TABLE_SIZE * 0.6) - SEAT_SIZE / 2,
+          transform: [
+            { translateX: x },
+            { translateY: y },
+          ],
         },
         player && styles.seatOccupied,
         isHero && styles.seatHero,
@@ -427,35 +460,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    minHeight: 450, // Ensure enough space
   },
   table: {
-    width: TABLE_SIZE,
-    height: TABLE_SIZE * 0.6,
-    position: 'relative',
-  },
-  tableFelt: {
-    position: 'absolute',
-    top: SEAT_SIZE / 2 - 10,
-    left: SEAT_SIZE / 2 - 10,
-    right: SEAT_SIZE / 2 - 10,
-    bottom: SEAT_SIZE / 2 - 10,
-    backgroundColor: '#1a5f2a',
-    borderRadius: TABLE_SIZE * 0.2,
-    borderWidth: 8,
-    borderColor: '#8b4513',
+    width: TABLE_WIDTH,
+    height: TABLE_HEIGHT,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  tableFelt: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#27ae60',
+    borderRadius: 150, // Oval approximation
+    borderWidth: 15,
+    borderColor: '#3e2723', // Wood rail
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   tableText: {
     color: 'rgba(255, 255, 255, 0.5)',
     fontSize: 14,
     textAlign: 'center',
+    width: '60%',
   },
   seat: {
     position: 'absolute',
-    width: SEAT_SIZE,
-    height: SEAT_SIZE,
-    borderRadius: SEAT_SIZE / 2,
+    top: '50%',
+    left: '50%',
+    marginTop: -30, // -SEAT_SIZE / 2
+    marginLeft: -30, // -SEAT_SIZE / 2
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#fff',
     borderWidth: 2,
     borderColor: '#ddd',
