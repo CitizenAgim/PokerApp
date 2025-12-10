@@ -1,43 +1,95 @@
 import { useCurrentSession, useSessions } from '@/hooks';
+import * as localStorage from '@/services/localStorage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  FlatList,
 } from 'react-native';
 
-const STAKES_OPTIONS = ['1/2', '1/3', '2/5', '5/10', '10/20', '25/50'];
+const GAME_TYPES = ['Texas Holdem', 'PLO', 'PLO5', 'Short Deck'];
 
 export default function NewSessionScreen() {
   const router = useRouter();
   const { createSession } = useSessions();
   const { startSession } = useCurrentSession();
-  
-  const [name, setName] = useState('');
+
+  // Form State
+  const [gameType, setGameType] = useState(GAME_TYPES[0]);
   const [location, setLocation] = useState('');
-  const [stakes, setStakes] = useState('');
-  const [customStakes, setCustomStakes] = useState('');
+  const [smallBlind, setSmallBlind] = useState('');
+  const [bigBlind, setBigBlind] = useState('');
+  const [thirdBlind, setThirdBlind] = useState('');
+  const [ante, setAnte] = useState('');
+  const [buyIn, setBuyIn] = useState('');
+  
+  // Location Management
+  const [locations, setLocations] = useState<string[]>([]);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [newLocation, setNewLocation] = useState('');
+  
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    loadLocations();
+  }, []);
+
+  const loadLocations = async () => {
+    const saved = await localStorage.getLocations();
+    setLocations(saved);
+  };
+
+  const handleAddLocation = async () => {
+    if (!newLocation.trim()) return;
+    const loc = newLocation.trim();
+    setLocation(loc);
+    setNewLocation('');
+    setShowLocationModal(false);
+    // It will be saved to storage when the session is created
+  };
+
   const handleSave = async () => {
-    const sessionName = name.trim() || `Session ${new Date().toLocaleDateString()}`;
-    const sessionStakes = stakes === 'custom' ? customStakes.trim() : stakes;
+    if (!location) {
+      Alert.alert('Missing Information', 'Please select or enter a location.');
+      return;
+    }
+    if (!smallBlind || !bigBlind) {
+      Alert.alert('Missing Information', 'Please enter Small and Big blinds.');
+      return;
+    }
+    if (!buyIn) {
+      Alert.alert('Missing Information', 'Please enter the Buy-in amount.');
+      return;
+    }
 
     try {
       setSaving(true);
+      
+      const sb = parseFloat(smallBlind);
+      const bb = parseFloat(bigBlind);
+      const bi = parseFloat(buyIn);
+      const tb = thirdBlind ? parseFloat(thirdBlind) : undefined;
+      const ant = ante ? parseFloat(ante) : undefined;
+
       const session = await createSession(
-        sessionName,
-        location.trim() || undefined,
-        sessionStakes || undefined
+        location,
+        gameType,
+        sb,
+        bb,
+        bi,
+        tb,
+        ant
       );
       
       // Set as current active session
@@ -63,95 +115,122 @@ export default function NewSessionScreen() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Session Icon */}
+        {/* Header Icon */}
         <View style={styles.iconContainer}>
           <View style={styles.iconCircle}>
-            <Ionicons name="game-controller" size={48} color="#fff" />
+            <Ionicons name="game-controller" size={40} color="#fff" />
           </View>
+          <Text style={styles.headerTitle}>New Session</Text>
         </View>
 
-        {/* Form */}
         <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Session Name</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder={`Session ${new Date().toLocaleDateString()}`}
-              placeholderTextColor="#999"
-            />
-          </View>
-
+          {/* Location */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Location</Text>
-            <TextInput
-              style={styles.input}
-              value={location}
-              onChangeText={setLocation}
-              placeholder="e.g., Bellagio, Home Game"
-              placeholderTextColor="#999"
-            />
+            <TouchableOpacity
+              style={styles.selectButton}
+              onPress={() => setShowLocationModal(true)}
+            >
+              <Text style={[styles.selectButtonText, !location && styles.placeholderText]}>
+                {location || 'Select Location'}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color="#666" />
+            </TouchableOpacity>
           </View>
 
+          {/* Game Type */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Stakes</Text>
-            <View style={styles.stakesGrid}>
-              {STAKES_OPTIONS.map(option => (
+            <Text style={styles.label}>Game Type</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.gameTypeScroll}>
+              {GAME_TYPES.map(type => (
                 <TouchableOpacity
-                  key={option}
+                  key={type}
                   style={[
-                    styles.stakesOption,
-                    stakes === option && styles.stakesOptionActive,
+                    styles.gameTypeOption,
+                    gameType === type && styles.gameTypeOptionActive,
                   ]}
-                  onPress={() => setStakes(option)}
+                  onPress={() => setGameType(type)}
                 >
                   <Text style={[
-                    styles.stakesText,
-                    stakes === option && styles.stakesTextActive,
+                    styles.gameTypeText,
+                    gameType === type && styles.gameTypeTextActive,
                   ]}>
-                    {option}
+                    {type}
                   </Text>
                 </TouchableOpacity>
               ))}
-              <TouchableOpacity
-                style={[
-                  styles.stakesOption,
-                  stakes === 'custom' && styles.stakesOptionActive,
-                ]}
-                onPress={() => setStakes('custom')}
-              >
-                <Text style={[
-                  styles.stakesText,
-                  stakes === 'custom' && styles.stakesTextActive,
-                ]}>
-                  Other
-                </Text>
-              </TouchableOpacity>
+            </ScrollView>
+          </View>
+
+          {/* Blinds */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Blinds</Text>
+            <View style={styles.row}>
+              <View style={styles.halfInput}>
+                <Text style={styles.subLabel}>Small</Text>
+                <TextInput
+                  style={styles.input}
+                  value={smallBlind}
+                  onChangeText={setSmallBlind}
+                  keyboardType="numeric"
+                  placeholder="1"
+                  placeholderTextColor="#999"
+                />
+              </View>
+              <View style={styles.halfInput}>
+                <Text style={styles.subLabel}>Big</Text>
+                <TextInput
+                  style={styles.input}
+                  value={bigBlind}
+                  onChangeText={setBigBlind}
+                  keyboardType="numeric"
+                  placeholder="2"
+                  placeholderTextColor="#999"
+                />
+              </View>
+              <View style={styles.halfInput}>
+                <Text style={styles.subLabel}>3rd (Opt)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={thirdBlind}
+                  onChangeText={setThirdBlind}
+                  keyboardType="numeric"
+                  placeholder="-"
+                  placeholderTextColor="#999"
+                />
+              </View>
             </View>
-            
-            {stakes === 'custom' && (
+          </View>
+
+          {/* Ante & Buy-in */}
+          <View style={styles.row}>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={styles.label}>Ante (Optional)</Text>
               <TextInput
-                style={[styles.input, { marginTop: 12 }]}
-                value={customStakes}
-                onChangeText={setCustomStakes}
-                placeholder="e.g., 5/5/10"
+                style={styles.input}
+                value={ante}
+                onChangeText={setAnte}
+                keyboardType="numeric"
+                placeholder="0"
                 placeholderTextColor="#999"
               />
-            )}
+            </View>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={styles.label}>Buy-in</Text>
+              <TextInput
+                style={styles.input}
+                value={buyIn}
+                onChangeText={setBuyIn}
+                keyboardType="numeric"
+                placeholder="100"
+                placeholderTextColor="#999"
+              />
+            </View>
           </View>
-        </View>
-
-        {/* Info */}
-        <View style={styles.info}>
-          <Ionicons name="information-circle" size={20} color="#0a7ea4" />
-          <Text style={styles.infoText}>
-            You can assign players to seats after starting the session.
-          </Text>
         </View>
       </ScrollView>
 
-      {/* Start Button */}
+      {/* Footer */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.startButton}
@@ -168,6 +247,61 @@ export default function NewSessionScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Location Modal */}
+      <Modal
+        visible={showLocationModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowLocationModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Location</Text>
+              <TouchableOpacity onPress={() => setShowLocationModal(false)}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.addLocationContainer}>
+              <TextInput
+                style={styles.addLocationInput}
+                value={newLocation}
+                onChangeText={setNewLocation}
+                placeholder="Add new location..."
+                placeholderTextColor="#999"
+              />
+              <TouchableOpacity 
+                style={styles.addLocationButton}
+                onPress={handleAddLocation}
+              >
+                <Ionicons name="add" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={locations}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.locationItem}
+                  onPress={() => {
+                    setLocation(item);
+                    setShowLocationModal(false);
+                  }}
+                >
+                  <Ionicons name="location-outline" size={20} color="#666" />
+                  <Text style={styles.locationText}>{item}</Text>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <Text style={styles.emptyText}>No saved locations yet</Text>
+              }
+            />
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -186,14 +320,22 @@ const styles = StyleSheet.create({
   iconContainer: {
     alignItems: 'center',
     marginBottom: 24,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
   },
   iconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#27ae60',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
   },
   form: {
     gap: 20,
@@ -206,6 +348,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
+  subLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
   input: {
     backgroundColor: '#fff',
     borderRadius: 10,
@@ -215,44 +362,53 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
-  stakesGrid: {
+  selectButton: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  stakesOption: {
+  selectButtonText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  placeholderText: {
+    color: '#999',
+  },
+  gameTypeScroll: {
+    flexDirection: 'row',
+  },
+  gameTypeOption: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: '#e0e0e0',
+    marginRight: 8,
   },
-  stakesOptionActive: {
+  gameTypeOptionActive: {
     backgroundColor: '#0a7ea4',
     borderColor: '#0a7ea4',
   },
-  stakesText: {
+  gameTypeText: {
     fontSize: 14,
     fontWeight: '500',
     color: '#333',
   },
-  stakesTextActive: {
+  gameTypeTextActive: {
     color: '#fff',
   },
-  info: {
+  row: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: '#e3f2fd',
-    borderRadius: 10,
     gap: 12,
   },
-  infoText: {
+  halfInput: {
     flex: 1,
-    fontSize: 14,
-    color: '#1976d2',
   },
   footer: {
     padding: 20,
@@ -273,5 +429,65 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  addLocationContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 20,
+  },
+  addLocationInput: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 16,
+  },
+  addLocationButton: {
+    backgroundColor: '#0a7ea4',
+    width: 48,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  locationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    gap: 12,
+  },
+  locationText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#999',
+    marginTop: 20,
   },
 });

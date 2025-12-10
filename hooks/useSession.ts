@@ -15,7 +15,15 @@ interface UseSessionsResult {
   loading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
-  createSession: (name: string, location?: string, stakes?: string) => Promise<Session>;
+  createSession: (
+    location: string,
+    gameType: string,
+    smallBlind: number,
+    bigBlind: number,
+    buyIn: number,
+    thirdBlind?: number,
+    ante?: number
+  ) => Promise<Session>;
   deleteSession: (id: string) => Promise<void>;
 }
 
@@ -59,18 +67,32 @@ export function useSessions(): UseSessionsResult {
   }, []);
 
   const createSession = useCallback(async (
-    name: string,
-    location?: string,
-    stakes?: string
+    location: string,
+    gameType: string,
+    smallBlind: number,
+    bigBlind: number,
+    buyIn: number,
+    thirdBlind?: number,
+    ante?: number
   ): Promise<Session> => {
     const userId = auth.currentUser?.uid;
     if (!userId) throw new Error('Not authenticated');
 
     const id = localStorage.generateId();
+    const dateStr = new Date().toLocaleDateString();
+    const name = `${dateStr} - ${gameType}`;
+    const stakes = `${smallBlind}/${bigBlind}${thirdBlind ? `/${thirdBlind}` : ''}`;
+
     const session: Session = {
       id,
       name,
       location,
+      gameType,
+      smallBlind,
+      bigBlind,
+      thirdBlind,
+      ante,
+      buyIn,
       stakes,
       startTime: Date.now(),
       isActive: true,
@@ -79,13 +101,18 @@ export function useSessions(): UseSessionsResult {
 
     // Save locally
     await localStorage.saveSession(session);
+    // Save location if new
+    if (location) {
+      await localStorage.saveLocation(location);
+    }
+    
     setSessions(prev => [session, ...prev]);
 
     // Try to sync to cloud
     if (await isOnline()) {
       try {
         await sessionsFirebase.createSession(
-          { name, location, stakes, createdBy: userId },
+          session,
           undefined,
           id
         );

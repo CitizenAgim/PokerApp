@@ -12,6 +12,7 @@ const KEYS = {
   CURRENT_SESSION: '@pokerapp/currentSession',
   PENDING_SYNC: '@pokerapp/pendingSync',
   USER_PREFERENCES: '@pokerapp/preferences',
+  LOCATIONS: '@pokerapp/locations',
 } as const;
 
 // ============================================
@@ -210,6 +211,23 @@ export async function deleteSession(id: string): Promise<void> {
   const filtered = sessions.filter(s => s.id !== id);
   await setItem(KEYS.SESSIONS, filtered);
   await addPendingSync('sessions', 'delete', { id });
+}
+
+// ============================================
+// LOCATIONS
+// ============================================
+
+export async function getLocations(): Promise<string[]> {
+  const locations = await getItem<string[]>(KEYS.LOCATIONS);
+  return locations || [];
+}
+
+export async function saveLocation(location: string): Promise<void> {
+  const locations = await getLocations();
+  if (!locations.includes(location)) {
+    locations.push(location);
+    await setItem(KEYS.LOCATIONS, locations);
+  }
 }
 
 // ============================================

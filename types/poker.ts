@@ -105,7 +105,13 @@ export interface Session {
   id: string;
   name: string;
   location?: string;
-  stakes?: string;        // e.g., "1/2", "2/5"
+  gameType?: string;      // e.g., "Texas Holdem", "PLO"
+  smallBlind?: number;
+  bigBlind?: number;
+  thirdBlind?: number;
+  ante?: number;
+  buyIn?: number;
+  stakes?: string;        // e.g., "1/2", "2/5" (Derived or legacy)
   startTime: number;      // Unix timestamp
   endTime?: number;       // Unix timestamp
   isActive: boolean;
