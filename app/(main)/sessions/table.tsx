@@ -197,6 +197,7 @@ export default function CurrentTableScreen() {
                     </TouchableOpacity>
                   )}
                   style={styles.list}
+                  keyboardShouldPersistTaps="handled"
                 />
               </View>
             )}
