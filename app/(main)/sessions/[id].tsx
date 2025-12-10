@@ -154,7 +154,7 @@ export default function SessionDetailScreen() {
 
   // Players not already at the table
   const availablePlayers = useMemo(() => {
-    if (!table) return players;
+    if (!table || !table.seats) return players;
     const seatedPlayerIds = new Set(
       table.seats
         .filter(s => s.playerId)
@@ -238,6 +238,12 @@ export default function SessionDetailScreen() {
   }
 
   if (!session || !table) {
+    // If session exists but table is missing (e.g. ended session), show a basic view or error
+    if (session && !session.isActive) {
+       // For now, just show the error but maybe we should show stats
+       // Or we can reconstruct a dummy table to view the session details
+    }
+    
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Session not found</Text>
@@ -245,7 +251,7 @@ export default function SessionDetailScreen() {
     );
   }
 
-  const occupiedSeats = table.seats.filter(s => s.playerId).length;
+  const occupiedSeats = table.seats ? table.seats.filter(s => s.playerId).length : 0;
 
   return (
     <View style={styles.container}>
@@ -285,7 +291,7 @@ export default function SessionDetailScreen() {
           </View>
           
           {/* Seats */}
-          {table.seats.map((seat) => (
+          {table.seats && table.seats.map((seat) => (
             <SeatView
               key={seat.seatNumber}
               seat={seat}
