@@ -20,42 +20,20 @@ import {
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Vertical Table Layout
-const TABLE_WIDTH = 220;
-const TABLE_HEIGHT = 380;
+const TABLE_WIDTH = 200;
+const TABLE_HEIGHT = 340;
 const RX = TABLE_WIDTH / 2;
 const RY = TABLE_HEIGHT / 2;
-const SEAT_OFFSET = 35;
+const SEAT_OFFSET = 30;
 const SEAT_SIZE = 60;
 
 // Calculate seat position (index 0-8)
-// We want Seat 1 to be at the bottom center (90 degrees)
-// But let's follow the standard poker table numbering if possible, or just distribute evenly.
-// Let's align with PokerTable.tsx which starts at 210 degrees for index 0.
-// But here we want Seat 1 to be Bottom Center to match previous logic? 
-// Previous logic: Seat 1 (bottom center).
-// Let's keep Seat 1 at Bottom Center (90 degrees).
-// 9 seats, 40 degrees apart.
-// Seat 1: 90
-// Seat 2: 130
-// Seat 3: 170
-// Seat 4: 210
-// Seat 5: 250 (Top)
-// Seat 6: 290
-// Seat 7: 330
-// Seat 8: 370 (10)
-// Seat 9: 50
+// Match PokerTable.tsx layout
+// Seat 1 (Index 0) is Top Left (approx 210 degrees)
+// Order is Clockwise.
 const getSeatPosition = (seatNumber: number) => {
-  // seatNumber is 1-9
-  // We want Seat 1 at 90 degrees (Bottom)
-  // Increasing seat number goes clockwise (increasing angle in standard math? No, usually clockwise is decreasing in math, but let's see).
-  // Screen coords: y is down.
-  // 0 deg = Right. 90 deg = Bottom. 180 deg = Left. 270 deg = Top.
-  
-  // Let's place Seat 1 at Bottom (90).
-  // Seat 2 at Bottom Left (130).
-  // Seat 3 at Left (170).
-  // ...
-  const angleDeg = 90 + (seatNumber - 1) * 40;
+  const index = seatNumber - 1;
+  const angleDeg = 210 + index * 40;
   const angleRad = (angleDeg * Math.PI) / 180;
   
   const x = (RX + SEAT_OFFSET) * Math.cos(angleRad);
