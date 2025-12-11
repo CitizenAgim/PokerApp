@@ -331,6 +331,46 @@ async function addPendingSync(
 ): Promise<void> {
   const pending = await getPendingSync();
   
+  // Extract target ID
+  let targetId: string | undefined;
+  if (collection === 'players') {
+    targetId = (data as Player | { id: string })?.id;
+  } else if (collection === 'sessions') {
+    targetId = (data as Session | { id: string })?.id;
+  } else if (collection === 'playerRanges') {
+    targetId = (data as PlayerRanges | { playerId: string })?.playerId;
+  }
+
+  if (targetId && pending.length > 0) {
+    const lastItem = pending[pending.length - 1];
+    
+    // Check if last item matches target and collection
+    let lastId: string | undefined;
+    if (lastItem.collection === collection) {
+        if (collection === 'players') {
+            lastId = (lastItem.data as Player | { id: string })?.id;
+        } else if (collection === 'sessions') {
+            lastId = (lastItem.data as Session | { id: string })?.id;
+        } else if (collection === 'playerRanges') {
+            lastId = (lastItem.data as PlayerRanges | { playerId: string })?.playerId;
+        }
+    }
+
+    if (lastId === targetId) {
+        // Optimization: Merge consecutive updates
+        if (operation === 'update' && (lastItem.operation === 'create' || lastItem.operation === 'update')) {
+            // Update the last item's data
+            pending[pending.length - 1] = {
+                ...lastItem,
+                data,
+                timestamp: Date.now()
+            };
+            await setItem(KEYS.PENDING_SYNC, pending);
+            return;
+        }
+    }
+  }
+  
   const item: PendingSyncItem = {
     id: `${collection}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     collection,

@@ -11,8 +11,7 @@ import {
     serverTimestamp,
     setDoc,
     Timestamp,
-    updateDoc,
-    where,
+    where
 } from 'firebase/firestore';
 
 // ============================================

@@ -53,7 +53,7 @@ export function useSessions(): UseSessionsResult {
           const merged = mergeSessionsData(localSessions, cloudSessions);
           
           for (const session of merged) {
-            await localStorage.saveSession(session);
+            await localStorage.saveSessionFromCloud(session);
           }
           
           setSessions(merged);

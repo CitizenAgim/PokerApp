@@ -91,7 +91,7 @@ export function usePlayers(): UsePlayersResult {
           
           // Update local storage with merged data
           for (const player of merged) {
-            await localStorage.savePlayer(player);
+            await localStorage.savePlayerFromCloud(player);
           }
           
           setPlayers(merged);
@@ -324,7 +324,7 @@ export function usePlayer(playerId: string): UsePlayerResult {
         if (await isOnline()) {
           const cloudPlayer = await playersFirebase.getPlayer(playerId);
           if (cloudPlayer && mounted) {
-            await localStorage.savePlayer(cloudPlayer);
+            await localStorage.savePlayerFromCloud(cloudPlayer);
             setCachedPlayer(cloudPlayer);
             setPlayer(cloudPlayer);
           }
@@ -351,7 +351,7 @@ export function usePlayer(playerId: string): UsePlayerResult {
       if (await isOnline()) {
         const cloudPlayer = await playersFirebase.getPlayer(playerId);
         if (cloudPlayer) {
-          await localStorage.savePlayer(cloudPlayer);
+          await localStorage.savePlayerFromCloud(cloudPlayer);
           setCachedPlayer(cloudPlayer);
           setPlayer(cloudPlayer);
         }
