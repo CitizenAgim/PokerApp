@@ -43,11 +43,25 @@ export default function NewSessionScreen() {
 
   useEffect(() => {
     loadLocations();
+    loadLastConfig();
   }, []);
 
   const loadLocations = async () => {
     const saved = await localStorage.getLocations();
     setLocations(saved);
+  };
+
+  const loadLastConfig = async () => {
+    const config = await localStorage.getLastSessionConfig();
+    if (config) {
+      setLocation(config.location);
+      setGameType(config.gameType);
+      setSmallBlind(config.smallBlind);
+      setBigBlind(config.bigBlind);
+      setThirdBlind(config.thirdBlind);
+      setAnte(config.ante);
+      setBuyIn(config.buyIn);
+    }
   };
 
   const handleAddLocation = async () => {
@@ -92,6 +106,17 @@ export default function NewSessionScreen() {
         ant
       );
       
+      // Save config for next time
+      await localStorage.saveLastSessionConfig({
+        location,
+        gameType,
+        smallBlind,
+        bigBlind,
+        thirdBlind,
+        ante,
+        buyIn
+      });
+
       // Set as current active session
       await startSession(session);
       

@@ -13,6 +13,7 @@ const KEYS = {
   PENDING_SYNC: '@pokerapp/pendingSync',
   USER_PREFERENCES: '@pokerapp/preferences',
   LOCATIONS: '@pokerapp/locations',
+  LAST_SESSION_CONFIG: '@pokerapp/lastSessionConfig',
 } as const;
 
 // ============================================
@@ -228,6 +229,28 @@ export async function saveLocation(location: string): Promise<void> {
     locations.push(location);
     await setItem(KEYS.LOCATIONS, locations);
   }
+}
+
+// ============================================
+// LAST SESSION CONFIG
+// ============================================
+
+export interface LastSessionConfig {
+  location: string;
+  gameType: string;
+  smallBlind: string;
+  bigBlind: string;
+  thirdBlind: string;
+  ante: string;
+  buyIn: string;
+}
+
+export async function getLastSessionConfig(): Promise<LastSessionConfig | null> {
+  return getItem<LastSessionConfig>(KEYS.LAST_SESSION_CONFIG);
+}
+
+export async function saveLastSessionConfig(config: LastSessionConfig): Promise<void> {
+  await setItem(KEYS.LAST_SESSION_CONFIG, config);
 }
 
 // ============================================

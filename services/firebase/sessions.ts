@@ -171,7 +171,9 @@ export async function updateSession(
     if (updates.isActive !== undefined) data.isActive = updates.isActive;
     if (updates.endTime !== undefined) data.endTime = Timestamp.fromMillis(updates.endTime);
     
-    await updateDoc(sessionRef, data);
+    // Use setDoc with merge: true instead of updateDoc to handle cases where
+    // the document might not exist yet (e.g. creation sync failed or is pending)
+    await setDoc(sessionRef, data, { merge: true });
   } catch (error) {
     console.error('Error updating session:', error);
     throw error;
@@ -185,10 +187,11 @@ export async function endSession(sessionId: string): Promise<void> {
   try {
     const sessionRef = doc(db, COLLECTION_NAME, sessionId);
     
-    await updateDoc(sessionRef, {
+    // Use setDoc with merge: true for safety
+    await setDoc(sessionRef, {
       isActive: false,
       endTime: serverTimestamp(),
-    });
+    }, { merge: true });
   } catch (error) {
     console.error('Error ending session:', error);
     throw error;
@@ -213,7 +216,7 @@ export async function deleteSession(sessionId: string): Promise<void> {
 export async function updateTable(sessionId: string, table: Table): Promise<void> {
   try {
     const sessionRef = doc(db, COLLECTION_NAME, sessionId);
-    await updateDoc(sessionRef, { table });
+    await setDoc(sessionRef, { table }, { merge: true });
   } catch (error) {
     console.error('Error updating table:', error);
     throw error;
@@ -229,7 +232,7 @@ export async function updateButtonPosition(
 ): Promise<void> {
   try {
     const sessionRef = doc(db, COLLECTION_NAME, sessionId);
-    await updateDoc(sessionRef, { 'table.buttonPosition': buttonPosition });
+    await setDoc(sessionRef, { 'table.buttonPosition': buttonPosition }, { merge: true });
   } catch (error) {
     console.error('Error updating button position:', error);
     throw error;

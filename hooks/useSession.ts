@@ -39,6 +39,8 @@ export function useSessions(): UseSessionsResult {
 
       // Load from local first
       const localSessions = await localStorage.getSessions();
+      // Sort local sessions by startTime descending
+      localSessions.sort((a, b) => b.startTime - a.startTime);
       setSessions(localSessions);
 
       // Try to sync with cloud

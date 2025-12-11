@@ -3,8 +3,8 @@ import { useSessions } from '@/hooks';
 import { Session } from '@/types/poker';
 import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
     Alert,
     FlatList,
@@ -19,6 +19,12 @@ export default function SessionsScreen() {
   const router = useRouter();
   const { sessions, loading, error, refresh, deleteSession } = useSessions();
   const [refreshing, setRefreshing] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh])
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
