@@ -306,11 +306,6 @@ export default function SessionDetailScreen() {
 
       {/* Quick Actions */}
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/(main)/players/new')}>
-          <Ionicons name="person-add" size={20} color="#0a7ea4" />
-          <Text style={styles.actionText}>Add Player</Text>
-        </TouchableOpacity>
-        
         <TouchableOpacity 
           style={styles.actionButton}
           onPress={() => {
