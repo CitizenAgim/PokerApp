@@ -2,7 +2,7 @@ import { useCurrentSession, useSessions } from '@/hooks';
 import * as localStorage from '@/services/localStorage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -40,6 +40,7 @@ export default function NewSessionScreen() {
   const [newLocation, setNewLocation] = useState('');
   
   const [saving, setSaving] = useState(false);
+  const isSaving = useRef(false);
 
   useEffect(() => {
     loadLocations();
@@ -74,6 +75,8 @@ export default function NewSessionScreen() {
   };
 
   const handleSave = async () => {
+    if (isSaving.current) return;
+
     if (!location) {
       Alert.alert('Missing Information', 'Please select or enter a location.');
       return;
@@ -88,6 +91,7 @@ export default function NewSessionScreen() {
     }
 
     try {
+      isSaving.current = true;
       setSaving(true);
       
       const sb = parseFloat(smallBlind);
@@ -125,9 +129,11 @@ export default function NewSessionScreen() {
     } catch (error) {
       Alert.alert('Error', 'Failed to create session');
       console.error(error);
-    } finally {
+      isSaving.current = false;
       setSaving(false);
     }
+    // Note: We don't reset isSaving in finally block if successful 
+    // because we are navigating away and don't want double taps during transition
   };
 
   return (
