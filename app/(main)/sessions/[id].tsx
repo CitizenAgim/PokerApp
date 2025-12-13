@@ -1,7 +1,7 @@
 import { useCurrentSession, usePlayers, useSession, useSettings } from '@/hooks';
 import { Seat } from '@/types/poker';
 import { getPositionName } from '@/utils/positionCalculator';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -26,6 +26,12 @@ const RX = TABLE_WIDTH / 2;
 const RY = TABLE_HEIGHT / 2;
 const SEAT_OFFSET = 30;
 const SEAT_SIZE = 60;
+
+// Dealer Position (Between Seat 9 and Seat 1)
+const DEALER_ANGLE = 190;
+const DEALER_RAD = (DEALER_ANGLE * Math.PI) / 180;
+const DEALER_X = (RX + SEAT_OFFSET) * Math.cos(DEALER_RAD);
+const DEALER_Y = (RY + SEAT_OFFSET) * Math.sin(DEALER_RAD);
 
 // Calculate seat position (index 0-8)
 // Match PokerTable.tsx layout
@@ -266,6 +272,17 @@ export default function SessionDetailScreen() {
             <Text style={styles.tableText}>
               Tap seat to assign player
             </Text>
+          </View>
+          
+          {/* Dealer */}
+          <View style={[styles.dealer, {
+            transform: [
+              { translateX: DEALER_X },
+              { translateY: DEALER_Y },
+            ]
+          }]}>
+            <MaterialCommunityIcons name="account-tie" size={32} color="#333" />
+            <Text style={styles.dealerText}>Dealer</Text>
           </View>
           
           {/* Seats */}
@@ -555,6 +572,24 @@ const styles = StyleSheet.create({
   heroText: {
     fontSize: 12,
     color: '#fff',
+  },
+  dealer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginTop: -20,
+    marginLeft: -20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  dealerText: {
+    fontSize: 10,
+    color: '#666',
+    fontWeight: '600',
+    marginTop: -4,
   },
   actions: {
     flexDirection: 'row',
