@@ -127,7 +127,9 @@ export interface TablePlayer {
 
 export interface Seat {
   index: number;       // 0-8
+  seatNumber?: number; // 1-9
   player?: TablePlayer | null;
+  playerId?: string | null;
 }
 
 export interface TableState {

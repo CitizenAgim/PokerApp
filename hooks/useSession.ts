@@ -347,6 +347,7 @@ export function useCurrentSession(): UseCurrentSessionResult {
       sessionId: session.id,
       buttonPosition: 1,
       seats: Array.from({ length: 9 }, (_, i) => ({
+        index: i,
         seatNumber: i + 1,
         position: undefined,
       })),

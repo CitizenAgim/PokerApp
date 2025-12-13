@@ -6,15 +6,15 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -63,10 +63,11 @@ function SeatView({ seat, isButton, isHero, onPress, buttonPosition }: SeatViewC
   const { players } = usePlayers();
   const { ninjaMode } = useSettings();
   const player = players.find(p => p.id === seat.playerId);
-  const positionName = getPositionName(seat.seatNumber, buttonPosition);
+  const seatNum = seat.seatNumber ?? (seat.index + 1);
+  const positionName = getPositionName(seatNum, buttonPosition);
 
   const showPhoto = player?.photoUrl && !ninjaMode;
-  const { x, y } = getSeatPosition(seat.seatNumber);
+  const { x, y } = getSeatPosition(seatNum);
 
   return (
     <TouchableOpacity
@@ -104,7 +105,7 @@ function SeatView({ seat, isButton, isHero, onPress, buttonPosition }: SeatViewC
       ) : (
         <>
           <Ionicons name="add" size={20} color="#999" />
-          <Text style={styles.seatNumber}>Seat {seat.seatNumber}</Text>
+          <Text style={styles.seatNumber}>Seat {seatNum}</Text>
         </>
       )}
       
@@ -150,7 +151,7 @@ export default function SessionDetailScreen() {
   const handleSeatPress = (seatNumber: number) => {
     if (!table) return;
     
-    const seat = table.seats.find(s => s.seatNumber === seatNumber);
+    const seat = table.seats.find(s => (s.seatNumber ?? (s.index + 1)) === seatNumber);
     if (!seat) return;
     
     if (seat.playerId) {
@@ -286,16 +287,19 @@ export default function SessionDetailScreen() {
           </View>
           
           {/* Seats */}
-          {table.seats && table.seats.map((seat) => (
-            <SeatView
-              key={seat.seatNumber}
-              seat={seat}
-              isButton={seat.seatNumber === table.buttonPosition}
-              isHero={seat.seatNumber === heroSeat}
-              onPress={() => handleSeatPress(seat.seatNumber)}
-              buttonPosition={table.buttonPosition}
-            />
-          ))}
+          {table.seats && table.seats.map((seat) => {
+            const seatNum = seat.seatNumber ?? (seat.index + 1);
+            return (
+              <SeatView
+                key={seatNum}
+                seat={seat}
+                isButton={seatNum === table.buttonPosition}
+                isHero={seatNum === heroSeat}
+                onPress={() => handleSeatPress(seatNum)}
+                buttonPosition={table.buttonPosition}
+              />
+            );
+          })}
         </View>
       </View>
 
