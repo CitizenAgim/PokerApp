@@ -28,7 +28,7 @@ const SEAT_OFFSET = 30;
 const SEAT_SIZE = 60;
 
 // Dealer Position (Between Seat 9 and Seat 1)
-const DEALER_ANGLE = 190;
+const DEALER_ANGLE = 180;
 const DEALER_RAD = (DEALER_ANGLE * Math.PI) / 180;
 const DEALER_X = (RX + SEAT_OFFSET) * Math.cos(DEALER_RAD);
 const DEALER_Y = (RY + SEAT_OFFSET) * Math.sin(DEALER_RAD);
