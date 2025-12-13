@@ -155,17 +155,6 @@ export default function SessionsScreen() {
         <Ionicons name="add" size={20} color="#fff" />
         <Text style={styles.addButtonText}>New Session</Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity
-        style={[styles.addButton, styles.tableButton]}
-        onPress={() => {
-          haptics.lightTap();
-          router.push('/(main)/sessions/table');
-        }}
-      >
-        <Ionicons name="grid-outline" size={20} color="#0a7ea4" />
-        <Text style={[styles.addButtonText, styles.tableButtonText]}>Current Table</Text>
-      </TouchableOpacity>
     </View>
   );
 
@@ -222,18 +211,13 @@ export default function SessionsScreen() {
       {/* FAB Group */}
       <View style={styles.fabContainer}>
         <TouchableOpacity
-          style={[styles.fab, styles.fabSecondary]}
+          style={[styles.fab, activeSessions.length > 0 && styles.fabDisabled]}
           onPress={() => {
-            haptics.lightTap();
-            router.push('/(main)/sessions/table');
-          }}
-        >
-          <Ionicons name="grid-outline" size={24} color="#0a7ea4" />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => {
+            if (activeSessions.length > 0) {
+              haptics.errorFeedback();
+              Alert.alert('Active Session', 'You already have an active session. Please end it before starting a new one.');
+              return;
+            }
             haptics.lightTap();
             router.push('/(main)/sessions/new');
           }}
@@ -424,5 +408,8 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
+  },
+  fabDisabled: {
+    backgroundColor: '#bdc3c7',
   },
 });
