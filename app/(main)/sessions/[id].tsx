@@ -38,7 +38,8 @@ const DEALER_Y = (RY + SEAT_OFFSET) * Math.sin(DEALER_RAD);
 // Dealer is at 180 degrees (Left)
 // Seat 1 starts at 216 degrees
 const getSeatPosition = (seatNumber: number) => {
-  const angleDeg = 180 + seatNumber * 36;
+  const safeSeatNum = (typeof seatNumber === 'number' && !isNaN(seatNumber)) ? seatNumber : 1;
+  const angleDeg = 180 + safeSeatNum * 36;
   const angleRad = (angleDeg * Math.PI) / 180;
   
   const x = (RX + SEAT_OFFSET) * Math.cos(angleRad);
@@ -62,7 +63,7 @@ function SeatView({ seat, isButton, isHero, onPress, buttonPosition }: SeatViewC
   const { players } = usePlayers();
   const { ninjaMode } = useSettings();
   const player = players.find(p => p.id === seat.playerId);
-  const seatNum = seat.seatNumber ?? (seat.index + 1);
+  const seatNum = seat.seatNumber ?? (typeof seat.index === 'number' ? seat.index + 1 : 1);
   const positionName = getPositionName(seatNum, buttonPosition);
 
   const showPhoto = player?.photoUrl && !ninjaMode;
@@ -150,7 +151,10 @@ export default function SessionDetailScreen() {
   const handleSeatPress = (seatNumber: number) => {
     if (!table) return;
     
-    const seat = table.seats.find(s => (s.seatNumber ?? (s.index + 1)) === seatNumber);
+    const seat = table.seats.find((s, i) => {
+      const sNum = s.seatNumber ?? (typeof s.index === 'number' ? s.index + 1 : i + 1);
+      return sNum === seatNumber;
+    });
     if (!seat) return;
     
     if (seat.playerId) {
@@ -286,8 +290,8 @@ export default function SessionDetailScreen() {
           </View>
           
           {/* Seats */}
-          {table.seats && table.seats.map((seat) => {
-            const seatNum = seat.seatNumber ?? (seat.index + 1);
+          {table.seats && table.seats.map((seat, i) => {
+            const seatNum = seat.seatNumber ?? (typeof seat.index === 'number' ? seat.index + 1 : i + 1);
             return (
               <SeatView
                 key={seatNum}
