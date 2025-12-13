@@ -34,12 +34,11 @@ const DEALER_X = (RX + SEAT_OFFSET) * Math.cos(DEALER_RAD);
 const DEALER_Y = (RY + SEAT_OFFSET) * Math.sin(DEALER_RAD);
 
 // Calculate seat position (index 0-8)
-// Match PokerTable.tsx layout
-// Seat 1 (Index 0) is Top Left (approx 210 degrees)
-// Order is Clockwise.
+// Distribute 9 seats + dealer evenly (10 slots of 36 degrees)
+// Dealer is at 180 degrees (Left)
+// Seat 1 starts at 216 degrees
 const getSeatPosition = (seatNumber: number) => {
-  const index = seatNumber - 1;
-  const angleDeg = 210 + index * 40;
+  const angleDeg = 180 + seatNumber * 36;
   const angleRad = (angleDeg * Math.PI) / 180;
   
   const x = (RX + SEAT_OFFSET) * Math.cos(angleRad);
