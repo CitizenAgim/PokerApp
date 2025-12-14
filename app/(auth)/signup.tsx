@@ -16,6 +16,7 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    ScrollView,
 } from 'react-native';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -96,85 +97,92 @@ export default function SignUpScreen() {
     <ThemedView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.content}
+        style={styles.keyboardView}
       >
-        <ThemedText type="title" style={styles.title}>
-          Create Account
-        </ThemedText>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#888"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#888"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Confirm Password"
-          placeholderTextColor="#888"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          secureTextEntry
-        />
-
-        <TouchableOpacity style={styles.button} onPress={handleSignUp}>
-          <ThemedText style={styles.buttonText}>Sign Up</ThemedText>
-        </TouchableOpacity>
-
-        <View style={styles.legalContainer}>
-          <ThemedText style={styles.legalText}>
-            By creating an account, you agree to our{' '}
-            <ThemedText 
-              style={styles.legalLink} 
-              onPress={() => router.push('/legal/terms')}
-            >
-              Terms of Service
-            </ThemedText>
-            {' '}and{' '}
-            <ThemedText 
-              style={styles.legalLink} 
-              onPress={() => router.push('/legal/privacy')}
-            >
-              Privacy Policy
-            </ThemedText>
-          </ThemedText>
-        </View>
-
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <ThemedText style={styles.dividerText}>or</ThemedText>
-          <View style={styles.dividerLine} />
-        </View>
-
-        <TouchableOpacity
-          style={styles.googleButton}
-          onPress={handleGoogleSignIn}
-          disabled={!request}
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
         >
-          <ThemedText style={styles.googleButtonText}>Continue with Google</ThemedText>
-        </TouchableOpacity>
+          <View style={styles.content}>
+            <ThemedText type="title" style={styles.title}>
+              Create Account
+            </ThemedText>
 
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.switchButton}
-        >
-          <ThemedText style={styles.switchText}>
-            Already have an account? Sign In
-          </ThemedText>
-        </TouchableOpacity>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="#888"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#888"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm Password"
+              placeholderTextColor="#888"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+            />
+
+            <TouchableOpacity style={styles.button} onPress={handleSignUp}>
+              <ThemedText style={styles.buttonText}>Sign Up</ThemedText>
+            </TouchableOpacity>
+
+            <View style={styles.legalContainer}>
+              <ThemedText style={styles.legalText}>
+                By creating an account, you agree to our{' '}
+                <ThemedText 
+                  style={styles.legalLink} 
+                  onPress={() => router.push('/legal/terms')}
+                >
+                  Terms of Service
+                </ThemedText>
+                {' '}and{' '}
+                <ThemedText 
+                  style={styles.legalLink} 
+                  onPress={() => router.push('/legal/privacy')}
+                >
+                  Privacy Policy
+                </ThemedText>
+              </ThemedText>
+            </View>
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <ThemedText style={styles.dividerText}>or</ThemedText>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <TouchableOpacity
+              style={styles.googleButton}
+              onPress={handleGoogleSignIn}
+              disabled={!request}
+            >
+              <ThemedText style={styles.googleButtonText}>Continue with Google</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.switchButton}
+            >
+              <ThemedText style={styles.switchText}>
+                Already have an account? Sign In
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
   );
@@ -183,11 +191,18 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
   },
   centered: {
     alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     width: '100%',

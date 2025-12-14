@@ -16,6 +16,7 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    ScrollView,
 } from 'react-native';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -85,57 +86,64 @@ export default function LoginScreen() {
     <ThemedView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.content}
+        style={styles.keyboardView}
       >
-        <ThemedText type="title" style={styles.title}>
-          Welcome Back
-        </ThemedText>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#888"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#888"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <ThemedText style={styles.buttonText}>Sign In</ThemedText>
-        </TouchableOpacity>
-
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <ThemedText style={styles.dividerText}>or</ThemedText>
-          <View style={styles.dividerLine} />
-        </View>
-
-        <TouchableOpacity
-          style={styles.googleButton}
-          onPress={handleGoogleSignIn}
-          disabled={!request}
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
         >
-          <ThemedText style={styles.googleButtonText}>Continue with Google</ThemedText>
-        </TouchableOpacity>
+          <View style={styles.content}>
+            <ThemedText type="title" style={styles.title}>
+              Welcome Back
+            </ThemedText>
 
-        <TouchableOpacity
-          onPress={() => router.push('/(auth)/signup')}
-          style={styles.switchButton}
-        >
-          <ThemedText style={styles.switchText}>
-            Don't have an account? Sign Up
-          </ThemedText>
-        </TouchableOpacity>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="#888"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#888"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+
+            <TouchableOpacity style={styles.button} onPress={handleLogin}>
+              <ThemedText style={styles.buttonText}>Sign In</ThemedText>
+            </TouchableOpacity>
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <ThemedText style={styles.dividerText}>or</ThemedText>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <TouchableOpacity
+              style={styles.googleButton}
+              onPress={handleGoogleSignIn}
+              disabled={!request}
+            >
+              <ThemedText style={styles.googleButtonText}>Continue with Google</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push('/(auth)/signup')}
+              style={styles.switchButton}
+            >
+              <ThemedText style={styles.switchText}>
+                Don't have an account? Sign Up
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
   );
@@ -144,11 +152,18 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
   },
   centered: {
     alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     width: '100%',

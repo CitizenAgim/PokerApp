@@ -441,15 +441,17 @@ export default function SessionDetailScreen() {
                     </View>
                   )}
                 </View>
-                
+                <View style={{ height: 20 }} />
+              </ScrollView>
+
+              <View style={styles.modalFooter}>
                 <TouchableOpacity 
                   style={styles.confirmButton}
                   onPress={confirmEditSession}
                 >
                   <Text style={styles.confirmButtonText}>Save Changes</Text>
                 </TouchableOpacity>
-                <View style={{ height: 20 }} />
-              </ScrollView>
+              </View>
             </View>
           </KeyboardAvoidingView>
         </Modal>
@@ -654,7 +656,11 @@ export default function SessionDetailScreen() {
               </TouchableOpacity>
             </View>
             
-            <View style={styles.formContent}>
+            <ScrollView 
+              style={styles.formContent}
+              contentContainerStyle={{ paddingBottom: 20 }}
+              keyboardShouldPersistTaps="handled"
+            >
               <Text style={styles.label}>Cash Out Amount</Text>
               <TextInput
                 style={styles.input}
@@ -693,7 +699,9 @@ export default function SessionDetailScreen() {
                   </View>
                 )}
               </View>
-              
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
               <TouchableOpacity 
                 style={styles.confirmButton}
                 onPress={confirmEndSession}
@@ -1081,7 +1089,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 24,
+    // marginTop: 24, // Removed margin top as it's now in footer
   },
   confirmButtonText: {
     color: '#fff',
@@ -1215,5 +1223,14 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  modalFooter: {
+    padding: 20,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    backgroundColor: '#fff',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
 });
