@@ -423,10 +423,31 @@ function mergeSessionsData(local: Session[], cloud: Session[]): Session[] {
     sessionMap.set(session.id, session);
   }
 
-  for (const session of cloud) {
-    const existing = sessionMap.get(session.id);
-    if (!existing || session.startTime > existing.startTime) {
-      sessionMap.set(session.id, session);
+  for (const cloudSession of cloud) {
+    const localSession = sessionMap.get(cloudSession.id);
+    
+    if (!localSession) {
+      // New session from cloud
+      sessionMap.set(cloudSession.id, cloudSession);
+    } else {
+      // Conflict resolution
+      
+      // 1. If local is ended and cloud is active, KEEP LOCAL.
+      // This handles the case where we just ended it but cloud hasn't updated yet.
+      if (!localSession.isActive && cloudSession.isActive) {
+        continue;
+      }
+      
+      // 2. If local is active and cloud is ended, TAKE CLOUD.
+      // This handles the case where another device ended it.
+      if (localSession.isActive && !cloudSession.isActive) {
+        sessionMap.set(cloudSession.id, cloudSession);
+        continue;
+      }
+      
+      // 3. Otherwise, trust Cloud as source of truth for other fields
+      // (like table state, name edits, etc), but preserve the ID.
+      sessionMap.set(cloudSession.id, cloudSession);
     }
   }
 

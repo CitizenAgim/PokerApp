@@ -282,14 +282,43 @@ export async function pullFromCloud(): Promise<void> {
   setSyncStatus('syncing');
 
   try {
+    const pending = await localStorage.getPendingSync();
+    
+    const pendingPlayerIds = new Set(
+      pending
+        .filter(p => p.collection === 'players')
+        .map(p => (p.data as Player | { id: string })?.id)
+        .filter(Boolean)
+    );
+
+    const pendingSessionIds = new Set(
+      pending
+        .filter(p => p.collection === 'sessions')
+        .map(p => (p.data as Session | { id: string })?.id)
+        .filter(Boolean)
+    );
+
     // Pull players
     const cloudPlayers = await playersFirebase.getPlayers(userId);
     for (const player of cloudPlayers) {
+      if (pendingPlayerIds.has(player.id)) continue;
       await localStorage.savePlayerFromCloud(player);
     }
 
     // Pull ranges for each player
     for (const player of cloudPlayers) {
+      // Note: We don't have granular pending checks for ranges easily, 
+      // but ranges are usually sub-collections. 
+      // For now, we'll skip if player has pending changes to be safe, 
+      // or we could check pending ranges.
+      // Let's check pending ranges for this player.
+      const hasPendingRanges = pending.some(
+        p => p.collection === 'playerRanges' && 
+        (p.data as PlayerRanges | { playerId: string })?.playerId === player.id
+      );
+      
+      if (hasPendingRanges) continue;
+
       const ranges = await rangesFirebase.getPlayerRanges(player.id);
       if (ranges) {
         await localStorage.savePlayerRangesFromCloud(ranges);
@@ -299,6 +328,10 @@ export async function pullFromCloud(): Promise<void> {
     // Pull sessions
     const cloudSessions = await sessionsFirebase.getSessions(userId);
     for (const session of cloudSessions) {
+      if (pendingSessionIds.has(session.id)) {
+        // If we have pending changes (like ending the session), don't overwrite with cloud data
+        continue;
+      }
       await localStorage.saveSessionFromCloud(session);
     }
 
