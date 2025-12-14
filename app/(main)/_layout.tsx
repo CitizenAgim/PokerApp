@@ -52,6 +52,17 @@ export default function MainLayout() {
       />
 
       <Tabs.Screen
+        name="results"
+        options={{
+          title: 'Results',
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="stats-chart" size={size} color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
