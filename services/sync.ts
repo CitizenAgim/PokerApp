@@ -49,7 +49,9 @@ export async function isOnline(): Promise<boolean> {
   
   try {
     const state = await NetInfo.fetch();
-    cachedOnlineStatus = state.isConnected === true && state.isInternetReachable === true;
+    // If isInternetReachable is null, it means the check is still pending.
+    // We assume online if isConnected is true to avoid false positives on startup.
+    cachedOnlineStatus = state.isConnected === true && (state.isInternetReachable === true || state.isInternetReachable === null);
     lastOnlineCheck = now;
     return cachedOnlineStatus;
   } catch {
@@ -61,7 +63,7 @@ export async function isOnline(): Promise<boolean> {
 
 // Invalidate cache when network changes
 NetInfo.addEventListener(state => {
-  cachedOnlineStatus = state.isConnected === true && state.isInternetReachable === true;
+  cachedOnlineStatus = state.isConnected === true && (state.isInternetReachable === true || state.isInternetReachable === null);
   lastOnlineCheck = Date.now();
 });
 
