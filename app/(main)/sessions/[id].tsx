@@ -252,10 +252,76 @@ export default function SessionDetailScreen() {
   }
 
   if (!session || !table) {
-    // If session exists but table is missing (e.g. ended session), show a basic view or error
+    // If session exists but table is missing (e.g. ended session), show summary
     if (session && !session.isActive) {
-       // For now, just show the error but maybe we should show stats
-       // Or we can reconstruct a dummy table to view the session details
+      const buyIn = session.buyIn || 0;
+      const cashOut = session.cashOut || 0;
+      const profit = cashOut - buyIn;
+      const isProfit = profit >= 0;
+      
+      const durationMs = (session.endTime || Date.now()) - session.startTime;
+      const hours = Math.floor(durationMs / (1000 * 60 * 60));
+      const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+      const durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+      return (
+        <View style={styles.container}>
+          <View style={styles.summaryHeader}>
+            <Text style={styles.summaryTitle}>Session Result</Text>
+            <Text style={styles.summaryDate}>
+              {new Date(session.startTime).toLocaleDateString(undefined, {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </Text>
+          </View>
+
+          <View style={styles.summaryCard}>
+            <View style={styles.resultContainer}>
+              <Text style={styles.resultLabel}>Total Profit/Loss</Text>
+              <Text style={[styles.resultAmount, isProfit ? styles.profitText : styles.lossText]}>
+                {isProfit ? '+' : ''}{profit}
+              </Text>
+            </View>
+
+            <View style={styles.statsGrid}>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Buy In</Text>
+                <Text style={styles.statValue}>{buyIn}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Cash Out</Text>
+                <Text style={styles.statValue}>{cashOut}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Duration</Text>
+                <Text style={styles.statValue}>{durationStr}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Stakes</Text>
+                <Text style={styles.statValue}>{session.stakes || '-'}</Text>
+              </View>
+            </View>
+
+            {session.location && (
+              <View style={styles.locationContainer}>
+                <Ionicons name="location" size={16} color="#666" />
+                <Text style={styles.locationText}>{session.location}</Text>
+              </View>
+            )}
+          </View>
+
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={20} color="#fff" />
+            <Text style={styles.backButtonText}>Back to Sessions</Text>
+          </TouchableOpacity>
+        </View>
+      );
     }
     
     return (
@@ -827,6 +893,102 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   confirmButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  summaryHeader: {
+    padding: 24,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  summaryTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 8,
+  },
+  summaryDate: {
+    fontSize: 14,
+    color: '#666',
+  },
+  summaryCard: {
+    margin: 20,
+    padding: 24,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  resultContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  resultLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  resultAmount: {
+    fontSize: 48,
+    fontWeight: '700',
+  },
+  profitText: {
+    color: '#27ae60',
+  },
+  lossText: {
+    color: '#e74c3c',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 24,
+  },
+  statItem: {
+    width: '45%',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    gap: 8,
+  },
+  locationText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0a7ea4',
+    marginHorizontal: 20,
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  backButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
