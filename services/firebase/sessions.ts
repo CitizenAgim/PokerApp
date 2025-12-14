@@ -276,11 +276,22 @@ export async function assignPlayerToSeat(
 ): Promise<void> {
   try {
     const sessionDoc = await getSession(sessionId);
-    if (!sessionDoc || !sessionDoc.table) {
-      throw new Error('Session or table not found');
+    if (!sessionDoc) {
+      throw new Error('Session not found');
     }
+
+    // If table doesn't exist, create a default one
+    const currentTable = sessionDoc.table || {
+      sessionId,
+      buttonPosition: 1,
+      seats: Array.from({ length: 9 }, (_, i) => ({
+        index: i,
+        seatNumber: i + 1,
+        position: undefined,
+      })),
+    };
     
-    const updatedSeats = sessionDoc.table.seats.map(seat => {
+    const updatedSeats = currentTable.seats.map(seat => {
       if (seat.seatNumber === seatNumber) {
         return { ...seat, playerId: playerId || undefined };
       }
@@ -288,7 +299,7 @@ export async function assignPlayerToSeat(
     });
     
     await updateTable(sessionId, {
-      ...sessionDoc.table,
+      ...currentTable,
       seats: updatedSeats,
     });
   } catch (error) {

@@ -361,6 +361,15 @@ export function useCurrentSession(): UseCurrentSessionResult {
     const data: localStorage.CurrentSessionData = { session, table };
     await localStorage.setCurrentSession(data);
     setCurrentSession(data);
+
+    // Sync initial table to cloud
+    if (await isOnline()) {
+      try {
+        await sessionsFirebase.updateTable(session.id, table);
+      } catch (err) {
+        console.warn('Could not sync initial table to cloud:', err);
+      }
+    }
   }, []);
 
   const endSession = useCallback(async (cashOut?: number, endTime?: number): Promise<void> => {
