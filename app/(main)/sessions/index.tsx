@@ -42,8 +42,7 @@ export default function SessionsScreen() {
         {
           text: 'Edit',
           onPress: () => {
-             // Placeholder for now
-             Alert.alert('Info', 'Edit feature coming soon');
+             router.push(`/(main)/sessions/${session.id}`);
           }
         },
         {

@@ -134,7 +134,7 @@ function SeatView({ seat, isButton, isHero, onPress, buttonPosition }: SeatViewC
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { session, table, loading, updateButtonPosition, assignPlayerToSeat, endSession, getPositionForSeat } = useSession(id);
+  const { session, table, loading, updateButtonPosition, assignPlayerToSeat, endSession, getPositionForSeat, updateSessionDetails } = useSession(id);
   const { clearSession } = useCurrentSession();
   const { players } = usePlayers();
   
@@ -147,6 +147,13 @@ export default function SessionDetailScreen() {
   const [showEndSessionModal, setShowEndSessionModal] = useState(false);
   const [cashOutAmount, setCashOutAmount] = useState('');
   const [endTime, setEndTime] = useState(new Date());
+
+  // Edit Session State
+  const [showEditSessionModal, setShowEditSessionModal] = useState(false);
+  const [editBuyIn, setEditBuyIn] = useState('');
+  const [editCashOut, setEditCashOut] = useState('');
+  const [editStartTime, setEditStartTime] = useState(new Date());
+  const [editEndTime, setEditEndTime] = useState(new Date());
 
   // Players not already at the table
   const availablePlayers = useMemo(() => {
@@ -236,6 +243,38 @@ export default function SessionDetailScreen() {
     }
   };
 
+  const handleEditSession = () => {
+    if (!session) return;
+    setEditBuyIn(session.buyIn.toString());
+    setEditCashOut(session.cashOut?.toString() || '');
+    setEditStartTime(new Date(session.startTime));
+    setEditEndTime(session.endTime ? new Date(session.endTime) : new Date());
+    setShowEditSessionModal(true);
+  };
+
+  const confirmEditSession = async () => {
+    try {
+      const buyIn = parseFloat(editBuyIn);
+      const cashOut = editCashOut ? parseFloat(editCashOut) : undefined;
+      
+      if (isNaN(buyIn)) {
+        Alert.alert('Error', 'Please enter a valid buy-in amount');
+        return;
+      }
+
+      await updateSessionDetails({
+        buyIn,
+        cashOut,
+        startTime: editStartTime.getTime(),
+        endTime: editEndTime.getTime(),
+      });
+      
+      setShowEditSessionModal(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update session');
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -276,6 +315,10 @@ export default function SessionDetailScreen() {
               day: 'numeric',
             })}
           </Text>
+          <TouchableOpacity onPress={handleEditSession} style={styles.editButton}>
+            <Ionicons name="pencil" size={16} color="#0a7ea4" />
+            <Text style={styles.editButtonText}>Edit Session</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.summaryCard}>
@@ -320,6 +363,96 @@ export default function SessionDetailScreen() {
           <Ionicons name="arrow-back" size={20} color="#fff" />
           <Text style={styles.backButtonText}>Back to Sessions</Text>
         </TouchableOpacity>
+
+        {/* Edit Session Modal */}
+        <Modal
+          visible={showEditSessionModal}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setShowEditSessionModal(false)}
+        >
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.centeredModalOverlay}
+          >
+            <View style={styles.centeredModalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Edit Session</Text>
+                <TouchableOpacity onPress={() => setShowEditSessionModal(false)}>
+                  <Ionicons name="close" size={24} color="#333" />
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView style={styles.formContent}>
+                <Text style={styles.label}>Buy In</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editBuyIn}
+                  onChangeText={setEditBuyIn}
+                  placeholder="0"
+                  keyboardType="numeric"
+                />
+
+                <Text style={styles.label}>Cash Out</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editCashOut}
+                  onChangeText={setEditCashOut}
+                  placeholder="0"
+                  keyboardType="numeric"
+                />
+                
+                <Text style={styles.label}>Start Time</Text>
+                <View style={styles.datePickerContainer}>
+                  {Platform.OS === 'ios' ? (
+                    <RNDateTimePicker
+                      value={editStartTime}
+                      mode="datetime"
+                      display="spinner"
+                      onChange={(event, date) => date && setEditStartTime(date)}
+                      style={styles.datePicker}
+                      textColor="#000000"
+                    />
+                  ) : (
+                    <View style={styles.androidPickerButtons}>
+                      <TouchableOpacity style={styles.androidPickerButton}>
+                        <Text>{editStartTime.toLocaleString()}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+
+                <Text style={styles.label}>End Time</Text>
+                <View style={styles.datePickerContainer}>
+                  {Platform.OS === 'ios' ? (
+                    <RNDateTimePicker
+                      value={editEndTime}
+                      mode="datetime"
+                      display="spinner"
+                      onChange={(event, date) => date && setEditEndTime(date)}
+                      style={styles.datePicker}
+                      textColor="#000000"
+                    />
+                  ) : (
+                    <View style={styles.androidPickerButtons}>
+                      <TouchableOpacity style={styles.androidPickerButton}>
+                        <Text>{editEndTime.toLocaleString()}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+                
+                <TouchableOpacity 
+                  style={styles.confirmButton}
+                  onPress={confirmEditSession}
+                >
+                  <Text style={styles.confirmButtonText}>Save Changes</Text>
+                </TouchableOpacity>
+                <View style={{ height: 20 }} />
+              </ScrollView>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
       </View>
     );
   }
@@ -989,6 +1122,20 @@ const styles = StyleSheet.create({
   summaryDate: {
     fontSize: 14,
     color: '#666',
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    padding: 8,
+    backgroundColor: '#f0f9ff',
+    borderRadius: 8,
+    gap: 4,
+  },
+  editButtonText: {
+    fontSize: 14,
+    color: '#0a7ea4',
+    fontWeight: '600',
   },
   summaryCard: {
     margin: 20,

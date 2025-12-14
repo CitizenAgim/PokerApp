@@ -191,6 +191,9 @@ export async function updateSession(
     if (updates.stakes !== undefined) data.stakes = updates.stakes;
     if (updates.isActive !== undefined) data.isActive = updates.isActive;
     if (updates.endTime !== undefined) data.endTime = Timestamp.fromMillis(updates.endTime);
+    if (updates.buyIn !== undefined) data.buyIn = updates.buyIn;
+    if (updates.cashOut !== undefined) data.cashOut = updates.cashOut;
+    if (updates.startTime !== undefined) data.startTime = Timestamp.fromMillis(updates.startTime);
     
     // Use setDoc with merge: true instead of updateDoc to handle cases where
     // the document might not exist yet (e.g. creation sync failed or is pending)

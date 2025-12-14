@@ -167,6 +167,7 @@ interface UseSessionResult {
   updateButtonPosition: (position: number) => Promise<void>;
   assignPlayerToSeat: (seatNumber: number, playerId: string | null) => Promise<void>;
   getPositionForSeat: (seatNumber: number) => Position | null;
+  updateSessionDetails: (updates: { buyIn?: number; cashOut?: number; startTime?: number; endTime?: number }) => Promise<void>;
 }
 
 export function useSession(sessionId: string): UseSessionResult {
@@ -304,6 +305,42 @@ export function useSession(sessionId: string): UseSessionResult {
     return calculatePosition(seatNumber, table.buttonPosition, 9);
   }, [table]);
 
+  const updateSessionDetails = useCallback(async (updates: {
+    buyIn?: number;
+    cashOut?: number;
+    startTime?: number;
+    endTime?: number;
+  }): Promise<void> => {
+    if (!session) return;
+
+    const updatedSession: Session = {
+      ...session,
+      ...updates,
+    };
+
+    // Recalculate duration if times changed or if it was already ended
+    if (updatedSession.endTime && updatedSession.startTime) {
+      updatedSession.duration = updatedSession.endTime - updatedSession.startTime;
+    }
+
+    setSession(updatedSession);
+    await localStorage.saveSession(updatedSession);
+
+    // If this is the current active session, update that too
+    const current = await localStorage.getCurrentSession();
+    if (current && current.session.id === sessionId) {
+      await localStorage.setCurrentSession({ ...current, session: updatedSession });
+    }
+
+    if (await isOnline()) {
+      try {
+        await sessionsFirebase.updateSession(sessionId, updates);
+      } catch (err) {
+        console.warn('Could not update session details in cloud:', err);
+      }
+    }
+  }, [session, sessionId]);
+
   useEffect(() => {
     loadSession();
   }, [loadSession]);
@@ -318,6 +355,7 @@ export function useSession(sessionId: string): UseSessionResult {
     updateButtonPosition,
     assignPlayerToSeat,
     getPositionForSeat,
+    updateSessionDetails,
   };
 }
 
