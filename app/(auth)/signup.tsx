@@ -12,11 +12,11 @@ import {
     Alert,
     KeyboardAvoidingView,
     Platform,
+    ScrollView,
     StyleSheet,
     TextInput,
     TouchableOpacity,
     View,
-    ScrollView,
 } from 'react-native';
 
 WebBrowser.maybeCompleteAuthSession();
