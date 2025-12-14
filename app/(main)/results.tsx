@@ -3,12 +3,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo } from 'react';
 import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 
 export default function ResultsScreen() {
@@ -94,10 +94,15 @@ export default function ResultsScreen() {
       <View style={styles.grid}>
         <View style={styles.card}>
           <View style={styles.iconContainer}>
-            <Ionicons name="time" size={24} color="#0a7ea4" />
+            <Ionicons name="trending-up" size={24} color="#0a7ea4" />
           </View>
-          <Text style={styles.cardLabel}>Total Hours</Text>
-          <Text style={styles.cardValue}>{stats.totalHours.toFixed(1)}h</Text>
+          <Text style={styles.cardLabel}>Hourly Rate</Text>
+          <Text style={[
+            styles.cardValue,
+            stats.hourlyRate >= 0 ? styles.profitText : styles.lossText
+          ]}>
+            {stats.hourlyRate.toFixed(2)}/hr
+          </Text>
         </View>
 
         <View style={styles.card}>
@@ -110,15 +115,10 @@ export default function ResultsScreen() {
 
         <View style={styles.card}>
           <View style={styles.iconContainer}>
-            <Ionicons name="trending-up" size={24} color="#0a7ea4" />
+            <Ionicons name="time" size={24} color="#0a7ea4" />
           </View>
-          <Text style={styles.cardLabel}>Hourly Rate</Text>
-          <Text style={[
-            styles.cardValue,
-            stats.hourlyRate >= 0 ? styles.profitText : styles.lossText
-          ]}>
-            {stats.hourlyRate.toFixed(2)}/hr
-          </Text>
+          <Text style={styles.cardLabel}>Total Hours</Text>
+          <Text style={styles.cardValue}>{stats.totalHours.toFixed(1)}h</Text>
         </View>
 
         <View style={styles.card}>
