@@ -163,7 +163,7 @@ interface UseSessionResult {
   loading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
-  endSession: () => Promise<void>;
+  endSession: (cashOut?: number, endTime?: number) => Promise<void>;
   updateButtonPosition: (position: number) => Promise<void>;
   assignPlayerToSeat: (seatNumber: number, playerId: string | null) => Promise<void>;
   getPositionForSeat: (seatNumber: number) => Position | null;
@@ -215,13 +215,18 @@ export function useSession(sessionId: string): UseSessionResult {
     }
   }, [sessionId]);
 
-  const endSession = useCallback(async (): Promise<void> => {
+  const endSession = useCallback(async (cashOut?: number, endTime?: number): Promise<void> => {
     if (!session) return;
+
+    const finalEndTime = endTime || Date.now();
+    const duration = finalEndTime - session.startTime;
 
     const updatedSession: Session = {
       ...session,
       isActive: false,
-      endTime: Date.now(),
+      endTime: finalEndTime,
+      cashOut,
+      duration,
     };
 
     await localStorage.saveSession(updatedSession);
@@ -230,7 +235,7 @@ export function useSession(sessionId: string): UseSessionResult {
 
     if (await isOnline()) {
       try {
-        await sessionsFirebase.endSession(sessionId);
+        await sessionsFirebase.endSession(sessionId, cashOut, finalEndTime);
       } catch (err) {
         console.warn('Could not end session in cloud:', err);
       }
@@ -324,7 +329,7 @@ interface UseCurrentSessionResult {
   currentSession: localStorage.CurrentSessionData | null;
   loading: boolean;
   startSession: (session: Session) => Promise<void>;
-  endSession: () => Promise<void>;
+  endSession: (cashOut?: number, endTime?: number) => Promise<void>;
   clearSession: () => Promise<void>;
 }
 
@@ -358,18 +363,23 @@ export function useCurrentSession(): UseCurrentSessionResult {
     setCurrentSession(data);
   }, []);
 
-  const endSession = useCallback(async (): Promise<void> => {
+  const endSession = useCallback(async (cashOut?: number, endTime?: number): Promise<void> => {
     if (currentSession) {
+      const finalEndTime = endTime || Date.now();
+      const duration = finalEndTime - currentSession.session.startTime;
+
       const updatedSession: Session = {
         ...currentSession.session,
         isActive: false,
-        endTime: Date.now(),
+        endTime: finalEndTime,
+        cashOut,
+        duration,
       };
       await localStorage.saveSession(updatedSession);
       
       if (await isOnline()) {
         try {
-          await sessionsFirebase.endSession(currentSession.session.id);
+          await sessionsFirebase.endSession(currentSession.session.id, cashOut, finalEndTime);
         } catch (err) {
           console.warn('Could not end session in cloud:', err);
         }

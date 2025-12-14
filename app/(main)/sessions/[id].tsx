@@ -9,10 +9,13 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -136,6 +139,11 @@ export default function SessionDetailScreen() {
   const [selectedSeat, setSelectedSeat] = useState<number | null>(null);
   const [showPlayerPicker, setShowPlayerPicker] = useState(false);
   const [heroSeat, setHeroSeat] = useState<number | undefined>(undefined);
+  
+  // End Session State
+  const [showEndSessionModal, setShowEndSessionModal] = useState(false);
+  const [cashOutAmount, setCashOutAmount] = useState('');
+  const [endTimeStr, setEndTimeStr] = useState('');
 
   // Players not already at the table
   const availablePlayers = useMemo(() => {
@@ -199,22 +207,40 @@ export default function SessionDetailScreen() {
   };
 
   const handleEndSession = () => {
-    Alert.alert(
-      'End Session',
-      'Are you sure you want to end this session?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'End Session',
-          style: 'destructive',
-          onPress: async () => {
-            await endSession();
-            await clearSession();
-            router.back();
-          },
-        },
-      ]
-    );
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    setEndTimeStr(timeStr);
+    setCashOutAmount('');
+    setShowEndSessionModal(true);
+  };
+
+  const confirmEndSession = async () => {
+    try {
+      // Parse time HH:MM
+      const [hours, minutes] = endTimeStr.split(':').map(Number);
+      if (isNaN(hours) || isNaN(minutes)) {
+        Alert.alert('Invalid Time', 'Please enter time in HH:MM format');
+        return;
+      }
+
+      const endDate = new Date();
+      endDate.setHours(hours, minutes, 0, 0);
+      
+      // If the resulting time is in the future (e.g. it's 01:00 and user enters 23:00),
+      // assume it was yesterday.
+      if (endDate.getTime() > Date.now() + 60000) { // Allow 1 min buffer
+         endDate.setDate(endDate.getDate() - 1);
+      }
+
+      const cashOut = cashOutAmount ? parseFloat(cashOutAmount) : 0;
+      
+      await endSession(cashOut, endDate.getTime());
+      await clearSession();
+      setShowEndSessionModal(false);
+      router.back();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to end session');
+    }
   };
 
   if (loading) {
@@ -391,6 +417,55 @@ export default function SessionDetailScreen() {
             </ScrollView>
           </View>
         </View>
+      </Modal>
+
+      {/* End Session Modal */}
+      <Modal
+        visible={showEndSessionModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowEndSessionModal(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.centeredModalOverlay}
+        >
+          <View style={styles.centeredModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>End Session</Text>
+              <TouchableOpacity onPress={() => setShowEndSessionModal(false)}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.formContent}>
+              <Text style={styles.label}>Cash Out Amount</Text>
+              <TextInput
+                style={styles.input}
+                value={cashOutAmount}
+                onChangeText={setCashOutAmount}
+                placeholder="0"
+                keyboardType="numeric"
+                autoFocus
+              />
+              
+              <Text style={styles.label}>End Time (HH:MM)</Text>
+              <TextInput
+                style={styles.input}
+                value={endTimeStr}
+                onChangeText={setEndTimeStr}
+                placeholder="HH:MM"
+              />
+              
+              <TouchableOpacity 
+                style={styles.confirmButton}
+                onPress={confirmEndSession}
+              >
+                <Text style={styles.confirmButtonText}>Confirm End Session</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -638,6 +713,23 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     maxHeight: '70%',
   },
+  centeredModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  centeredModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    maxHeight: '80%',
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -708,5 +800,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 2,
+  },
+  formContent: {
+    padding: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+    marginTop: 12,
+  },
+  input: {
+    backgroundColor: '#f5f5f5',
+    padding: 12,
+    borderRadius: 8,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  confirmButton: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  confirmButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

@@ -28,9 +28,17 @@ const sessionsCollection = collection(db, COLLECTION_NAME);
 interface FirestoreSession {
   name: string;
   location?: string;
+  gameType?: string;
   stakes?: string;
+  smallBlind?: number;
+  bigBlind?: number;
+  thirdBlind?: number;
+  ante?: number;
+  buyIn?: number;
+  cashOut?: number;
   startTime: Timestamp;
   endTime?: Timestamp;
+  duration?: number;
   isActive: boolean;
   createdBy: string;
   table?: Table;
@@ -41,9 +49,17 @@ function toSession(id: string, data: FirestoreSession): Session & { table?: Tabl
     id,
     name: data.name,
     location: data.location,
+    gameType: data.gameType,
     stakes: data.stakes,
+    smallBlind: data.smallBlind,
+    bigBlind: data.bigBlind,
+    thirdBlind: data.thirdBlind,
+    ante: data.ante,
+    buyIn: data.buyIn,
+    cashOut: data.cashOut,
     startTime: data.startTime?.toMillis() || Date.now(),
     endTime: data.endTime?.toMillis(),
+    duration: data.duration,
     isActive: data.isActive,
     createdBy: data.createdBy,
     table: data.table,
@@ -126,7 +142,13 @@ export async function createSession(
     const data: Record<string, unknown> = {
       name: session.name,
       location: session.location || null,
+      gameType: session.gameType || null,
       stakes: session.stakes || null,
+      smallBlind: session.smallBlind || null,
+      bigBlind: session.bigBlind || null,
+      thirdBlind: session.thirdBlind || null,
+      ante: session.ante || null,
+      buyIn: session.buyIn || null,
       startTime: serverTimestamp(),
       isActive: true,
       createdBy: session.createdBy,
@@ -182,15 +204,21 @@ export async function updateSession(
 /**
  * End a session
  */
-export async function endSession(sessionId: string): Promise<void> {
+export async function endSession(sessionId: string, cashOut?: number, endTime?: number): Promise<void> {
   try {
     const sessionRef = doc(db, COLLECTION_NAME, sessionId);
     
-    // Use setDoc with merge: true for safety
-    await setDoc(sessionRef, {
+    const data: any = {
       isActive: false,
-      endTime: serverTimestamp(),
-    }, { merge: true });
+      endTime: endTime ? Timestamp.fromMillis(endTime) : serverTimestamp(),
+    };
+
+    if (cashOut !== undefined) {
+      data.cashOut = cashOut;
+    }
+    
+    // Use setDoc with merge: true for safety
+    await setDoc(sessionRef, data, { merge: true });
   } catch (error) {
     console.error('Error ending session:', error);
     throw error;
