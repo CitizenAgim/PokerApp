@@ -7,18 +7,18 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -245,7 +245,7 @@ export default function SessionDetailScreen() {
 
   const handleEditSession = () => {
     if (!session) return;
-    setEditBuyIn(session.buyIn.toString());
+    setEditBuyIn(session.buyIn?.toString() || '');
     setEditCashOut(session.cashOut?.toString() || '');
     setEditStartTime(new Date(session.startTime));
     setEditEndTime(session.endTime ? new Date(session.endTime) : new Date());
