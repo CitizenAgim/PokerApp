@@ -260,82 +260,90 @@ export default function SessionDetailScreen() {
     );
   }
 
-  if (!session || !table) {
-    // If session exists but table is missing (e.g. ended session), show summary
-    if (session && !session.isActive) {
-      const buyIn = session.buyIn || 0;
-      const cashOut = session.cashOut || 0;
-      const profit = cashOut - buyIn;
-      const isProfit = profit >= 0;
-      
-      const durationMs = (session.endTime || Date.now()) - session.startTime;
-      const hours = Math.floor(durationMs / (1000 * 60 * 60));
-      const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-      const durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-
-      return (
-        <View style={styles.container}>
-          <View style={styles.summaryHeader}>
-            <Text style={styles.summaryTitle}>Session Result</Text>
-            <Text style={styles.summaryDate}>
-              {new Date(session.startTime).toLocaleDateString(undefined, {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </Text>
-          </View>
-
-          <View style={styles.summaryCard}>
-            <View style={styles.resultContainer}>
-              <Text style={styles.resultLabel}>Total Profit/Loss</Text>
-              <Text style={[styles.resultAmount, isProfit ? styles.profitText : styles.lossText]}>
-                {isProfit ? '+' : ''}{profit}
-              </Text>
-            </View>
-
-            <View style={styles.statsGrid}>
-              <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Buy In</Text>
-                <Text style={styles.statValue}>{buyIn}</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Cash Out</Text>
-                <Text style={styles.statValue}>{cashOut}</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Duration</Text>
-                <Text style={styles.statValue}>{durationStr}</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Stakes</Text>
-                <Text style={styles.statValue}>{session.stakes || '-'}</Text>
-              </View>
-            </View>
-
-            {session.location && (
-              <View style={styles.locationContainer}>
-                <Ionicons name="location" size={16} color="#666" />
-                <Text style={styles.locationText}>{session.location}</Text>
-              </View>
-            )}
-          </View>
-
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={20} color="#fff" />
-            <Text style={styles.backButtonText}>Back to Sessions</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    
+  if (!session) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Session not found</Text>
+      </View>
+    );
+  }
+
+  // If session is ended, show summary regardless of table state
+  if (!session.isActive) {
+    const buyIn = session.buyIn || 0;
+    const cashOut = session.cashOut || 0;
+    const profit = cashOut - buyIn;
+    const isProfit = profit >= 0;
+    
+    const durationMs = (session.endTime || Date.now()) - session.startTime;
+    const hours = Math.floor(durationMs / (1000 * 60 * 60));
+    const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+    const durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+    return (
+      <View style={styles.container}>
+        <View style={styles.summaryHeader}>
+          <Text style={styles.summaryTitle}>Session Result</Text>
+          <Text style={styles.summaryDate}>
+            {new Date(session.startTime).toLocaleDateString(undefined, {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </Text>
+        </View>
+
+        <View style={styles.summaryCard}>
+          <View style={styles.resultContainer}>
+            <Text style={styles.resultLabel}>Total Profit/Loss</Text>
+            <Text style={[styles.resultAmount, isProfit ? styles.profitText : styles.lossText]}>
+              {isProfit ? '+' : ''}{profit}
+            </Text>
+          </View>
+
+          <View style={styles.statsGrid}>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Buy In</Text>
+              <Text style={styles.statValue}>{buyIn}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Cash Out</Text>
+              <Text style={styles.statValue}>{cashOut}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Duration</Text>
+              <Text style={styles.statValue}>{durationStr}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Stakes</Text>
+              <Text style={styles.statValue}>{session.stakes || '-'}</Text>
+            </View>
+          </View>
+
+          {session.location && (
+            <View style={styles.locationContainer}>
+              <Ionicons name="location" size={16} color="#666" />
+              <Text style={styles.locationText}>{session.location}</Text>
+            </View>
+          )}
+        </View>
+
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Text style={styles.backButtonText}>Back to Sessions</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!table) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Table data not found</Text>
       </View>
     );
   }

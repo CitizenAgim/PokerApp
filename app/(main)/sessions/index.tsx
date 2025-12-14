@@ -97,7 +97,11 @@ export default function SessionsScreen() {
     return `${minutes}m`;
   };
 
-  const renderSession = ({ item }: { item: Session }) => (
+  const renderSession = ({ item }: { item: Session }) => {
+    const profit = (item.cashOut || 0) - (item.buyIn || 0);
+    const isProfit = profit >= 0;
+
+    return (
     <TouchableOpacity
       style={[styles.sessionCard, item.isActive && styles.sessionCardActive]}
       onPress={() => {
@@ -115,11 +119,15 @@ export default function SessionsScreen() {
             {item.location || 'No location'}
           </Text>
         </View>
-        {item.isActive && (
+        {item.isActive ? (
           <View style={styles.liveBadge}>
             <View style={styles.liveDot} />
             <Text style={styles.liveText}>LIVE</Text>
           </View>
+        ) : (
+          <Text style={[styles.resultText, isProfit ? styles.profitText : styles.lossText]}>
+            {isProfit ? '+' : ''}{profit}
+          </Text>
         )}
       </View>
       
@@ -137,6 +145,7 @@ export default function SessionsScreen() {
       </View>
     </TouchableOpacity>
   );
+  };
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
@@ -327,6 +336,16 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#27ae60',
+  },
+  resultText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  profitText: {
+    color: '#27ae60',
+  },
+  lossText: {
+    color: '#e74c3c',
   },
   sessionMeta: {
     flexDirection: 'row',
