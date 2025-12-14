@@ -139,6 +139,7 @@ export default function SessionDetailScreen() {
   const [selectedSeat, setSelectedSeat] = useState<number | null>(null);
   const [showPlayerPicker, setShowPlayerPicker] = useState(false);
   const [heroSeat, setHeroSeat] = useState<number | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // End Session State
   const [showEndSessionModal, setShowEndSessionModal] = useState(false);
@@ -153,8 +154,15 @@ export default function SessionDetailScreen() {
         .filter(s => s.playerId)
         .map(s => s.playerId)
     );
-    return players.filter(p => !seatedPlayerIds.has(p.id));
-  }, [players, table]);
+    let filtered = players.filter(p => !seatedPlayerIds.has(p.id));
+    
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(p => p.name.toLowerCase().includes(query));
+    }
+    
+    return filtered;
+  }, [players, table, searchQuery]);
 
   const handleSeatPress = (seatNumber: number) => {
     if (!table) return;
@@ -194,6 +202,7 @@ export default function SessionDetailScreen() {
     } else {
       // Assign player to empty seat
       setSelectedSeat(seatNumber);
+      setSearchQuery('');
       setShowPlayerPicker(true);
     }
   };
@@ -438,6 +447,22 @@ export default function SessionDetailScreen() {
               </TouchableOpacity>
             </View>
             
+            <View style={styles.searchContainer}>
+              <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search players..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCorrect={false}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={20} color="#999" />
+                </TouchableOpacity>
+              )}
+            </View>
+
             <ScrollView style={styles.playerList}>
               {availablePlayers.length === 0 ? (
                 <View style={styles.emptyPlayers}>
@@ -809,8 +834,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    margin: 16,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    height: 44,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    height: '100%',
+  },
   playerList: {
     padding: 16,
+    paddingTop: 8,
   },
   emptyPlayers: {
     alignItems: 'center',
