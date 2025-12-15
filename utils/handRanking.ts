@@ -21,11 +21,76 @@ export function compareRanks(rank1: string, rank2: string): number {
   return getRankIndex(rank1) - getRankIndex(rank2);
 }
 
+/**
+ * Get all hands that are "better" than the given hand
+ * - Pairs: Higher pairs (e.g. 88 -> 99, TT...)
+ * - Suited: Same high card, higher kicker (e.g. A8s -> A9s, ATs...)
+ * - Offsuit: Same high card, higher kicker (e.g. A8o -> A9o, ATo...)
+ */
+export function getBetterHands(handId: string): string[] {
+  const hand = HAND_MAP[handId];
+  if (!hand) return [];
 
+  const betterHands: string[] = [];
+  const { rank1, rank2, type } = hand;
+  const rank1Idx = getRankIndex(rank1);
+  const rank2Idx = getRankIndex(rank2);
 
+  if (type === 'pair') {
+    // For pairs, any pair with higher rank is better
+    // rank1Idx is the index (0=A, 12=2). Lower index is better.
+    // We want pairs with index < rank1Idx
+    for (let i = 0; i < rank1Idx; i++) {
+      const rank = RANKS[i];
+      betterHands.push(`${rank}${rank}`);
+    }
+  } else {
+    // For non-pairs, we want same high card (rank1), but better kicker (rank2)
+    // Better kicker means lower index than rank2Idx
+    // But kicker must still be lower than rank1 (otherwise it becomes a pair or swaps order)
+    // Actually, rank1 is always the high card.
+    // So we iterate rank2 from rank2Idx-1 down to rank1Idx+1
+    for (let i = rank2Idx - 1; i > rank1Idx; i--) {
+      const kicker = RANKS[i];
+      betterHands.push(`${rank1}${kicker}${type === 'suited' ? 's' : 'o'}`);
+    }
+  }
 
+  return betterHands;
+}
 
+/**
+ * Update auto-selected hands based on manual selections
+ */
+export function updateAutoSelections(range: Range): Range {
+  const newRange = { ...range };
+  
+  // 1. Reset all auto-selected hands to unselected
+  // We preserve manual-selected and manual-unselected
+  Object.keys(newRange).forEach(id => {
+    if (newRange[id] === 'auto-selected') {
+      delete newRange[id]; // or 'unselected'
+    }
+  });
 
+  // 2. Find all manual-selected hands
+  const manualHands = Object.entries(newRange)
+    .filter(([_, state]) => state === 'manual-selected')
+    .map(([id]) => id);
+
+  // 3. Propagate to better hands
+  manualHands.forEach(handId => {
+    const betterHands = getBetterHands(handId);
+    betterHands.forEach(betterId => {
+      // Only update if not manually set
+      if (!newRange[betterId] || newRange[betterId] === 'unselected') {
+        newRange[betterId] = 'auto-selected';
+      }
+    });
+  });
+
+  return newRange;
+}
 
 // ============================================
 // RANGE MANIPULATION
@@ -53,14 +118,27 @@ export function toggleHandInRange(range: Range, handId: string): Range {
   const hand = HAND_MAP[handId];
   if (!hand) return range;
   
-  const newRange = { ...range };
+  let newRange = { ...range };
   const currentState = range[handId] || 'unselected';
   
-  if (currentState === 'manual-selected' || currentState === 'auto-selected') {
+  // State transitions:
+  // Unselected -> Manual-Selected
+  // Manual-Selected -> Unselected
+  // Auto-Selected -> Manual-Unselected
+  // Manual-Unselected -> Manual-Selected
+  
+  if (currentState === 'manual-selected') {
     newRange[handId] = 'unselected';
+  } else if (currentState === 'auto-selected') {
+    newRange[handId] = 'manual-unselected';
+  } else if (currentState === 'manual-unselected') {
+    newRange[handId] = 'manual-selected';
   } else {
     newRange[handId] = 'manual-selected';
   }
+  
+  // After state change, re-calculate auto-selections
+  newRange = updateAutoSelections(newRange);
   
   return newRange;
 }
