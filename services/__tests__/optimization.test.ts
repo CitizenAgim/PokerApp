@@ -116,7 +116,8 @@ describe('Data Optimization & Lean Sync', () => {
         name: 'Session With Table',
         createdBy: 'user-1',
         table: {
-          seats: [{ id: 1, player: 'some-player' }],
+          sessionId: 'session-3',
+          seats: [{ index: 0, seatNumber: 1, playerId: 'some-player' }],
           buttonPosition: 1
         }
       };
