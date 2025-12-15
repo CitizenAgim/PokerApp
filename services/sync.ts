@@ -256,11 +256,18 @@ async function syncSession(
       // Strip table data before syncing
       const { table: __, ...updatedSessionData } = updatedSession;
 
+      // Ensure critical fields are present and correct type
+      if (!updatedSessionData.createdBy) {
+        console.error('[Sync] Missing createdBy in session update:', updatedSessionData.id);
+        // Fallback to current user if available, though this shouldn't happen
+        if (userId) updatedSessionData.createdBy = userId;
+      }
+
       await sessionsFirebase.updateSession(updatedSessionData.id, {
         ...updatedSessionData,
         // Ensure timestamps are numbers
-        startTime: updatedSessionData.startTime,
-        endTime: updatedSessionData.endTime,
+        startTime: Number(updatedSessionData.startTime),
+        endTime: updatedSessionData.endTime ? Number(updatedSessionData.endTime) : undefined,
       });
       break;
     case 'delete':

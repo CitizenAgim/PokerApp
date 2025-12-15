@@ -1,7 +1,7 @@
 import { auth } from '@/config/firebase';
 import * as sessionsFirebase from '@/services/firebase/sessions';
 import * as localStorage from '@/services/localStorage';
-import { isOnline } from '@/services/sync';
+import { isOnline, syncPendingChanges } from '@/services/sync';
 import { Position, Session, Table } from '@/types/poker';
 import { calculatePosition } from '@/utils/positionCalculator';
 import { useCallback, useEffect, useState } from 'react';
@@ -239,16 +239,8 @@ export function useSession(sessionId: string): UseSessionResult {
     await localStorage.clearCurrentSession();
     setSession(updatedSession);
 
-    // Sync is handled by localStorage.saveSession when isActive becomes false
-    /*
-    if (await isOnline()) {
-      try {
-        await sessionsFirebase.endSession(sessionId, cashOut, finalEndTime);
-      } catch (err) {
-        console.warn('Could not end session in cloud:', err);
-      }
-    }
-    */
+    // Trigger sync immediately
+    syncPendingChanges().catch(err => console.warn('Background sync failed:', err));
   }, [session, sessionId]);
 
   const updateButtonPosition = useCallback(async (position: number): Promise<void> => {
@@ -357,17 +349,10 @@ export function useSession(sessionId: string): UseSessionResult {
       await localStorage.setCurrentSession({ ...current, session: updatedSession });
     }
 
-    // Sync is handled by localStorage.saveSession if session is finished
-    // If session is active, we don't sync yet.
-    /*
-    if (await isOnline()) {
-      try {
-        await sessionsFirebase.updateSession(sessionId, updates);
-      } catch (err) {
-        console.warn('Could not update session details in cloud:', err);
-      }
+    // Trigger sync immediately if session is finished
+    if (!updatedSession.isActive) {
+      syncPendingChanges().catch(err => console.warn('Background sync failed:', err));
     }
-    */
   }, [session, sessionId]);
 
   useEffect(() => {
@@ -460,16 +445,8 @@ export function useCurrentSession(): UseCurrentSessionResult {
       };
       await localStorage.saveSession(updatedSession);
       
-      // Sync is handled by localStorage.saveSession
-      /*
-      if (await isOnline()) {
-        try {
-          await sessionsFirebase.endSession(currentSession.session.id, cashOut, finalEndTime);
-        } catch (err) {
-          console.warn('Could not end session in cloud:', err);
-        }
-      }
-      */
+      // Trigger sync immediately
+      syncPendingChanges().catch(err => console.warn('Background sync failed:', err));
     }
     await localStorage.clearCurrentSession();
     setCurrentSession(null);

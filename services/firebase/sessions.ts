@@ -181,6 +181,7 @@ export async function updateSession(
   updates: Partial<Session> // Changed to allow all fields including createdBy
 ): Promise<void> {
   try {
+    console.log(`[Firebase] Updating session ${sessionId} with ${Object.keys(updates).length} fields`);
     const sessionRef = doc(db, COLLECTION_NAME, sessionId);
     
     const data: Record<string, unknown> = {};
@@ -199,13 +200,18 @@ export async function updateSession(
     if (updates.isActive !== undefined) data.isActive = updates.isActive;
     if (updates.createdBy !== undefined) data.createdBy = updates.createdBy;
     
-    if (updates.startTime !== undefined) data.startTime = Timestamp.fromMillis(updates.startTime);
-    if (updates.endTime !== undefined) data.endTime = Timestamp.fromMillis(updates.endTime);
+    if (updates.startTime !== undefined) {
+      data.startTime = Timestamp.fromMillis(updates.startTime);
+    }
+    if (updates.endTime !== undefined) {
+      data.endTime = Timestamp.fromMillis(updates.endTime);
+    }
     if (updates.duration !== undefined) data.duration = updates.duration;
     
     // Use setDoc with merge: true instead of updateDoc to handle cases where
     // the document might not exist yet (e.g. creation sync failed or is pending)
     await setDoc(sessionRef, data, { merge: true });
+    console.log(`[Firebase] Successfully updated session ${sessionId}`);
   } catch (error) {
     console.error('Error updating session:', error);
     throw error;

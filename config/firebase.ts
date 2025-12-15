@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FirebaseApp, getApp, getApps, initializeApp } from "firebase/app";
 //@ts-ignore
 import { Auth, getAuth, getReactNativePersistence, initializeAuth } from 'firebase/auth';
-import { Firestore, getFirestore, initializeFirestore } from 'firebase/firestore';
+import { Firestore, getFirestore, initializeFirestore, memoryLocalCache } from 'firebase/firestore';
 import { FirebaseStorage, getStorage } from 'firebase/storage';
 
 // Your web app's Firebase configuration
@@ -29,6 +29,7 @@ if (!getApps().length) {
     persistence: getReactNativePersistence(AsyncStorage)
   });
   db = initializeFirestore(app, {
+    localCache: memoryLocalCache(),
     ignoreUndefinedProperties: true,
   });
   storage = getStorage(app);
