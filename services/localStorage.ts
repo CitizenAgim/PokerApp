@@ -207,6 +207,10 @@ export async function saveSession(session: Session): Promise<void> {
   await addPendingSync('sessions', index >= 0 ? 'update' : 'create', session);
 }
 
+export async function saveSessions(sessions: Session[]): Promise<void> {
+  await setItem(KEYS.SESSIONS, sessions);
+}
+
 export async function deleteSession(id: string): Promise<void> {
   const sessions = await getSessions();
   const filtered = sessions.filter(s => s.id !== id);

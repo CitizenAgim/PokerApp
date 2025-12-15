@@ -244,7 +244,7 @@ async function syncSession(
           stakes: newSession.stakes,
           createdBy: userId,
         },
-        undefined,
+        newSession.table,
         newSession.id
       );
       break;
@@ -256,7 +256,14 @@ async function syncSession(
         stakes: updatedSession.stakes,
         isActive: updatedSession.isActive,
         endTime: updatedSession.endTime,
+        buyIn: updatedSession.buyIn,
+        cashOut: updatedSession.cashOut,
+        startTime: updatedSession.startTime,
       });
+      
+      if (updatedSession.table) {
+        await sessionsFirebase.updateTable(updatedSession.id, updatedSession.table);
+      }
       break;
     case 'delete':
       await sessionsFirebase.deleteSession((data as { id: string }).id);

@@ -118,6 +118,7 @@ export interface Session {
   duration?: number;      // Duration in minutes
   isActive: boolean;
   createdBy: string;      // User ID
+  table?: Table;
 }
 
 export interface TablePlayer {

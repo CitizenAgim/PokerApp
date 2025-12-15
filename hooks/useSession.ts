@@ -52,9 +52,7 @@ export function useSessions(): UseSessionsResult {
           // Merge (cloud wins on conflicts)
           const merged = mergeSessionsData(localSessions, cloudSessions);
           
-          for (const session of merged) {
-            await localStorage.saveSessionFromCloud(session);
-          }
+          await localStorage.saveSessions(merged);
           
           setSessions(merged);
         } catch (cloudError) {
@@ -187,6 +185,9 @@ export function useSession(sessionId: string): UseSessionResult {
       const localSession = await localStorage.getSession(sessionId);
       if (localSession) {
         setSession(localSession);
+        if (localSession.table) {
+          setTable(localSession.table);
+        }
       }
 
       // Load current session with table
@@ -256,6 +257,11 @@ export function useSession(sessionId: string): UseSessionResult {
     // Update current session
     if (session) {
       await localStorage.setCurrentSession({ session, table: updatedTable });
+      
+      // Also update the session in the main list to persist table state
+      const updatedSession = { ...session, table: updatedTable };
+      await localStorage.saveSession(updatedSession);
+      setSession(updatedSession);
     }
 
     if (await isOnline()) {
@@ -289,6 +295,11 @@ export function useSession(sessionId: string): UseSessionResult {
 
     if (session) {
       await localStorage.setCurrentSession({ session, table: updatedTable });
+      
+      // Also update the session in the main list to persist table state
+      const updatedSession = { ...session, table: updatedTable };
+      await localStorage.saveSession(updatedSession);
+      setSession(updatedSession);
     }
 
     if (await isOnline()) {
@@ -316,6 +327,7 @@ export function useSession(sessionId: string): UseSessionResult {
     const updatedSession: Session = {
       ...session,
       ...updates,
+      table: table || session.table,
     };
 
     // Recalculate duration if times changed or if it was already ended
@@ -399,6 +411,10 @@ export function useCurrentSession(): UseCurrentSessionResult {
     const data: localStorage.CurrentSessionData = { session, table };
     await localStorage.setCurrentSession(data);
     setCurrentSession(data);
+
+    // Update session in list with initial table
+    const sessionWithTable = { ...session, table };
+    await localStorage.saveSession(sessionWithTable);
 
     // Sync initial table to cloud
     if (await isOnline()) {
