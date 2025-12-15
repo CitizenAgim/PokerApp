@@ -132,7 +132,7 @@ export async function getSession(sessionId: string): Promise<(Session & { table?
  */
 export async function createSession(
   session: Omit<Session, 'id' | 'startTime' | 'endTime' | 'isActive'>,
-  table?: Table,
+  table?: Table, // Deprecated: Table data is no longer synced to cloud
   sessionId?: string
 ): Promise<Session> {
   try {
@@ -154,9 +154,7 @@ export async function createSession(
       createdBy: session.createdBy,
     };
     
-    if (table) {
-      data.table = table;
-    }
+    // Table data is explicitly excluded from cloud sync
     
     await setDoc(sessionRef, data);
     
@@ -180,20 +178,30 @@ export async function createSession(
  */
 export async function updateSession(
   sessionId: string,
-  updates: Partial<Omit<Session, 'id' | 'startTime' | 'createdBy'>>
+  updates: Partial<Session> // Changed to allow all fields including createdBy
 ): Promise<void> {
   try {
     const sessionRef = doc(db, COLLECTION_NAME, sessionId);
     
     const data: Record<string, unknown> = {};
+    
+    // Map all possible fields to ensure we can fully recreate the session if it's new
     if (updates.name !== undefined) data.name = updates.name;
     if (updates.location !== undefined) data.location = updates.location;
+    if (updates.gameType !== undefined) data.gameType = updates.gameType;
     if (updates.stakes !== undefined) data.stakes = updates.stakes;
-    if (updates.isActive !== undefined) data.isActive = updates.isActive;
-    if (updates.endTime !== undefined) data.endTime = Timestamp.fromMillis(updates.endTime);
+    if (updates.smallBlind !== undefined) data.smallBlind = updates.smallBlind;
+    if (updates.bigBlind !== undefined) data.bigBlind = updates.bigBlind;
+    if (updates.thirdBlind !== undefined) data.thirdBlind = updates.thirdBlind;
+    if (updates.ante !== undefined) data.ante = updates.ante;
     if (updates.buyIn !== undefined) data.buyIn = updates.buyIn;
     if (updates.cashOut !== undefined) data.cashOut = updates.cashOut;
+    if (updates.isActive !== undefined) data.isActive = updates.isActive;
+    if (updates.createdBy !== undefined) data.createdBy = updates.createdBy;
+    
     if (updates.startTime !== undefined) data.startTime = Timestamp.fromMillis(updates.startTime);
+    if (updates.endTime !== undefined) data.endTime = Timestamp.fromMillis(updates.endTime);
+    if (updates.duration !== undefined) data.duration = updates.duration;
     
     // Use setDoc with merge: true instead of updateDoc to handle cases where
     // the document might not exist yet (e.g. creation sync failed or is pending)
@@ -240,73 +248,27 @@ export async function deleteSession(sessionId: string): Promise<void> {
   }
 }
 
-/**
- * Update table configuration for a session
- */
+// Deprecated: Table data is no longer synced to cloud
 export async function updateTable(sessionId: string, table: Table): Promise<void> {
-  try {
-    const sessionRef = doc(db, COLLECTION_NAME, sessionId);
-    await setDoc(sessionRef, { table }, { merge: true });
-  } catch (error) {
-    console.error('Error updating table:', error);
-    throw error;
-  }
+  // No-op
+  console.warn('updateTable is deprecated and no longer syncs to cloud');
 }
 
-/**
- * Update button position
- */
+// Deprecated: Table data is no longer synced to cloud
 export async function updateButtonPosition(
   sessionId: string,
   buttonPosition: number
 ): Promise<void> {
-  try {
-    const sessionRef = doc(db, COLLECTION_NAME, sessionId);
-    await setDoc(sessionRef, { 'table.buttonPosition': buttonPosition }, { merge: true });
-  } catch (error) {
-    console.error('Error updating button position:', error);
-    throw error;
-  }
+  // No-op
+  console.warn('updateButtonPosition is deprecated and no longer syncs to cloud');
 }
 
-/**
- * Assign player to seat
- */
+// Deprecated: Table data is no longer synced to cloud
 export async function assignPlayerToSeat(
   sessionId: string,
   seatNumber: number,
   playerId: string | null
 ): Promise<void> {
-  try {
-    const sessionDoc = await getSession(sessionId);
-    if (!sessionDoc) {
-      throw new Error('Session not found');
-    }
-
-    // If table doesn't exist, create a default one
-    const currentTable = sessionDoc.table || {
-      sessionId,
-      buttonPosition: 1,
-      seats: Array.from({ length: 9 }, (_, i) => ({
-        index: i,
-        seatNumber: i + 1,
-        position: undefined,
-      })),
-    };
-    
-    const updatedSeats = currentTable.seats.map(seat => {
-      if (seat.seatNumber === seatNumber) {
-        return { ...seat, playerId: playerId || undefined };
-      }
-      return seat;
-    });
-    
-    await updateTable(sessionId, {
-      ...currentTable,
-      seats: updatedSeats,
-    });
-  } catch (error) {
-    console.error('Error assigning player to seat:', error);
-    throw error;
-  }
+  // No-op
+  console.warn('assignPlayerToSeat is deprecated and no longer syncs to cloud');
 }

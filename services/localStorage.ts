@@ -204,7 +204,11 @@ export async function saveSession(session: Session): Promise<void> {
   }
   
   await setItem(KEYS.SESSIONS, sessions);
-  await addPendingSync('sessions', index >= 0 ? 'update' : 'create', session);
+  
+  // Only sync if session is finished (not active)
+  if (!session.isActive) {
+    await addPendingSync('sessions', index >= 0 ? 'update' : 'create', session);
+  }
 }
 
 export async function saveSessions(sessions: Session[]): Promise<void> {

@@ -237,33 +237,31 @@ async function syncSession(
   switch (operation) {
     case 'create':
       const newSession = data as Session;
+      // Strip table data before syncing
+      const { table: _, ...sessionData } = newSession;
+      
       await sessionsFirebase.createSession(
         {
-          name: newSession.name,
-          location: newSession.location,
-          stakes: newSession.stakes,
+          name: sessionData.name,
+          location: sessionData.location,
+          stakes: sessionData.stakes,
           createdBy: userId,
         },
-        newSession.table,
-        newSession.id
+        undefined, // No table data
+        sessionData.id
       );
       break;
     case 'update':
       const updatedSession = data as Session;
-      await sessionsFirebase.updateSession(updatedSession.id, {
-        name: updatedSession.name,
-        location: updatedSession.location,
-        stakes: updatedSession.stakes,
-        isActive: updatedSession.isActive,
-        endTime: updatedSession.endTime,
-        buyIn: updatedSession.buyIn,
-        cashOut: updatedSession.cashOut,
-        startTime: updatedSession.startTime,
+      // Strip table data before syncing
+      const { table: __, ...updatedSessionData } = updatedSession;
+
+      await sessionsFirebase.updateSession(updatedSessionData.id, {
+        ...updatedSessionData,
+        // Ensure timestamps are numbers
+        startTime: updatedSessionData.startTime,
+        endTime: updatedSessionData.endTime,
       });
-      
-      if (updatedSession.table) {
-        await sessionsFirebase.updateTable(updatedSession.id, updatedSession.table);
-      }
       break;
     case 'delete':
       await sessionsFirebase.deleteSession((data as { id: string }).id);

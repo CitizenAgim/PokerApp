@@ -109,6 +109,9 @@ export function useSessions(): UseSessionsResult {
     setSessions(prev => [session, ...prev]);
 
     // Try to sync to cloud
+    // NOTE: We no longer sync active sessions to cloud immediately.
+    // Sync happens when session is finished.
+    /* 
     if (await isOnline()) {
       try {
         await sessionsFirebase.createSession(
@@ -120,6 +123,7 @@ export function useSessions(): UseSessionsResult {
         console.warn('Could not sync session to cloud:', err);
       }
     }
+    */
 
     return session;
   }, []);
@@ -235,6 +239,8 @@ export function useSession(sessionId: string): UseSessionResult {
     await localStorage.clearCurrentSession();
     setSession(updatedSession);
 
+    // Sync is handled by localStorage.saveSession when isActive becomes false
+    /*
     if (await isOnline()) {
       try {
         await sessionsFirebase.endSession(sessionId, cashOut, finalEndTime);
@@ -242,6 +248,7 @@ export function useSession(sessionId: string): UseSessionResult {
         console.warn('Could not end session in cloud:', err);
       }
     }
+    */
   }, [session, sessionId]);
 
   const updateButtonPosition = useCallback(async (position: number): Promise<void> => {
@@ -264,6 +271,8 @@ export function useSession(sessionId: string): UseSessionResult {
       setSession(updatedSession);
     }
 
+    // Table updates are local only now
+    /*
     if (await isOnline()) {
       try {
         await sessionsFirebase.updateButtonPosition(sessionId, position);
@@ -271,6 +280,7 @@ export function useSession(sessionId: string): UseSessionResult {
         console.warn('Could not update button position in cloud:', err);
       }
     }
+    */
   }, [table, session, sessionId]);
 
   const assignPlayerToSeat = useCallback(async (
@@ -302,6 +312,8 @@ export function useSession(sessionId: string): UseSessionResult {
       setSession(updatedSession);
     }
 
+    // Table updates are local only now
+    /*
     if (await isOnline()) {
       try {
         await sessionsFirebase.assignPlayerToSeat(sessionId, seatNumber, playerId);
@@ -309,6 +321,7 @@ export function useSession(sessionId: string): UseSessionResult {
         console.warn('Could not assign player in cloud:', err);
       }
     }
+    */
   }, [table, session, sessionId]);
 
   const getPositionForSeat = useCallback((seatNumber: number): Position | null => {
@@ -344,6 +357,9 @@ export function useSession(sessionId: string): UseSessionResult {
       await localStorage.setCurrentSession({ ...current, session: updatedSession });
     }
 
+    // Sync is handled by localStorage.saveSession if session is finished
+    // If session is active, we don't sync yet.
+    /*
     if (await isOnline()) {
       try {
         await sessionsFirebase.updateSession(sessionId, updates);
@@ -351,6 +367,7 @@ export function useSession(sessionId: string): UseSessionResult {
         console.warn('Could not update session details in cloud:', err);
       }
     }
+    */
   }, [session, sessionId]);
 
   useEffect(() => {
@@ -416,6 +433,8 @@ export function useCurrentSession(): UseCurrentSessionResult {
     const sessionWithTable = { ...session, table };
     await localStorage.saveSession(sessionWithTable);
 
+    // Table data is local only
+    /*
     // Sync initial table to cloud
     if (await isOnline()) {
       try {
@@ -424,6 +443,7 @@ export function useCurrentSession(): UseCurrentSessionResult {
         console.warn('Could not sync initial table to cloud:', err);
       }
     }
+    */
   }, []);
 
   const endSession = useCallback(async (cashOut?: number, endTime?: number): Promise<void> => {
@@ -440,6 +460,8 @@ export function useCurrentSession(): UseCurrentSessionResult {
       };
       await localStorage.saveSession(updatedSession);
       
+      // Sync is handled by localStorage.saveSession
+      /*
       if (await isOnline()) {
         try {
           await sessionsFirebase.endSession(currentSession.session.id, cashOut, finalEndTime);
@@ -447,6 +469,7 @@ export function useCurrentSession(): UseCurrentSessionResult {
           console.warn('Could not end session in cloud:', err);
         }
       }
+      */
     }
     await localStorage.clearCurrentSession();
     setCurrentSession(null);
