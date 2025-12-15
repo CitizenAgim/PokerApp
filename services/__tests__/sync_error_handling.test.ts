@@ -1,7 +1,6 @@
-import { syncPendingChanges } from '../sync';
-import * as localStorage from '../localStorage';
 import * as sessionsFirebase from '../firebase/sessions';
-import { auth } from '@/config/firebase';
+import * as localStorage from '../localStorage';
+import { syncPendingChanges } from '../sync';
 
 // Mock dependencies
 jest.mock('../localStorage', () => ({
