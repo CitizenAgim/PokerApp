@@ -1,9 +1,11 @@
 import { useCurrentSession, usePlayers, useSession, useSettings } from '@/hooks';
 import { Seat } from '@/types/poker';
+import { resizeImage } from '@/utils/image';
 import { getPositionName } from '@/utils/positionCalculator';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
@@ -136,13 +138,20 @@ export default function SessionDetailScreen() {
   const router = useRouter();
   const { session, table, loading, updateButtonPosition, assignPlayerToSeat, endSession, getPositionForSeat, updateSessionDetails } = useSession(id);
   const { clearSession } = useCurrentSession();
-  const { players } = usePlayers();
+  const { players, createPlayer } = usePlayers();
   
   const [selectedSeat, setSelectedSeat] = useState<number | null>(null);
   const [showPlayerPicker, setShowPlayerPicker] = useState(false);
+  const [showCreatePlayerModal, setShowCreatePlayerModal] = useState(false);
   const [heroSeat, setHeroSeat] = useState<number | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Create Player State
+  const [newPlayerName, setNewPlayerName] = useState('');
+  const [newPlayerNotes, setNewPlayerNotes] = useState('');
+  const [newPlayerPhoto, setNewPlayerPhoto] = useState<string | undefined>(undefined);
+  const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
+
   // End Session State
   const [showEndSessionModal, setShowEndSessionModal] = useState(false);
   const [cashOutAmount, setCashOutAmount] = useState('');
@@ -222,6 +231,53 @@ export default function SessionDetailScreen() {
     await assignPlayerToSeat(selectedSeat, playerId);
     setShowPlayerPicker(false);
     setSelectedSeat(null);
+  };
+
+  const handlePickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      const resizedUri = await resizeImage(result.assets[0].uri);
+      setNewPlayerPhoto(resizedUri);
+    }
+  };
+
+  const handleSaveNewPlayer = async () => {
+    if (!newPlayerName.trim()) {
+      Alert.alert('Error', 'Please enter a player name');
+      return;
+    }
+
+    try {
+      setIsCreatingPlayer(true);
+      const newPlayer = await createPlayer({
+        name: newPlayerName.trim(),
+        notes: newPlayerNotes.trim() || undefined,
+        photoUrl: newPlayerPhoto,
+      });
+      
+      setShowCreatePlayerModal(false);
+      setNewPlayerName('');
+      setNewPlayerNotes('');
+      setNewPlayerPhoto(undefined);
+      
+      // Auto-assign the new player
+      if (selectedSeat !== null && newPlayer) {
+        await assignPlayerToSeat(selectedSeat, newPlayer.id);
+        setShowPlayerPicker(false);
+        setSelectedSeat(null);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create player');
+      console.error(error);
+    } finally {
+      setIsCreatingPlayer(false);
+    }
   };
 
   const handleEndSession = () => {
@@ -563,7 +619,10 @@ export default function SessionDetailScreen() {
         transparent
         onRequestClose={() => setShowPlayerPicker(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
@@ -590,23 +649,29 @@ export default function SessionDetailScreen() {
               )}
             </View>
 
-            <ScrollView style={styles.playerList}>
+            <TouchableOpacity
+              style={styles.createPlayerRow}
+              onPress={() => {
+                // Close the picker first to avoid "already presenting" error on iOS
+                setShowPlayerPicker(false);
+                // Small delay to allow the first modal to dismiss completely
+                setTimeout(() => {
+                  setShowCreatePlayerModal(true);
+                }, 500);
+              }}
+            >
+              <View style={styles.createPlayerIcon}>
+                <Ionicons name="add" size={24} color="#fff" />
+              </View>
+              <Text style={styles.createPlayerText}>Create New Player</Text>
+            </TouchableOpacity>
+
+            <ScrollView style={styles.playerList} keyboardShouldPersistTaps="handled">
               {availablePlayers.length === 0 ? (
                 <View style={styles.emptyPlayers}>
                   <Text style={styles.emptyPlayersText}>
-                    No available players
+                    No players found matching "{searchQuery}"
                   </Text>
-                  <TouchableOpacity
-                    style={styles.addPlayerButton}
-                    onPress={() => {
-                      setShowPlayerPicker(false);
-                      router.push('/(main)/players/new');
-                    }}
-                  >
-                    <Text style={styles.addPlayerButtonText}>
-                      Add New Player
-                    </Text>
-                  </TouchableOpacity>
                 </View>
               ) : (
                 availablePlayers.map(player => (
@@ -616,9 +681,13 @@ export default function SessionDetailScreen() {
                     onPress={() => handleAssignPlayer(player.id)}
                   >
                     <View style={styles.playerAvatar}>
-                      <Text style={styles.playerInitial}>
-                        {player.name.charAt(0).toUpperCase()}
-                      </Text>
+                      {player.photoUrl ? (
+                        <Image source={{ uri: player.photoUrl }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+                      ) : (
+                        <Text style={styles.playerInitial}>
+                          {player.name.charAt(0).toUpperCase()}
+                        </Text>
+                      )}
                     </View>
                     <View style={styles.playerInfo}>
                       <Text style={styles.playerName}>{player.name}</Text>
@@ -634,7 +703,84 @@ export default function SessionDetailScreen() {
               )}
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Create Player Modal */}
+      <Modal
+        visible={showCreatePlayerModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowCreatePlayerModal(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.centeredModalOverlay}
+        >
+          <View style={styles.centeredModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>New Player</Text>
+              <TouchableOpacity onPress={() => setShowCreatePlayerModal(false)}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.formContent} keyboardShouldPersistTaps="handled">
+              <View style={styles.avatarContainer}>
+                <TouchableOpacity onPress={handlePickImage}>
+                  {newPlayerPhoto ? (
+                    <Image source={{ uri: newPlayerPhoto }} style={styles.avatar} />
+                  ) : (
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>
+                        {newPlayerName ? newPlayerName.charAt(0).toUpperCase() : '?'}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.photoButton} onPress={handlePickImage}>
+                  <Ionicons name="camera" size={20} color="#0a7ea4" />
+                  <Text style={styles.photoButtonText}>{newPlayerPhoto ? 'Change Photo' : 'Add Photo'}</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.label}>Name *</Text>
+              <TextInput
+                style={styles.input}
+                value={newPlayerName}
+                onChangeText={setNewPlayerName}
+                placeholder="Enter player name"
+                autoFocus
+              />
+
+              <Text style={styles.label}>Notes</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={newPlayerNotes}
+                onChangeText={setNewPlayerNotes}
+                placeholder="Add notes..."
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+              <View style={{ height: 20 }} />
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={[styles.confirmButton, !newPlayerName.trim() && styles.saveButtonDisabled]}
+                onPress={handleSaveNewPlayer}
+                disabled={isCreatingPlayer || !newPlayerName.trim()}
+              >
+                {isCreatingPlayer ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.confirmButtonText}>Create & Assign</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* End Session Modal */}
@@ -1232,5 +1378,61 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
+  },
+  createPlayerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    backgroundColor: '#fff',
+  },
+  createPlayerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#0a7ea4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  createPlayerText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0a7ea4',
+  },
+  avatarContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#0a7ea4',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  photoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 6,
+  },
+  photoButtonText: {
+    color: '#0a7ea4',
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  textArea: {
+    minHeight: 80,
   },
 });

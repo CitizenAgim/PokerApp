@@ -4,8 +4,13 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View } from 'react-native';
+import { LogBox, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+// Ignore harmless warnings
+LogBox.ignoreLogs([
+  'Sending `onAnimatedValueUpdate` with no listeners registered',
+]);
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
