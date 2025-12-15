@@ -152,6 +152,10 @@ export default function SessionDetailScreen() {
   const [newPlayerPhoto, setNewPlayerPhoto] = useState<string | undefined>(undefined);
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
 
+  // Rebuy State
+  const [showRebuyModal, setShowRebuyModal] = useState(false);
+  const [rebuyAmount, setRebuyAmount] = useState('');
+
   // End Session State
   const [showEndSessionModal, setShowEndSessionModal] = useState(false);
   const [cashOutAmount, setCashOutAmount] = useState('');
@@ -277,6 +281,26 @@ export default function SessionDetailScreen() {
       console.error(error);
     } finally {
       setIsCreatingPlayer(false);
+    }
+  };
+
+  const handleRebuy = async () => {
+    if (!rebuyAmount) return;
+    const amount = parseFloat(rebuyAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Error', 'Please enter a valid amount');
+      return;
+    }
+
+    try {
+      const currentBuyIn = session?.buyIn || 0;
+      await updateSessionDetails({
+        buyIn: currentBuyIn + amount
+      });
+      setShowRebuyModal(false);
+      setRebuyAmount('');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add rebuy');
     }
   };
 
@@ -544,6 +568,10 @@ export default function SessionDetailScreen() {
                 <Text style={styles.metaText}>{session.stakes}</Text>
               </View>
             )}
+            <View style={styles.metaItem}>
+              <Ionicons name="wallet" size={14} color="#666" />
+              <Text style={styles.metaText}>Buy-in: {session.buyIn || 0}</Text>
+            </View>
           </View>
         </View>
         <View style={styles.headerStats}>
@@ -601,6 +629,14 @@ export default function SessionDetailScreen() {
         >
           <Ionicons name="arrow-forward-circle" size={20} color="#0a7ea4" />
           <Text style={styles.actionText}>Move Button</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.actionButton, { backgroundColor: '#e8f5e9' }]}
+          onPress={() => setShowRebuyModal(true)}
+        >
+          <Ionicons name="add-circle" size={20} color="#2e7d32" />
+          <Text style={[styles.actionText, { color: '#2e7d32' }]}>Rebuy</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -853,6 +889,50 @@ export default function SessionDetailScreen() {
                 onPress={confirmEndSession}
               >
                 <Text style={styles.confirmButtonText}>Confirm End Session</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Rebuy Modal */}
+      <Modal
+        visible={showRebuyModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowRebuyModal(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.centeredModalOverlay}
+        >
+          <View style={styles.centeredModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add Rebuy</Text>
+              <TouchableOpacity onPress={() => setShowRebuyModal(false)}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.formContent}>
+              <Text style={styles.label}>Amount to Add</Text>
+              <TextInput
+                style={styles.input}
+                value={rebuyAmount}
+                onChangeText={setRebuyAmount}
+                placeholder="0"
+                keyboardType="numeric"
+                autoFocus
+              />
+              <View style={{ height: 20 }} />
+            </View>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={[styles.confirmButton, { backgroundColor: '#2e7d32' }]}
+                onPress={handleRebuy}
+              >
+                <Text style={styles.confirmButtonText}>Confirm Rebuy</Text>
               </TouchableOpacity>
             </View>
           </View>

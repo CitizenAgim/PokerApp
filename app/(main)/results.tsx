@@ -16,7 +16,13 @@ export default function ResultsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      refresh();
+      // Small delay to avoid "offscreen beginRefreshing" warning on iOS
+      // when switching tabs rapidly
+      const timer = setTimeout(() => {
+        refresh();
+      }, 200);
+      
+      return () => clearTimeout(timer);
     }, [refresh])
   );
 
