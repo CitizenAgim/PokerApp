@@ -165,7 +165,7 @@ interface UseSessionResult {
   loading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
-  endSession: (cashOut?: number, endTime?: number) => Promise<void>;
+  endSession: (cashOut?: number, endTime?: number, startTime?: number, buyIn?: number) => Promise<void>;
   updateButtonPosition: (position: number) => Promise<void>;
   assignPlayerToSeat: (seatNumber: number, playerId: string | null) => Promise<void>;
   getPositionForSeat: (seatNumber: number) => Position | null;
@@ -221,17 +221,21 @@ export function useSession(sessionId: string): UseSessionResult {
     }
   }, [sessionId]);
 
-  const endSession = useCallback(async (cashOut?: number, endTime?: number): Promise<void> => {
+  const endSession = useCallback(async (cashOut?: number, endTime?: number, startTime?: number, buyIn?: number): Promise<void> => {
     if (!session) return;
 
     const finalEndTime = endTime || Date.now();
-    const duration = finalEndTime - session.startTime;
+    const finalStartTime = startTime || session.startTime;
+    const finalBuyIn = buyIn !== undefined ? buyIn : session.buyIn;
+    const duration = finalEndTime - finalStartTime;
 
     const updatedSession: Session = {
       ...session,
       isActive: false,
+      startTime: finalStartTime,
       endTime: finalEndTime,
       cashOut,
+      buyIn: finalBuyIn,
       duration,
     };
 
@@ -381,7 +385,7 @@ interface UseCurrentSessionResult {
   currentSession: localStorage.CurrentSessionData | null;
   loading: boolean;
   startSession: (session: Session) => Promise<void>;
-  endSession: (cashOut?: number, endTime?: number) => Promise<void>;
+  endSession: (cashOut?: number, endTime?: number, startTime?: number, buyIn?: number) => Promise<void>;
   clearSession: () => Promise<void>;
 }
 
@@ -431,16 +435,20 @@ export function useCurrentSession(): UseCurrentSessionResult {
     */
   }, []);
 
-  const endSession = useCallback(async (cashOut?: number, endTime?: number): Promise<void> => {
+  const endSession = useCallback(async (cashOut?: number, endTime?: number, startTime?: number, buyIn?: number): Promise<void> => {
     if (currentSession) {
       const finalEndTime = endTime || Date.now();
-      const duration = finalEndTime - currentSession.session.startTime;
+      const finalStartTime = startTime || currentSession.session.startTime;
+      const finalBuyIn = buyIn !== undefined ? buyIn : currentSession.session.buyIn;
+      const duration = finalEndTime - finalStartTime;
 
       const updatedSession: Session = {
         ...currentSession.session,
         isActive: false,
+        startTime: finalStartTime,
         endTime: finalEndTime,
         cashOut,
+        buyIn: finalBuyIn,
         duration,
       };
       await localStorage.saveSession(updatedSession);

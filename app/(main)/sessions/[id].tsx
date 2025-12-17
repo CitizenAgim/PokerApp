@@ -159,7 +159,11 @@ export default function SessionDetailScreen() {
   // End Session State
   const [showEndSessionModal, setShowEndSessionModal] = useState(false);
   const [cashOutAmount, setCashOutAmount] = useState('');
+  const [endSessionBuyIn, setEndSessionBuyIn] = useState('');
   const [endTime, setEndTime] = useState(new Date());
+  const [startTime, setStartTime] = useState(new Date());
+  const [isStartTimeExpanded, setIsStartTimeExpanded] = useState(false);
+  const [isEndTimeExpanded, setIsEndTimeExpanded] = useState(false);
 
   // Edit Session State
   const [showEditSessionModal, setShowEditSessionModal] = useState(false);
@@ -305,16 +309,28 @@ export default function SessionDetailScreen() {
   };
 
   const handleEndSession = () => {
+    if (session) {
+      setStartTime(new Date(session.startTime));
+      setEndSessionBuyIn(session.buyIn?.toString() || '');
+    }
     setEndTime(new Date());
     setCashOutAmount('');
+    setIsStartTimeExpanded(false);
+    setIsEndTimeExpanded(false);
     setShowEndSessionModal(true);
   };
 
   const confirmEndSession = async () => {
     try {
       const cashOut = cashOutAmount ? parseFloat(cashOutAmount) : 0;
+      const buyIn = endSessionBuyIn ? parseFloat(endSessionBuyIn) : (session?.buyIn || 0);
       
-      await endSession(cashOut, endTime.getTime());
+      if (endTime < startTime) {
+        Alert.alert('Error', 'End time cannot be earlier than start time');
+        return;
+      }
+
+      await endSession(cashOut, endTime.getTime(), startTime.getTime(), buyIn);
       await clearSession();
       setShowEndSessionModal(false);
       router.back();
@@ -843,6 +859,15 @@ export default function SessionDetailScreen() {
               contentContainerStyle={{ paddingBottom: 20 }}
               keyboardShouldPersistTaps="handled"
             >
+              <Text style={styles.label}>Buy In Amount</Text>
+              <TextInput
+                style={styles.input}
+                value={endSessionBuyIn}
+                onChangeText={setEndSessionBuyIn}
+                placeholder="0"
+                keyboardType="numeric"
+              />
+
               <Text style={styles.label}>Cash Out Amount</Text>
               <TextInput
                 style={styles.input}
@@ -853,34 +878,75 @@ export default function SessionDetailScreen() {
                 autoFocus
               />
               
-              <Text style={styles.label}>End Time</Text>
-              <View style={styles.datePickerContainer}>
-                {Platform.OS === 'ios' ? (
-                  <RNDateTimePicker
-                    value={endTime}
-                    mode="datetime"
-                    display="spinner"
-                    onChange={(event, date) => date && setEndTime(date)}
-                    style={styles.datePicker}
-                    textColor="#000000"
-                  />
-                ) : (
-                  <View style={styles.androidPickerButtons}>
-                    <TouchableOpacity 
-                      style={styles.androidPickerButton}
-                      onPress={() => {
-                        // For Android, we'd need to manage visibility state for pickers
-                        // For now, showing a simple implementation or we can add state for it
-                        // But since user asked for roulette (iOS style), we focus on that.
-                        // A simple fallback for Android:
-                      }}
-                    >
-                      <Text>{endTime.toLocaleString()}</Text>
-                    </TouchableOpacity>
-                    {/* Note: Full Android implementation would require separate state for showDatePicker/showTimePicker */}
-                  </View>
-                )}
-              </View>
+              {/* Start Time Collapsible */}
+              <TouchableOpacity 
+                style={styles.collapsibleHeader} 
+                onPress={() => setIsStartTimeExpanded(!isStartTimeExpanded)}
+              >
+                <Text style={styles.label}>Start Time</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={styles.dateValue}>
+                    {startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                  <Ionicons name={isStartTimeExpanded ? "chevron-up" : "chevron-down"} size={20} color="#666" />
+                </View>
+              </TouchableOpacity>
+              
+              {isStartTimeExpanded && (
+                <View style={styles.datePickerContainer}>
+                  {Platform.OS === 'ios' ? (
+                    <RNDateTimePicker
+                      value={startTime}
+                      mode="datetime"
+                      display="spinner"
+                      onChange={(event, date) => date && setStartTime(date)}
+                      style={styles.datePicker}
+                      textColor="#000000"
+                    />
+                  ) : (
+                    <View style={styles.androidPickerButtons}>
+                      <TouchableOpacity style={styles.androidPickerButton}>
+                        <Text>{startTime.toLocaleString()}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* End Time Collapsible */}
+              <TouchableOpacity 
+                style={styles.collapsibleHeader} 
+                onPress={() => setIsEndTimeExpanded(!isEndTimeExpanded)}
+              >
+                <Text style={styles.label}>End Time</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={styles.dateValue}>
+                    {endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                  <Ionicons name={isEndTimeExpanded ? "chevron-up" : "chevron-down"} size={20} color="#666" />
+                </View>
+              </TouchableOpacity>
+
+              {isEndTimeExpanded && (
+                <View style={styles.datePickerContainer}>
+                  {Platform.OS === 'ios' ? (
+                    <RNDateTimePicker
+                      value={endTime}
+                      mode="datetime"
+                      display="spinner"
+                      onChange={(event, date) => date && setEndTime(date)}
+                      style={styles.datePicker}
+                      textColor="#000000"
+                    />
+                  ) : (
+                    <View style={styles.androidPickerButtons}>
+                      <TouchableOpacity style={styles.androidPickerButton}>
+                        <Text>{endTime.toLocaleString()}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              )}
             </ScrollView>
 
             <View style={styles.modalFooter}>
@@ -1514,5 +1580,18 @@ const styles = StyleSheet.create({
   },
   textArea: {
     minHeight: 80,
+  },
+  collapsibleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    marginTop: 8,
+  },
+  dateValue: {
+    fontSize: 14,
+    color: '#666',
   },
 });
