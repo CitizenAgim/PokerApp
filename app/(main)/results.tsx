@@ -71,6 +71,7 @@ export default function ResultsScreen() {
   const { sessions, loading, refresh } = useSessions();
   const [activeTab, setActiveTab] = useState<'overview' | 'graph' | 'charts'>('overview');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('All');
+  const [chartMetric, setChartMetric] = useState<'profit' | 'hourly' | 'ytd'>('profit');
 
   useFocusEffect(
     useCallback(() => {
@@ -188,47 +189,77 @@ export default function ResultsScreen() {
 
   const chartsData = useMemo(() => {
     const finishedSessions = sessions.filter(s => !s.isActive && s.endTime);
-    
-    // 1. Day of Week (Mon-Sun)
-    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const dayData = [0, 0, 0, 0, 0, 0, 0];
-    
-    // 2. Month of Year (Jan-Dec)
-    const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const monthData = new Array(12).fill(0);
-    
-    // 3. Year
-    const yearMap = new Map<number, number>();
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
 
-    finishedSessions.forEach(session => {
+    let sessionsToProcess = finishedSessions;
+    if (chartMetric === 'ytd') {
+      sessionsToProcess = finishedSessions.filter(s => s.startTime >= startOfYear);
+    }
+
+    // Initialize data structures
+    const dayStats = Array(7).fill(0).map(() => ({ profit: 0, duration: 0 }));
+    const monthStats = Array(12).fill(0).map(() => ({ profit: 0, duration: 0 }));
+    const yearMap = new Map<number, { profit: number, duration: number }>();
+
+    sessionsToProcess.forEach(session => {
       const profit = (session.cashOut || 0) - (session.buyIn || 0);
+      const duration = session.duration || ((session.endTime || Date.now()) - session.startTime);
       const date = new Date(session.startTime);
       
       // Day (0=Sun, 1=Mon... 6=Sat) -> Convert to 0=Mon... 6=Sun
       let dayIndex = date.getDay() - 1;
       if (dayIndex === -1) dayIndex = 6; // Sunday
-      dayData[dayIndex] += profit;
+      
+      dayStats[dayIndex].profit += profit;
+      dayStats[dayIndex].duration += duration;
       
       // Month (0-11)
       const monthIndex = date.getMonth();
-      monthData[monthIndex] += profit;
+      monthStats[monthIndex].profit += profit;
+      monthStats[monthIndex].duration += duration;
       
       // Year
       const year = date.getFullYear();
-      yearMap.set(year, (yearMap.get(year) || 0) + profit);
+      if (!yearMap.has(year)) {
+        yearMap.set(year, { profit: 0, duration: 0 });
+      }
+      const stats = yearMap.get(year)!;
+      stats.profit += profit;
+      stats.duration += duration;
     });
 
-    // Sort years
+    // Helper to get value based on metric
+    const getValue = (profit: number, duration: number) => {
+      if (chartMetric === 'hourly') {
+        const hours = duration / (1000 * 60 * 60);
+        return hours > 0 ? Math.round(profit / hours) : 0;
+      }
+      return Math.round(profit);
+    };
+
+    // 1. Day of Week
+    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const dayData = dayStats.map(s => getValue(s.profit, s.duration));
+    
+    // 2. Month
+    const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthData = monthStats.map(s => getValue(s.profit, s.duration));
+    
+    // 3. Year
     const sortedYears = Array.from(yearMap.keys()).sort();
     const yearLabels = sortedYears.map(y => y.toString());
-    const yearData = sortedYears.map(y => yearMap.get(y) || 0);
+    const yearData = sortedYears.map(y => {
+      const stats = yearMap.get(y)!;
+      return getValue(stats.profit, stats.duration);
+    });
 
     return {
       day: { labels: dayLabels, data: dayData },
       month: { labels: monthLabels, data: monthData },
       year: { labels: yearLabels, data: yearData },
     };
-  }, [sessions]);
+  }, [sessions, chartMetric]);
 
   if (loading && sessions.length === 0) {
     return (
@@ -390,20 +421,47 @@ export default function ResultsScreen() {
       ) : (
         <View style={styles.chartsTabContainer}>
           <CustomBarChart 
-            title="Earnings by Day of Week" 
+            title={`Earnings by Day of Week${chartMetric === 'hourly' ? ' ($/hr)' : ''}`}
             data={chartsData.day.data} 
             labels={chartsData.day.labels} 
           />
           <CustomBarChart 
-            title="Earnings by Month" 
+            title={`Earnings by Month${chartMetric === 'hourly' ? ' ($/hr)' : ''}`}
             data={chartsData.month.data} 
             labels={chartsData.month.labels} 
           />
           <CustomBarChart 
-            title="Earnings by Year" 
+            title={`Earnings by Year${chartMetric === 'hourly' ? ' ($/hr)' : ''}`}
             data={chartsData.year.data} 
             labels={chartsData.year.labels} 
           />
+          
+          <View style={styles.metricToggleContainer}>
+            <TouchableOpacity 
+              style={[styles.metricButton, chartMetric === 'profit' && styles.activeMetricButton]} 
+              onPress={() => setChartMetric('profit')}
+            >
+              <Ionicons name="cash-outline" size={20} color={chartMetric === 'profit' ? '#fff' : '#666'} />
+              <Text style={[styles.metricText, chartMetric === 'profit' && styles.activeMetricText]}>PROFIT</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.metricButton, chartMetric === 'hourly' && styles.activeMetricButton]} 
+              onPress={() => setChartMetric('hourly')}
+            >
+              <Ionicons name="time-outline" size={20} color={chartMetric === 'hourly' ? '#fff' : '#666'} />
+              <Text style={[styles.metricText, chartMetric === 'hourly' && styles.activeMetricText]}>HOURLY</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.metricButton, chartMetric === 'ytd' && styles.activeMetricButton]} 
+              onPress={() => setChartMetric('ytd')}
+            >
+              <Ionicons name="calendar-outline" size={20} color={chartMetric === 'ytd' ? '#fff' : '#666'} />
+              <Text style={[styles.metricText, chartMetric === 'ytd' && styles.activeMetricText]}>YTD</Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={{ height: 40 }} />
         </View>
       )}
@@ -673,5 +731,39 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 8,
     textAlign: 'center',
+  },
+  metricToggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 8,
+    marginTop: 8,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  metricButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  activeMetricButton: {
+    backgroundColor: '#0a7ea4',
+  },
+  metricText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+  },
+  activeMetricText: {
+    color: '#fff',
   },
 });
