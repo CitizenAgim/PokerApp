@@ -69,7 +69,7 @@ const CustomBarChart = ({ data, labels, title }: { data: number[], labels: strin
 
 export default function ResultsScreen() {
   const { sessions, loading, refresh } = useSessions();
-  const [activeTab, setActiveTab] = useState<'overview' | 'graph' | 'charts'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'graph' | 'charts' | 'locations'>('overview');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('All');
   const [chartMetric, setChartMetric] = useState<'profit' | 'hourly' | 'ytd'>('profit');
 
@@ -124,6 +124,47 @@ export default function ResultsScreen() {
       avgProfit,
       totalNetProfit,
     };
+  }, [sessions]);
+
+  const locationsData = useMemo(() => {
+    const finishedSessions = sessions.filter(s => !s.isActive && s.endTime);
+    const locationMap = new Map<string, {
+      sessions: number;
+      duration: number;
+      profit: number;
+      wins: number;
+    }>();
+
+    finishedSessions.forEach(session => {
+      const location = session.location || 'Unknown';
+      const profit = (session.cashOut || 0) - (session.buyIn || 0);
+      const duration = session.duration || ((session.endTime || Date.now()) - session.startTime);
+      
+      if (!locationMap.has(location)) {
+        locationMap.set(location, { sessions: 0, duration: 0, profit: 0, wins: 0 });
+      }
+      
+      const stats = locationMap.get(location)!;
+      stats.sessions += 1;
+      stats.duration += duration;
+      stats.profit += profit;
+      if (profit > 0) stats.wins += 1;
+    });
+
+    return Array.from(locationMap.entries()).map(([name, stats]) => {
+      const totalHours = stats.duration / (1000 * 60 * 60);
+      const hourlyRate = totalHours > 0 ? stats.profit / totalHours : 0;
+      const winRate = stats.sessions > 0 ? (stats.wins / stats.sessions) * 100 : 0;
+      
+      return {
+        name,
+        sessions: stats.sessions,
+        totalHours,
+        totalProfit: stats.profit,
+        winRate,
+        hourlyRate
+      };
+    }).sort((a, b) => b.totalProfit - a.totalProfit);
   }, [sessions]);
 
   const graphData = useMemo(() => {
@@ -300,6 +341,12 @@ export default function ResultsScreen() {
         >
           <Text style={[styles.tabText, activeTab === 'charts' && styles.activeTabText]}>Charts</Text>
         </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabButton, activeTab === 'locations' && styles.activeTabButton]} 
+          onPress={() => setActiveTab('locations')}
+        >
+          <Text style={[styles.tabText, activeTab === 'locations' && styles.activeTabText]}>Locations</Text>
+        </TouchableOpacity>
       </View>
 
       {activeTab === 'overview' ? (
@@ -418,7 +465,7 @@ export default function ResultsScreen() {
             </View>
           )}
         </View>
-      ) : (
+      ) : activeTab === 'charts' ? (
         <View style={styles.chartsTabContainer}>
           <CustomBarChart 
             title={`Earnings by Day of Week${chartMetric === 'hourly' ? ' ($/hr)' : ''}`}
@@ -462,6 +509,41 @@ export default function ResultsScreen() {
             </TouchableOpacity>
           </View>
 
+          <View style={{ height: 40 }} />
+        </View>
+      ) : (
+        <View style={styles.locationsContainer}>
+          {locationsData.map((loc, index) => (
+            <View key={index} style={styles.locationCard}>
+              <View style={styles.locationHeader}>
+                <Text style={styles.locationName}>{loc.name}</Text>
+                <Text style={[styles.locationProfit, loc.totalProfit >= 0 ? styles.profitText : styles.lossText]}>
+                  {loc.totalProfit >= 0 ? '+' : ''}{loc.totalProfit.toFixed(2)}
+                </Text>
+              </View>
+              
+              <View style={styles.locationStatsRow}>
+                <View style={styles.locationStat}>
+                  <Text style={styles.statLabel}>Sessions</Text>
+                  <Text style={styles.statValue}>{loc.sessions}</Text>
+                </View>
+                <View style={styles.locationStat}>
+                  <Text style={styles.statLabel}>Hours</Text>
+                  <Text style={styles.statValue}>{loc.totalHours.toFixed(1)}h</Text>
+                </View>
+                <View style={styles.locationStat}>
+                  <Text style={styles.statLabel}>Win Rate</Text>
+                  <Text style={styles.statValue}>{loc.winRate.toFixed(0)}%</Text>
+                </View>
+                <View style={styles.locationStat}>
+                  <Text style={styles.statLabel}>Hourly</Text>
+                  <Text style={[styles.statValue, loc.hourlyRate >= 0 ? styles.profitText : styles.lossText]}>
+                    {loc.hourlyRate.toFixed(2)}/hr
+                  </Text>
+                </View>
+              </View>
+            </View>
+          ))}
           <View style={{ height: 40 }} />
         </View>
       )}
@@ -765,5 +847,56 @@ const styles = StyleSheet.create({
   },
   activeMetricText: {
     color: '#fff',
+  },
+  locationsContainer: {
+    padding: 16,
+  },
+  locationCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  locationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  locationName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  locationProfit: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  locationStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  locationStat: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: '#999',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  statValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
   },
 });
