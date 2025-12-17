@@ -172,6 +172,9 @@ export default function SessionDetailScreen() {
   const [editStartTime, setEditStartTime] = useState(new Date());
   const [editEndTime, setEditEndTime] = useState(new Date());
 
+  // Result View State
+  const [activeTab, setActiveTab] = useState<'overview' | 'graph'>('overview');
+
   // Players not already at the table
   const availablePlayers = useMemo(() => {
     if (!table || !table.seats) return players;
@@ -417,40 +420,61 @@ export default function SessionDetailScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.summaryCard}>
-          <View style={styles.resultContainer}>
-            <Text style={styles.resultLabel}>Total Profit/Loss</Text>
-            <Text style={[styles.resultAmount, isProfit ? styles.profitText : styles.lossText]}>
-              {isProfit ? '+' : ''}{profit}
-            </Text>
-          </View>
-
-          <View style={styles.statsGrid}>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Buy In</Text>
-              <Text style={styles.statValue}>{buyIn}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Cash Out</Text>
-              <Text style={styles.statValue}>{cashOut}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Duration</Text>
-              <Text style={styles.statValue}>{durationStr}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Stakes</Text>
-              <Text style={styles.statValue}>{session.stakes || '-'}</Text>
-            </View>
-          </View>
-
-          {session.location && (
-            <View style={styles.locationContainer}>
-              <Ionicons name="location" size={16} color="#666" />
-              <Text style={styles.locationText}>{session.location}</Text>
-            </View>
-          )}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity 
+            style={[styles.tabButton, activeTab === 'overview' && styles.activeTabButton]} 
+            onPress={() => setActiveTab('overview')}
+          >
+            <Text style={[styles.tabText, activeTab === 'overview' && styles.activeTabText]}>Overview</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tabButton, activeTab === 'graph' && styles.activeTabButton]} 
+            onPress={() => setActiveTab('graph')}
+          >
+            <Text style={[styles.tabText, activeTab === 'graph' && styles.activeTabText]}>Graph</Text>
+          </TouchableOpacity>
         </View>
+
+        {activeTab === 'overview' ? (
+          <View style={styles.summaryCard}>
+            <View style={styles.resultContainer}>
+              <Text style={styles.resultLabel}>Total Profit/Loss</Text>
+              <Text style={[styles.resultAmount, isProfit ? styles.profitText : styles.lossText]}>
+                {isProfit ? '+' : ''}{profit}
+              </Text>
+            </View>
+
+            <View style={styles.statsGrid}>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Buy In</Text>
+                <Text style={styles.statValue}>{buyIn}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Cash Out</Text>
+                <Text style={styles.statValue}>{cashOut}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Duration</Text>
+                <Text style={styles.statValue}>{durationStr}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Stakes</Text>
+                <Text style={styles.statValue}>{session.stakes || '-'}</Text>
+              </View>
+            </View>
+
+            {session.location && (
+              <View style={styles.locationContainer}>
+                <Ionicons name="location" size={16} color="#666" />
+                <Text style={styles.locationText}>{session.location}</Text>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={styles.graphContainer}>
+            <Text style={styles.placeholderText}>Graph View Coming Soon</Text>
+          </View>
+        )}
 
         <TouchableOpacity 
           style={styles.backButton}
@@ -1593,5 +1617,55 @@ const styles = StyleSheet.create({
   dateValue: {
     fontSize: 14,
     color: '#666',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    marginTop: 20,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 4,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  activeTabButton: {
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666',
+  },
+  activeTabText: {
+    color: '#0a7ea4',
+    fontWeight: '600',
+  },
+  graphContainer: {
+    margin: 20,
+    padding: 24,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    minHeight: 300,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: '#999',
+    fontStyle: 'italic',
   },
 });

@@ -1,18 +1,20 @@
 import { useSessions } from '@/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View,
 } from 'react-native';
 
 export default function ResultsScreen() {
   const { sessions, loading, refresh } = useSessions();
+  const [activeTab, setActiveTab] = useState<'overview' | 'graph'>('overview');
 
   useFocusEffect(
     useCallback(() => {
@@ -87,67 +89,90 @@ export default function ResultsScreen() {
         <Text style={styles.headerSubtitle}>Lifetime Statistics</Text>
       </View>
 
-      <View style={styles.mainCard}>
-        <Text style={styles.mainLabel}>Total Net Profit</Text>
-        <Text style={[
-          styles.mainValue, 
-          stats.totalNetProfit >= 0 ? styles.profit : styles.loss
-        ]}>
-          {stats.totalNetProfit >= 0 ? '+' : ''}{stats.totalNetProfit.toFixed(2)}
-        </Text>
+      <View style={styles.tabContainer}>
+        <TouchableOpacity 
+          style={[styles.tabButton, activeTab === 'overview' && styles.activeTabButton]} 
+          onPress={() => setActiveTab('overview')}
+        >
+          <Text style={[styles.tabText, activeTab === 'overview' && styles.activeTabText]}>Overview</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabButton, activeTab === 'graph' && styles.activeTabButton]} 
+          onPress={() => setActiveTab('graph')}
+        >
+          <Text style={[styles.tabText, activeTab === 'graph' && styles.activeTabText]}>Graph</Text>
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.grid}>
-        <View style={styles.card}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="trending-up" size={24} color="#0a7ea4" />
+      {activeTab === 'overview' ? (
+        <>
+          <View style={styles.mainCard}>
+            <Text style={styles.mainLabel}>Total Net Profit</Text>
+            <Text style={[
+              styles.mainValue, 
+              stats.totalNetProfit >= 0 ? styles.profit : styles.loss
+            ]}>
+              {stats.totalNetProfit >= 0 ? '+' : ''}{stats.totalNetProfit.toFixed(2)}
+            </Text>
           </View>
-          <Text style={styles.cardLabel}>Hourly Rate</Text>
-          <Text style={[
-            styles.cardValue,
-            stats.hourlyRate >= 0 ? styles.profitText : styles.lossText
-          ]}>
-            {stats.hourlyRate.toFixed(2)}/hr
-          </Text>
-        </View>
 
-        <View style={styles.card}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="game-controller" size={24} color="#0a7ea4" />
-          </View>
-          <Text style={styles.cardLabel}>Sessions</Text>
-          <Text style={styles.cardValue}>{stats.totalSessions}</Text>
-        </View>
+          <View style={styles.grid}>
+            <View style={styles.card}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="trending-up" size={24} color="#0a7ea4" />
+              </View>
+              <Text style={styles.cardLabel}>Hourly Rate</Text>
+              <Text style={[
+                styles.cardValue,
+                stats.hourlyRate >= 0 ? styles.profitText : styles.lossText
+              ]}>
+                {stats.hourlyRate.toFixed(2)}/hr
+              </Text>
+            </View>
 
-        <View style={styles.card}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="time" size={24} color="#0a7ea4" />
-          </View>
-          <Text style={styles.cardLabel}>Total Hours</Text>
-          <Text style={styles.cardValue}>{stats.totalHours.toFixed(1)}h</Text>
-        </View>
+            <View style={styles.card}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="game-controller" size={24} color="#0a7ea4" />
+              </View>
+              <Text style={styles.cardLabel}>Sessions</Text>
+              <Text style={styles.cardValue}>{stats.totalSessions}</Text>
+            </View>
 
-        <View style={styles.card}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="pie-chart" size={24} color="#0a7ea4" />
-          </View>
-          <Text style={styles.cardLabel}>Win Rate</Text>
-          <Text style={styles.cardValue}>{stats.winRate.toFixed(1)}%</Text>
-        </View>
+            <View style={styles.card}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="time" size={24} color="#0a7ea4" />
+              </View>
+              <Text style={styles.cardLabel}>Total Hours</Text>
+              <Text style={styles.cardValue}>{stats.totalHours.toFixed(1)}h</Text>
+            </View>
 
-        <View style={styles.card}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="bar-chart" size={24} color="#0a7ea4" />
+            <View style={styles.card}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="pie-chart" size={24} color="#0a7ea4" />
+              </View>
+              <Text style={styles.cardLabel}>Win Rate</Text>
+              <Text style={styles.cardValue}>{stats.winRate.toFixed(1)}%</Text>
+            </View>
+
+            <View style={styles.card}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="bar-chart" size={24} color="#0a7ea4" />
+              </View>
+              <Text style={styles.cardLabel}>Avg Profit</Text>
+              <Text style={[
+                styles.cardValue,
+                stats.avgProfit >= 0 ? styles.profitText : styles.lossText
+              ]}>
+                {stats.avgProfit >= 0 ? '+' : ''}{stats.avgProfit.toFixed(2)}
+              </Text>
+            </View>
           </View>
-          <Text style={styles.cardLabel}>Avg Profit</Text>
-          <Text style={[
-            styles.cardValue,
-            stats.avgProfit >= 0 ? styles.profitText : styles.lossText
-          ]}>
-            {stats.avgProfit >= 0 ? '+' : ''}{stats.avgProfit.toFixed(2)}
-          </Text>
+        </>
+      ) : (
+        <View style={styles.graphContainer}>
+          <Text style={styles.placeholderText}>Graph View Coming Soon</Text>
         </View>
-      </View>
+      )}
     </ScrollView>
   );
 }
@@ -249,5 +274,55 @@ const styles = StyleSheet.create({
   },
   lossText: {
     color: '#e74c3c',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginTop: 16,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 4,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  activeTabButton: {
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666',
+  },
+  activeTabText: {
+    color: '#0a7ea4',
+    fontWeight: '600',
+  },
+  graphContainer: {
+    margin: 16,
+    padding: 24,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    minHeight: 300,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: '#999',
+    fontStyle: 'italic',
   },
 });
