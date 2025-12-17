@@ -18,9 +18,58 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 
 type TimeFilter = '1W' | '1M' | 'YTD' | '1Y' | '3Y' | 'All';
 
+// Custom Bar Chart Component
+const CustomBarChart = ({ data, labels, title }: { data: number[], labels: string[], title: string }) => {
+  const maxVal = Math.max(...data.map(Math.abs), 1); // Avoid division by zero
+  const chartHeight = 200;
+  const halfHeight = chartHeight / 2;
+
+  return (
+    <View style={styles.customChartContainer}>
+      <Text style={styles.chartTitle}>{title}</Text>
+      <View style={[styles.chartBody, { height: chartHeight }]}>
+        {/* Zero Line */}
+        <View style={[styles.zeroLine, { top: halfHeight }]} />
+        
+        {data.map((value, index) => {
+          const barHeight = (Math.abs(value) / maxVal) * (halfHeight - 20); // Leave some padding
+          const isPositive = value >= 0;
+          
+          return (
+            <View key={index} style={styles.barColumn}>
+              <View style={styles.barWrapper}>
+                {/* Positive Bar Area */}
+                <View style={styles.positiveArea}>
+                  {isPositive && value !== 0 && (
+                    <>
+                      <Text style={styles.barValue}>{value}</Text>
+                      <View style={[styles.bar, styles.positiveBar, { height: barHeight }]} />
+                    </>
+                  )}
+                </View>
+                
+                {/* Negative Bar Area */}
+                <View style={styles.negativeArea}>
+                  {!isPositive && value !== 0 && (
+                    <>
+                      <View style={[styles.bar, styles.negativeBar, { height: barHeight }]} />
+                      <Text style={styles.barValue}>{value}</Text>
+                    </>
+                  )}
+                </View>
+              </View>
+              <Text style={styles.barLabel}>{labels[index]}</Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+};
+
 export default function ResultsScreen() {
   const { sessions, loading, refresh } = useSessions();
-  const [activeTab, setActiveTab] = useState<'overview' | 'graph'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'graph' | 'charts'>('overview');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('All');
 
   useFocusEffect(
@@ -137,6 +186,50 @@ export default function ResultsScreen() {
     };
   }, [sessions, timeFilter]);
 
+  const chartsData = useMemo(() => {
+    const finishedSessions = sessions.filter(s => !s.isActive && s.endTime);
+    
+    // 1. Day of Week (Mon-Sun)
+    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const dayData = [0, 0, 0, 0, 0, 0, 0];
+    
+    // 2. Month of Year (Jan-Dec)
+    const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthData = new Array(12).fill(0);
+    
+    // 3. Year
+    const yearMap = new Map<number, number>();
+
+    finishedSessions.forEach(session => {
+      const profit = (session.cashOut || 0) - (session.buyIn || 0);
+      const date = new Date(session.startTime);
+      
+      // Day (0=Sun, 1=Mon... 6=Sat) -> Convert to 0=Mon... 6=Sun
+      let dayIndex = date.getDay() - 1;
+      if (dayIndex === -1) dayIndex = 6; // Sunday
+      dayData[dayIndex] += profit;
+      
+      // Month (0-11)
+      const monthIndex = date.getMonth();
+      monthData[monthIndex] += profit;
+      
+      // Year
+      const year = date.getFullYear();
+      yearMap.set(year, (yearMap.get(year) || 0) + profit);
+    });
+
+    // Sort years
+    const sortedYears = Array.from(yearMap.keys()).sort();
+    const yearLabels = sortedYears.map(y => y.toString());
+    const yearData = sortedYears.map(y => yearMap.get(y) || 0);
+
+    return {
+      day: { labels: dayLabels, data: dayData },
+      month: { labels: monthLabels, data: monthData },
+      year: { labels: yearLabels, data: yearData },
+    };
+  }, [sessions]);
+
   if (loading && sessions.length === 0) {
     return (
       <View style={styles.loadingContainer}>
@@ -169,6 +262,12 @@ export default function ResultsScreen() {
           onPress={() => setActiveTab('graph')}
         >
           <Text style={[styles.tabText, activeTab === 'graph' && styles.activeTabText]}>Graph</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabButton, activeTab === 'charts' && styles.activeTabButton]} 
+          onPress={() => setActiveTab('charts')}
+        >
+          <Text style={[styles.tabText, activeTab === 'charts' && styles.activeTabText]}>Charts</Text>
         </TouchableOpacity>
       </View>
 
@@ -236,7 +335,7 @@ export default function ResultsScreen() {
             </View>
           </View>
         </>
-      ) : (
+      ) : activeTab === 'graph' ? (
         <View style={styles.graphContainer}>
           <View style={styles.filterContainer}>
             {(['1W', '1M', 'YTD', '1Y', '3Y', 'All'] as TimeFilter[]).map((filter) => (
@@ -287,6 +386,25 @@ export default function ResultsScreen() {
               <Text style={styles.noDataText}>No data available for this period</Text>
             </View>
           )}
+        </View>
+      ) : (
+        <View style={styles.chartsTabContainer}>
+          <CustomBarChart 
+            title="Earnings by Day of Week" 
+            data={chartsData.day.data} 
+            labels={chartsData.day.labels} 
+          />
+          <CustomBarChart 
+            title="Earnings by Month" 
+            data={chartsData.month.data} 
+            labels={chartsData.month.labels} 
+          />
+          <CustomBarChart 
+            title="Earnings by Year" 
+            data={chartsData.year.data} 
+            labels={chartsData.year.labels} 
+          />
+          <View style={{ height: 40 }} />
         </View>
       )}
     </ScrollView>
@@ -471,5 +589,89 @@ const styles = StyleSheet.create({
   noDataText: {
     color: '#999',
     fontSize: 14,
+  },
+  chartsTabContainer: {
+    padding: 16,
+  },
+  customChartContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  chartBody: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    position: 'relative',
+  },
+  zeroLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    zIndex: 0,
+  },
+  barColumn: {
+    flex: 1,
+    alignItems: 'center',
+    height: '100%',
+    justifyContent: 'flex-end',
+  },
+  barWrapper: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center', // Centers the content vertically relative to the container
+    alignItems: 'center',
+  },
+  positiveArea: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    width: '100%',
+    paddingBottom: 2, // Space from zero line
+  },
+  negativeArea: {
+    flex: 1,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    width: '100%',
+    paddingTop: 2, // Space from zero line
+  },
+  bar: {
+    width: '80%',
+    borderRadius: 4,
+    minHeight: 4, // Ensure visibility for small values
+  },
+  positiveBar: {
+    backgroundColor: '#2ecc71',
+  },
+  negativeBar: {
+    backgroundColor: '#ff5252',
+  },
+  barValue: {
+    fontSize: 8,
+    color: '#666',
+    marginBottom: 2,
+    marginTop: 2,
+  },
+  barLabel: {
+    fontSize: 10,
+    color: '#666',
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
