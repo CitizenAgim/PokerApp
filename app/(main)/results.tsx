@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
+    Dimensions,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -11,10 +12,16 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { LineChart } from 'react-native-chart-kit';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
+type TimeFilter = '1W' | '1M' | 'YTD' | '1Y' | '3Y' | 'All';
 
 export default function ResultsScreen() {
   const { sessions, loading, refresh } = useSessions();
   const [activeTab, setActiveTab] = useState<'overview' | 'graph'>('overview');
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('All');
 
   useFocusEffect(
     useCallback(() => {
@@ -68,6 +75,67 @@ export default function ResultsScreen() {
       totalNetProfit,
     };
   }, [sessions]);
+
+  const graphData = useMemo(() => {
+    const now = new Date();
+    const finishedSessions = sessions
+      .filter(s => !s.isActive && s.endTime)
+      .sort((a, b) => (a.startTime || 0) - (b.startTime || 0));
+
+    let filteredSessions = finishedSessions;
+    const oneDay = 24 * 60 * 60 * 1000;
+
+    switch (timeFilter) {
+      case '1W':
+        filteredSessions = finishedSessions.filter(s => (now.getTime() - s.startTime) <= 7 * oneDay);
+        break;
+      case '1M':
+        filteredSessions = finishedSessions.filter(s => (now.getTime() - s.startTime) <= 30 * oneDay);
+        break;
+      case 'YTD':
+        const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
+        filteredSessions = finishedSessions.filter(s => s.startTime >= startOfYear);
+        break;
+      case '1Y':
+        filteredSessions = finishedSessions.filter(s => (now.getTime() - s.startTime) <= 365 * oneDay);
+        break;
+      case '3Y':
+        filteredSessions = finishedSessions.filter(s => (now.getTime() - s.startTime) <= 3 * 365 * oneDay);
+        break;
+      case 'All':
+      default:
+        filteredSessions = finishedSessions;
+        break;
+    }
+
+    if (filteredSessions.length === 0) {
+      return {
+        labels: [],
+        datasets: [{ data: [0] }],
+      };
+    }
+
+    let cumulativeProfit = 0;
+    const dataPoints = filteredSessions.map(session => {
+      const profit = (session.cashOut || 0) - (session.buyIn || 0);
+      cumulativeProfit += profit;
+      return cumulativeProfit;
+    });
+
+    // Generate labels (simplified to avoid overcrowding)
+    const labels = filteredSessions.map((session, index) => {
+      // Show label for first, last, and some in between
+      if (index === 0 || index === filteredSessions.length - 1 || index % Math.ceil(filteredSessions.length / 5) === 0) {
+        return new Date(session.startTime).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' });
+      }
+      return '';
+    });
+
+    return {
+      labels,
+      datasets: [{ data: dataPoints }],
+    };
+  }, [sessions, timeFilter]);
 
   if (loading && sessions.length === 0) {
     return (
@@ -170,7 +238,55 @@ export default function ResultsScreen() {
         </>
       ) : (
         <View style={styles.graphContainer}>
-          <Text style={styles.placeholderText}>Graph View Coming Soon</Text>
+          <View style={styles.filterContainer}>
+            {(['1W', '1M', 'YTD', '1Y', '3Y', 'All'] as TimeFilter[]).map((filter) => (
+              <TouchableOpacity
+                key={filter}
+                style={[styles.filterButton, timeFilter === filter && styles.activeFilterButton]}
+                onPress={() => setTimeFilter(filter)}
+              >
+                <Text style={[styles.filterText, timeFilter === filter && styles.activeFilterText]}>
+                  {filter}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {graphData.datasets[0].data.length > 0 && graphData.labels.length > 0 ? (
+            <LineChart
+              data={graphData}
+              width={SCREEN_WIDTH - 40} // from react-native
+              height={220}
+              yAxisLabel="$"
+              yAxisSuffix=""
+              yAxisInterval={1} // optional, defaults to 1
+              chartConfig={{
+                backgroundColor: "#ffffff",
+                backgroundGradientFrom: "#ffffff",
+                backgroundGradientTo: "#ffffff",
+                decimalPlaces: 0, // optional, defaults to 2dp
+                color: (opacity = 1) => `rgba(10, 126, 164, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                style: {
+                  borderRadius: 16
+                },
+                propsForDots: {
+                  r: "4",
+                  strokeWidth: "2",
+                  stroke: "#0a7ea4"
+                }
+              }}
+              bezier
+              style={{
+                marginVertical: 8,
+                borderRadius: 16
+              }}
+            />
+          ) : (
+            <View style={styles.noDataContainer}>
+              <Text style={styles.noDataText}>No data available for this period</Text>
+            </View>
+          )}
         </View>
       )}
     </ScrollView>
@@ -308,11 +424,10 @@ const styles = StyleSheet.create({
   },
   graphContainer: {
     margin: 16,
-    padding: 24,
+    padding: 16,
     backgroundColor: '#fff',
     borderRadius: 16,
     minHeight: 300,
-    justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -324,5 +439,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999',
     fontStyle: 'italic',
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    width: '100%',
+    justifyContent: 'space-between',
+  },
+  filterButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#f0f0f0',
+  },
+  activeFilterButton: {
+    backgroundColor: '#0a7ea4',
+  },
+  filterText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  activeFilterText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  noDataContainer: {
+    height: 220,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noDataText: {
+    color: '#999',
+    fontSize: 14,
   },
 });
