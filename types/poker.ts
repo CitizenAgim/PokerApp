@@ -168,3 +168,27 @@ export type CreateSession = Omit<Session, 'id' | 'startTime' | 'endTime' | 'isAc
 
 // For updating entities (all fields optional except id)
 export type UpdatePlayer = Partial<Omit<Player, 'id' | 'createdAt' | 'createdBy'>> & { id: string };
+
+// ============================================
+// HAND RECORDING TYPES
+// ============================================
+
+export interface HandAction {
+  playerId: string;
+  type: 'bet' | 'call' | 'raise' | 'fold' | 'check';
+  amount?: number;
+  street: 'preflop' | 'flop' | 'turn' | 'river';
+}
+
+export interface HandRecord {
+  id: string;
+  sessionId?: string;
+  timestamp: number;
+  buttonPosition: number;
+  seats: Seat[];
+  board: string[];
+  pot: number;
+  actions: HandAction[];
+  winners: string[];
+  notes?: string;
+}

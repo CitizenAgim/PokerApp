@@ -1,10 +1,9 @@
+import { PokerTable } from '@/components/table/PokerTable';
 import { useCurrentSession, usePlayers, useSession, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { getThemeColors, SEAT_SIZE, styles, TABLE_HEIGHT, TABLE_WIDTH } from '@/styles/sessions/[id].styles';
-import { Seat } from '@/types/poker';
+import { getThemeColors, styles } from '@/styles/sessions/[id].styles';
 import { resizeImage } from '@/utils/image';
-import { getPositionName } from '@/utils/positionCalculator';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -17,126 +16,20 @@ import {
     Modal,
     Platform,
     ScrollView,
-    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
 
-const RX = TABLE_WIDTH / 2;
-const RY = TABLE_HEIGHT / 2;
-const SEAT_OFFSET = 30;
-
-// Dealer Position (Between Seat 9 and Seat 1)
-const DEALER_ANGLE = 180;
-const DEALER_RAD = (DEALER_ANGLE * Math.PI) / 180;
-const DEALER_X = (RX + SEAT_OFFSET) * Math.cos(DEALER_RAD);
-const DEALER_Y = (RY + SEAT_OFFSET) * Math.sin(DEALER_RAD);
-
-// Calculate seat position (index 0-8)
-// Distribute 9 seats + dealer evenly (10 slots of 36 degrees)
-// Dealer is at 180 degrees (Left)
-// Seat 1 starts at 216 degrees
-const getSeatPosition = (seatNumber: number) => {
-  const safeSeatNum = (typeof seatNumber === 'number' && !isNaN(seatNumber)) ? seatNumber : 1;
-  const angleDeg = 180 + safeSeatNum * 36;
-  const angleRad = (angleDeg * Math.PI) / 180;
-  
-  const x = (RX + SEAT_OFFSET) * Math.cos(angleRad);
-  const y = (RY + SEAT_OFFSET) * Math.sin(angleRad);
-  
-  return { x, y };
-};
-
-interface SeatViewProps {
-  seat: Seat;
-  isButton: boolean;
-  isHero: boolean;
-  onPress: () => void;
-}
-
-interface SeatViewComponentProps extends SeatViewProps {
-  buttonPosition: number;
-  themeColors: any;
-}
-
-function SeatView({ seat, isButton, isHero, onPress, buttonPosition, themeColors }: SeatViewComponentProps) {
-  const { players } = usePlayers();
-  const { ninjaMode } = useSettings();
-  const player = players.find(p => p.id === seat.playerId);
-  const seatNum = seat.seatNumber ?? (typeof seat.index === 'number' ? seat.index + 1 : 1);
-  const positionName = getPositionName(seatNum, buttonPosition);
-
-  const showPhoto = player?.photoUrl && !ninjaMode;
-  const { x, y } = getSeatPosition(seatNum);
-
-  return (
-    <TouchableOpacity
-      style={[
-        styles.seat,
-        {
-          transform: [
-            { translateX: x },
-            { translateY: y },
-          ],
-          backgroundColor: themeColors.seatBg,
-          borderColor: themeColors.seatBorder,
-        },
-        player && [styles.seatOccupied, { backgroundColor: themeColors.seatOccupiedBg, borderColor: themeColors.seatOccupiedBorder }],
-        isHero && [styles.seatHero, { backgroundColor: themeColors.seatHeroBg, borderColor: themeColors.seatHeroBorder }],
-      ]}
-      onPress={onPress}
-    >
-      {player ? (
-        <>
-          {showPhoto && (
-            <>
-              <Image 
-                source={{ uri: player.photoUrl }} 
-                style={[StyleSheet.absoluteFill, { borderRadius: SEAT_SIZE / 2 }]} 
-              />
-              <View style={styles.seatOverlay} />
-            </>
-          )}
-          <Text style={[styles.seatPlayerName, { color: themeColors.text }, showPhoto && styles.seatTextLight]} numberOfLines={1}>
-            {player.name}
-          </Text>
-          <Text style={[styles.seatPosition, { color: themeColors.subText }, showPhoto && styles.seatTextLight]}>
-            {positionName}
-          </Text>
-        </>
-      ) : (
-        <>
-          <Ionicons name="add" size={20} color={themeColors.icon} />
-          <Text style={[styles.seatNumber, { color: themeColors.subText }]}>Seat {seatNum}</Text>
-        </>
-      )}
-      
-      {/* Button indicator */}
-      {isButton && (
-        <View style={[styles.buttonIndicator, { borderColor: themeColors.text }]}>
-          <Text style={styles.buttonText}>D</Text>
-        </View>
-      )}
-      
-      {/* Hero indicator */}
-      {isHero && (
-        <View style={styles.heroIndicator}>
-          <Text style={styles.heroText}>★</Text>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
-}
-
 // Force refresh
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { session, table, loading, updateButtonPosition, assignPlayerToSeat, endSession, getPositionForSeat, updateSessionDetails } = useSession(id);
+  const { session, table, loading, updateButtonPosition, assignPlayerToSeat, endSession, updateSessionDetails } = useSession(id);
   const { clearSession } = useCurrentSession();
   const { players, createPlayer } = usePlayers();
+  const { ninjaMode } = useSettings();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -626,55 +519,24 @@ export default function SessionDetailScreen() {
       </View>
 
       {/* Table View */}
-      <View style={styles.tableContainer}>
-        <View style={styles.table}>
-          {/* Table felt */}
-          <View style={styles.tableFelt}>
-            <Text style={styles.tableText}>
-              Tap seat to assign player
-            </Text>
-          </View>
-          
-          {/* Dealer */}
-          <View style={[styles.dealer, {
-            transform: [
-              { translateX: DEALER_X },
-              { translateY: DEALER_Y },
-            ]
-          }]}>
-            <MaterialCommunityIcons name="account-tie" size={32} color={themeColors.text} />
-            <Text style={[styles.dealerText, { color: themeColors.subText }]}>Dealer</Text>
-          </View>
-          
-          {/* Seats */}
-          {table.seats && table.seats.map((seat, i) => {
-            const seatNum = seat.seatNumber ?? (typeof seat.index === 'number' ? seat.index + 1 : i + 1);
-            return (
-              <SeatView
-                key={seatNum}
-                seat={seat}
-                isButton={seatNum === table.buttonPosition}
-                isHero={seatNum === heroSeat}
-                onPress={() => handleSeatPress(seatNum)}
-                buttonPosition={table.buttonPosition}
-                themeColors={themeColors}
-              />
-            );
-          })}
-        </View>
-      </View>
+      <PokerTable
+        seats={table.seats}
+        players={players}
+        buttonPosition={table.buttonPosition}
+        heroSeat={heroSeat}
+        onSeatPress={handleSeatPress}
+        themeColors={themeColors}
+        isNinjaMode={ninjaMode}
+      />
 
       {/* Quick Actions */}
       <View style={[styles.actions, { backgroundColor: themeColors.card, borderTopColor: themeColors.border }]}>
         <TouchableOpacity 
           style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg }]}
-          onPress={() => {
-            const nextButton = (table.buttonPosition % 9) + 1;
-            updateButtonPosition(nextButton);
-          }}
+          onPress={() => router.push({ pathname: '/record-hand', params: { sessionId: id } })}
         >
-          <Ionicons name="arrow-forward-circle" size={20} color="#0a7ea4" />
-          <Text style={styles.actionText}>Move Button</Text>
+          <Ionicons name="create-outline" size={20} color="#0a7ea4" />
+          <Text style={styles.actionText}>Record Hand</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 

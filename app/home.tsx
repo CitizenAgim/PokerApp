@@ -61,6 +61,16 @@ export default function HomeScreen() {
             Track and manage player notes
           </ThemedText>
         </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.menuButton}
+          onPress={() => router.push('/record-hand')}
+        >
+          <ThemedText style={styles.menuButtonText}>📝 Record Hand</ThemedText>
+          <ThemedText style={styles.menuDescription}>
+            Quickly record a hand history
+          </ThemedText>
+        </TouchableOpacity>
         
         <TouchableOpacity 
           style={[styles.menuButton, styles.menuButtonDisabled, { backgroundColor: colors.disabledButton }]}
