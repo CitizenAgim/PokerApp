@@ -1,5 +1,5 @@
-import { StyleSheet } from 'react-native';
 import { Colors } from '@/constants/theme';
+import { StyleSheet } from 'react-native';
 
 export const getThemeColors = (isDark: boolean) => ({
   icon: isDark ? Colors.dark.icon : Colors.light.icon,

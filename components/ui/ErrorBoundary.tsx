@@ -1,7 +1,7 @@
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getThemeColors, styles } from './ErrorBoundary.styles';
 
 interface Props {

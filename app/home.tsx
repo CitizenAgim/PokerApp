@@ -3,10 +3,10 @@ import { ThemedView } from '@/components/themed-view';
 import { auth } from '@/config/firebase';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { disableGuestMode, isGuestMode } from '@/services/guestMode';
+import { getThemeColors, styles } from '@/styles/home.styles';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import { TouchableOpacity, View } from 'react-native';
-import { getThemeColors, styles } from '@/styles/home.styles';
 
 export default function HomeScreen() {
   const router = useRouter();

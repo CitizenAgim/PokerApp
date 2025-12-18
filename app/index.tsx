@@ -3,6 +3,7 @@ import { ThemedView } from '@/components/themed-view';
 import { auth } from '@/config/firebase';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { enableGuestMode } from '@/services/guestMode';
+import { getThemeColors, styles } from '@/styles/index.styles';
 import { useRouter } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useEffect, useState } from 'react';
@@ -11,7 +12,6 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { getThemeColors, styles } from '@/styles/index.styles';
 
 export default function LandingScreen() {
   const [loading, setLoading] = useState(true);

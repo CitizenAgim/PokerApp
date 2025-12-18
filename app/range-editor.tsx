@@ -1,18 +1,18 @@
 import { PositionSelector, RangeGrid, RangeStats } from '@/components/poker';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { getThemeColors, styles } from '@/styles/range-editor.styles';
 import { Action, Position, Range } from '@/types/poker';
 import { createEmptyRange } from '@/utils/handRanking';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getThemeColors, styles } from '@/styles/range-editor.styles';
 
 // ============================================
 // RANGE EDITOR SCREEN

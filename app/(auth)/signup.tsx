@@ -3,6 +3,7 @@ import { ThemedView } from '@/components/themed-view';
 import { auth } from '@/config/firebase';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { disableGuestMode } from '@/services/guestMode';
+import { getThemeColors, styles } from '@/styles/auth/signup.styles';
 import * as Google from 'expo-auth-session/providers/google';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -18,7 +19,6 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { getThemeColors, styles } from '@/styles/auth/signup.styles';
 
 WebBrowser.maybeCompleteAuthSession();
 
