@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { auth } from '@/config/firebase';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { disableGuestMode } from '@/services/guestMode';
 import * as Google from 'expo-auth-session/providers/google';
 import { useRouter } from 'expo-router';
@@ -31,6 +32,20 @@ export default function SignUpScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  const themeColors = {
+    inputBg: isDark ? '#2A2A2A' : '#f5f5f5',
+    inputText: isDark ? '#fff' : '#333',
+    inputBorder: isDark ? '#333' : '#e0e0e0',
+    placeholder: isDark ? '#888' : '#aaa',
+    dividerLine: isDark ? '#444' : '#e0e0e0',
+    googleButtonBg: isDark ? '#fff' : '#fff',
+    googleButtonText: isDark ? '#333' : '#333',
+    googleButtonBorder: isDark ? 'transparent' : '#e0e0e0',
+    legalText: isDark ? '#888' : '#666',
+  };
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: GOOGLE_WEB_CLIENT_ID,
@@ -109,9 +124,13 @@ export default function SignUpScreen() {
             </ThemedText>
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: themeColors.inputBg, 
+                color: themeColors.inputText,
+                borderColor: themeColors.inputBorder
+              }]}
               placeholder="Email"
-              placeholderTextColor="#888"
+              placeholderTextColor={themeColors.placeholder}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -119,18 +138,26 @@ export default function SignUpScreen() {
             />
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: themeColors.inputBg, 
+                color: themeColors.inputText,
+                borderColor: themeColors.inputBorder
+              }]}
               placeholder="Password"
-              placeholderTextColor="#888"
+              placeholderTextColor={themeColors.placeholder}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
             />
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: themeColors.inputBg, 
+                color: themeColors.inputText,
+                borderColor: themeColors.inputBorder
+              }]}
               placeholder="Confirm Password"
-              placeholderTextColor="#888"
+              placeholderTextColor={themeColors.placeholder}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
@@ -141,7 +168,7 @@ export default function SignUpScreen() {
             </TouchableOpacity>
 
             <View style={styles.legalContainer}>
-              <ThemedText style={styles.legalText}>
+              <ThemedText style={[styles.legalText, { color: themeColors.legalText }]}>
                 By creating an account, you agree to our{' '}
                 <ThemedText 
                   style={styles.legalLink} 
@@ -160,17 +187,21 @@ export default function SignUpScreen() {
             </View>
 
             <View style={styles.divider}>
-              <View style={styles.dividerLine} />
+              <View style={[styles.dividerLine, { backgroundColor: themeColors.dividerLine }]} />
               <ThemedText style={styles.dividerText}>or</ThemedText>
-              <View style={styles.dividerLine} />
+              <View style={[styles.dividerLine, { backgroundColor: themeColors.dividerLine }]} />
             </View>
 
             <TouchableOpacity
-              style={styles.googleButton}
+              style={[styles.googleButton, { 
+                backgroundColor: themeColors.googleButtonBg,
+                borderWidth: isDark ? 0 : 1,
+                borderColor: themeColors.googleButtonBorder
+              }]}
               onPress={handleGoogleSignIn}
               disabled={!request}
             >
-              <ThemedText style={styles.googleButtonText}>Continue with Google</ThemedText>
+              <ThemedText style={[styles.googleButtonText, { color: themeColors.googleButtonText }]}>Continue with Google</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity

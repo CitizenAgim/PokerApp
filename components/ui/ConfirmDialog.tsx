@@ -1,3 +1,4 @@
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { haptics } from '@/utils/haptics';
 import React from 'react';
 import {
@@ -23,6 +24,18 @@ interface ConfirmDialogProps {
   onCancel: () => void;
 }
 
+const getThemeColors = (isDark: boolean) => ({
+  overlay: 'rgba(0, 0, 0, 0.5)',
+  dialogBg: isDark ? '#1c1c1e' : '#fff',
+  title: isDark ? '#FFFFFF' : '#333',
+  message: isDark ? '#AAAAAA' : '#666',
+  cancelButton: isDark ? '#333333' : '#f0f0f0',
+  cancelText: isDark ? '#FFFFFF' : '#666',
+  confirmButton: '#0a7ea4',
+  destructiveButton: '#e74c3c',
+  confirmText: '#fff',
+});
+
 // ============================================
 // COMPONENT
 // ============================================
@@ -37,6 +50,10 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const colors = getThemeColors(isDark);
+
   const handleConfirm = () => {
     if (confirmDestructive) {
       haptics.warningFeedback();
@@ -60,29 +77,29 @@ export function ConfirmDialog({
       onRequestClose={handleCancel}
     >
       <View style={styles.overlay}>
-        <View style={styles.dialog}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{message}</Text>
+        <View style={[styles.dialog, { backgroundColor: colors.dialogBg }]}>
+          <Text style={[styles.title, { color: colors.title }]}>{title}</Text>
+          <Text style={[styles.message, { color: colors.message }]}>{message}</Text>
           
           <View style={styles.actions}>
             <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
+              style={[styles.button, { backgroundColor: colors.cancelButton }]}
               onPress={handleCancel}
             >
-              <Text style={styles.cancelText}>{cancelText}</Text>
+              <Text style={[styles.cancelText, { color: colors.cancelText }]}>{cancelText}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
               style={[
                 styles.button,
-                confirmDestructive ? styles.destructiveButton : styles.confirmButton,
+                { backgroundColor: confirmDestructive ? colors.destructiveButton : colors.confirmButton },
               ]}
               onPress={handleConfirm}
             >
               <Text
                 style={[
                   styles.confirmText,
-                  confirmDestructive && styles.destructiveText,
+                  { color: colors.confirmText },
                 ]}
               >
                 {confirmText}

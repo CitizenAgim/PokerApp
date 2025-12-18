@@ -1,4 +1,5 @@
 import { useSessions } from '@/hooks';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
@@ -19,17 +20,17 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 type TimeFilter = '1W' | '1M' | 'YTD' | '1Y' | '3Y' | 'All';
 
 // Custom Bar Chart Component
-const CustomBarChart = ({ data, labels, title }: { data: number[], labels: string[], title: string }) => {
+const CustomBarChart = ({ data, labels, title, themeColors }: { data: number[], labels: string[], title: string, themeColors: any }) => {
   const maxVal = Math.max(...data.map(Math.abs), 1); // Avoid division by zero
   const chartHeight = 200;
   const halfHeight = chartHeight / 2;
 
   return (
-    <View style={styles.customChartContainer}>
-      <Text style={styles.chartTitle}>{title}</Text>
+    <View style={[styles.customChartContainer, { backgroundColor: themeColors.card }]}>
+      <Text style={[styles.chartTitle, { color: themeColors.text }]}>{title}</Text>
       <View style={[styles.chartBody, { height: chartHeight }]}>
         {/* Zero Line */}
-        <View style={[styles.zeroLine, { top: halfHeight }]} />
+        <View style={[styles.zeroLine, { top: halfHeight, backgroundColor: themeColors.border }]} />
         
         {data.map((value, index) => {
           const barHeight = (Math.abs(value) / maxVal) * (halfHeight - 20); // Leave some padding
@@ -42,7 +43,7 @@ const CustomBarChart = ({ data, labels, title }: { data: number[], labels: strin
                 <View style={styles.positiveArea}>
                   {isPositive && value !== 0 && (
                     <>
-                      <Text style={styles.barValue}>{value}</Text>
+                      <Text style={[styles.barValue, { color: themeColors.subText }]}>{value}</Text>
                       <View style={[styles.bar, styles.positiveBar, { height: barHeight }]} />
                     </>
                   )}
@@ -53,12 +54,12 @@ const CustomBarChart = ({ data, labels, title }: { data: number[], labels: strin
                   {!isPositive && value !== 0 && (
                     <>
                       <View style={[styles.bar, styles.negativeBar, { height: barHeight }]} />
-                      <Text style={styles.barValue}>{value}</Text>
+                      <Text style={[styles.barValue, { color: themeColors.subText }]}>{value}</Text>
                     </>
                   )}
                 </View>
               </View>
-              <Text style={styles.barLabel}>{labels[index]}</Text>
+              <Text style={[styles.barLabel, { color: themeColors.subText }]}>{labels[index]}</Text>
             </View>
           );
         })}
@@ -69,9 +70,25 @@ const CustomBarChart = ({ data, labels, title }: { data: number[], labels: strin
 
 export default function ResultsScreen() {
   const { sessions, loading, refresh } = useSessions();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  
   const [activeTab, setActiveTab] = useState<'overview' | 'graph' | 'charts' | 'locations'>('overview');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('All');
   const [chartMetric, setChartMetric] = useState<'profit' | 'hourly' | 'ytd'>('profit');
+
+  // Theme colors
+  const themeColors = {
+    background: isDark ? '#000' : '#f5f5f5',
+    card: isDark ? '#1c1c1e' : '#fff',
+    text: isDark ? '#fff' : '#333',
+    subText: isDark ? '#aaa' : '#666',
+    border: isDark ? '#333' : '#e0e0e0',
+    iconBg: isDark ? '#2c2c2e' : '#f0f9ff',
+    tabBg: isDark ? '#333' : '#e0e0e0',
+    activeTabBg: isDark ? '#1c1c1e' : '#fff',
+    filterBg: isDark ? '#333' : '#f0f0f0',
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -312,47 +329,47 @@ export default function ResultsScreen() {
 
   return (
     <ScrollView 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: themeColors.background }]}
       refreshControl={
-        <RefreshControl refreshing={loading} onRefresh={refresh} colors={['#0a7ea4']} />
+        <RefreshControl refreshing={loading} onRefresh={refresh} colors={['#0a7ea4']} tintColor={themeColors.text} />
       }
     >
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Performance Results</Text>
-        <Text style={styles.headerSubtitle}>Lifetime Statistics</Text>
+      <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
+        <Text style={[styles.headerTitle, { color: themeColors.text }]}>Performance Results</Text>
+        <Text style={[styles.headerSubtitle, { color: themeColors.subText }]}>Lifetime Statistics</Text>
       </View>
 
-      <View style={styles.tabContainer}>
+      <View style={[styles.tabContainer, { backgroundColor: themeColors.tabBg }]}>
         <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'overview' && styles.activeTabButton]} 
+          style={[styles.tabButton, activeTab === 'overview' && [styles.activeTabButton, { backgroundColor: themeColors.activeTabBg }]]} 
           onPress={() => setActiveTab('overview')}
         >
-          <Text style={[styles.tabText, activeTab === 'overview' && styles.activeTabText]}>Overview</Text>
+          <Text style={[styles.tabText, { color: themeColors.subText }, activeTab === 'overview' && styles.activeTabText]}>Overview</Text>
         </TouchableOpacity>
         <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'graph' && styles.activeTabButton]} 
+          style={[styles.tabButton, activeTab === 'graph' && [styles.activeTabButton, { backgroundColor: themeColors.activeTabBg }]]} 
           onPress={() => setActiveTab('graph')}
         >
-          <Text style={[styles.tabText, activeTab === 'graph' && styles.activeTabText]}>Graph</Text>
+          <Text style={[styles.tabText, { color: themeColors.subText }, activeTab === 'graph' && styles.activeTabText]}>Graph</Text>
         </TouchableOpacity>
         <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'charts' && styles.activeTabButton]} 
+          style={[styles.tabButton, activeTab === 'charts' && [styles.activeTabButton, { backgroundColor: themeColors.activeTabBg }]]} 
           onPress={() => setActiveTab('charts')}
         >
-          <Text style={[styles.tabText, activeTab === 'charts' && styles.activeTabText]}>Charts</Text>
+          <Text style={[styles.tabText, { color: themeColors.subText }, activeTab === 'charts' && styles.activeTabText]}>Charts</Text>
         </TouchableOpacity>
         <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'locations' && styles.activeTabButton]} 
+          style={[styles.tabButton, activeTab === 'locations' && [styles.activeTabButton, { backgroundColor: themeColors.activeTabBg }]]} 
           onPress={() => setActiveTab('locations')}
         >
-          <Text style={[styles.tabText, activeTab === 'locations' && styles.activeTabText]}>Locations</Text>
+          <Text style={[styles.tabText, { color: themeColors.subText }, activeTab === 'locations' && styles.activeTabText]}>Locations</Text>
         </TouchableOpacity>
       </View>
 
       {activeTab === 'overview' ? (
         <>
-          <View style={styles.mainCard}>
-            <Text style={styles.mainLabel}>Total Net Profit</Text>
+          <View style={[styles.mainCard, { backgroundColor: themeColors.card }]}>
+            <Text style={[styles.mainLabel, { color: themeColors.subText }]}>Total Net Profit</Text>
             <Text style={[
               styles.mainValue, 
               stats.totalNetProfit >= 0 ? styles.profit : styles.loss
@@ -362,50 +379,52 @@ export default function ResultsScreen() {
           </View>
 
           <View style={styles.grid}>
-            <View style={styles.card}>
-              <View style={styles.iconContainer}>
+            <View style={[styles.card, { backgroundColor: themeColors.card }]}>
+              <View style={[styles.iconContainer, { backgroundColor: themeColors.iconBg }]}>
                 <Ionicons name="trending-up" size={24} color="#0a7ea4" />
               </View>
-              <Text style={styles.cardLabel}>Hourly Rate</Text>
+              <Text style={[styles.cardLabel, { color: themeColors.subText }]}>Hourly Rate</Text>
               <Text style={[
                 styles.cardValue,
+                { color: themeColors.text },
                 stats.hourlyRate >= 0 ? styles.profitText : styles.lossText
               ]}>
                 {stats.hourlyRate.toFixed(2)}/hr
               </Text>
             </View>
 
-            <View style={styles.card}>
-              <View style={styles.iconContainer}>
+            <View style={[styles.card, { backgroundColor: themeColors.card }]}>
+              <View style={[styles.iconContainer, { backgroundColor: themeColors.iconBg }]}>
                 <Ionicons name="game-controller" size={24} color="#0a7ea4" />
               </View>
-              <Text style={styles.cardLabel}>Sessions</Text>
-              <Text style={styles.cardValue}>{stats.totalSessions}</Text>
+              <Text style={[styles.cardLabel, { color: themeColors.subText }]}>Sessions</Text>
+              <Text style={[styles.cardValue, { color: themeColors.text }]}>{stats.totalSessions}</Text>
             </View>
 
-            <View style={styles.card}>
-              <View style={styles.iconContainer}>
+            <View style={[styles.card, { backgroundColor: themeColors.card }]}>
+              <View style={[styles.iconContainer, { backgroundColor: themeColors.iconBg }]}>
                 <Ionicons name="time" size={24} color="#0a7ea4" />
               </View>
-              <Text style={styles.cardLabel}>Total Hours</Text>
-              <Text style={styles.cardValue}>{stats.totalHours.toFixed(1)}h</Text>
+              <Text style={[styles.cardLabel, { color: themeColors.subText }]}>Total Hours</Text>
+              <Text style={[styles.cardValue, { color: themeColors.text }]}>{stats.totalHours.toFixed(1)}h</Text>
             </View>
 
-            <View style={styles.card}>
-              <View style={styles.iconContainer}>
+            <View style={[styles.card, { backgroundColor: themeColors.card }]}>
+              <View style={[styles.iconContainer, { backgroundColor: themeColors.iconBg }]}>
                 <Ionicons name="pie-chart" size={24} color="#0a7ea4" />
               </View>
-              <Text style={styles.cardLabel}>Win Rate</Text>
-              <Text style={styles.cardValue}>{stats.winRate.toFixed(1)}%</Text>
+              <Text style={[styles.cardLabel, { color: themeColors.subText }]}>Win Rate</Text>
+              <Text style={[styles.cardValue, { color: themeColors.text }]}>{stats.winRate.toFixed(1)}%</Text>
             </View>
 
-            <View style={styles.card}>
-              <View style={styles.iconContainer}>
+            <View style={[styles.card, { backgroundColor: themeColors.card }]}>
+              <View style={[styles.iconContainer, { backgroundColor: themeColors.iconBg }]}>
                 <Ionicons name="bar-chart" size={24} color="#0a7ea4" />
               </View>
-              <Text style={styles.cardLabel}>Avg Profit</Text>
+              <Text style={[styles.cardLabel, { color: themeColors.subText }]}>Avg Profit</Text>
               <Text style={[
                 styles.cardValue,
+                { color: themeColors.text },
                 stats.avgProfit >= 0 ? styles.profitText : styles.lossText
               ]}>
                 {stats.avgProfit >= 0 ? '+' : ''}{stats.avgProfit.toFixed(2)}
@@ -414,15 +433,15 @@ export default function ResultsScreen() {
           </View>
         </>
       ) : activeTab === 'graph' ? (
-        <View style={styles.graphContainer}>
+        <View style={[styles.graphContainer, { backgroundColor: themeColors.card }]}>
           <View style={styles.filterContainer}>
             {(['1W', '1M', 'YTD', '1Y', '3Y', 'All'] as TimeFilter[]).map((filter) => (
               <TouchableOpacity
                 key={filter}
-                style={[styles.filterButton, timeFilter === filter && styles.activeFilterButton]}
+                style={[styles.filterButton, { backgroundColor: themeColors.filterBg }, timeFilter === filter && styles.activeFilterButton]}
                 onPress={() => setTimeFilter(filter)}
               >
-                <Text style={[styles.filterText, timeFilter === filter && styles.activeFilterText]}>
+                <Text style={[styles.filterText, { color: themeColors.subText }, timeFilter === filter && styles.activeFilterText]}>
                   {filter}
                 </Text>
               </TouchableOpacity>
@@ -438,12 +457,12 @@ export default function ResultsScreen() {
               yAxisSuffix=""
               yAxisInterval={1} // optional, defaults to 1
               chartConfig={{
-                backgroundColor: "#ffffff",
-                backgroundGradientFrom: "#ffffff",
-                backgroundGradientTo: "#ffffff",
+                backgroundColor: themeColors.card,
+                backgroundGradientFrom: themeColors.card,
+                backgroundGradientTo: themeColors.card,
                 decimalPlaces: 0, // optional, defaults to 2dp
                 color: (opacity = 1) => `rgba(10, 126, 164, ${opacity})`,
-                labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                labelColor: (opacity = 1) => isDark ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
                 style: {
                   borderRadius: 16
                 },
@@ -461,7 +480,7 @@ export default function ResultsScreen() {
             />
           ) : (
             <View style={styles.noDataContainer}>
-              <Text style={styles.noDataText}>No data available for this period</Text>
+              <Text style={[styles.noDataText, { color: themeColors.subText }]}>No data available for this period</Text>
             </View>
           )}
         </View>
@@ -471,41 +490,44 @@ export default function ResultsScreen() {
             title={`Earnings by Day of Week${chartMetric === 'hourly' ? ' ($/hr)' : ''}`}
             data={chartsData.day.data} 
             labels={chartsData.day.labels} 
+            themeColors={themeColors}
           />
           <CustomBarChart 
             title={`Earnings by Month${chartMetric === 'hourly' ? ' ($/hr)' : ''}`}
             data={chartsData.month.data} 
             labels={chartsData.month.labels} 
+            themeColors={themeColors}
           />
           <CustomBarChart 
             title={`Earnings by Year${chartMetric === 'hourly' ? ' ($/hr)' : ''}`}
             data={chartsData.year.data} 
             labels={chartsData.year.labels} 
+            themeColors={themeColors}
           />
           
-          <View style={styles.metricToggleContainer}>
+          <View style={[styles.metricToggleContainer, { backgroundColor: themeColors.card }]}>
             <TouchableOpacity 
               style={[styles.metricButton, chartMetric === 'profit' && styles.activeMetricButton]} 
               onPress={() => setChartMetric('profit')}
             >
-              <Ionicons name="cash-outline" size={20} color={chartMetric === 'profit' ? '#fff' : '#666'} />
-              <Text style={[styles.metricText, chartMetric === 'profit' && styles.activeMetricText]}>PROFIT</Text>
+              <Ionicons name="cash-outline" size={20} color={chartMetric === 'profit' ? '#fff' : themeColors.subText} />
+              <Text style={[styles.metricText, { color: themeColors.subText }, chartMetric === 'profit' && styles.activeMetricText]}>PROFIT</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={[styles.metricButton, chartMetric === 'hourly' && styles.activeMetricButton]} 
               onPress={() => setChartMetric('hourly')}
             >
-              <Ionicons name="time-outline" size={20} color={chartMetric === 'hourly' ? '#fff' : '#666'} />
-              <Text style={[styles.metricText, chartMetric === 'hourly' && styles.activeMetricText]}>HOURLY</Text>
+              <Ionicons name="time-outline" size={20} color={chartMetric === 'hourly' ? '#fff' : themeColors.subText} />
+              <Text style={[styles.metricText, { color: themeColors.subText }, chartMetric === 'hourly' && styles.activeMetricText]}>HOURLY</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={[styles.metricButton, chartMetric === 'ytd' && styles.activeMetricButton]} 
               onPress={() => setChartMetric('ytd')}
             >
-              <Ionicons name="calendar-outline" size={20} color={chartMetric === 'ytd' ? '#fff' : '#666'} />
-              <Text style={[styles.metricText, chartMetric === 'ytd' && styles.activeMetricText]}>YTD</Text>
+              <Ionicons name="calendar-outline" size={20} color={chartMetric === 'ytd' ? '#fff' : themeColors.subText} />
+              <Text style={[styles.metricText, { color: themeColors.subText }, chartMetric === 'ytd' && styles.activeMetricText]}>YTD</Text>
             </TouchableOpacity>
           </View>
 
@@ -514,9 +536,9 @@ export default function ResultsScreen() {
       ) : (
         <View style={styles.locationsContainer}>
           {locationsData.map((loc, index) => (
-            <View key={index} style={styles.locationCard}>
-              <View style={styles.locationHeader}>
-                <Text style={styles.locationName}>{loc.name}</Text>
+            <View key={index} style={[styles.locationCard, { backgroundColor: themeColors.card }]}>
+              <View style={[styles.locationHeader, { borderBottomColor: themeColors.border }]}>
+                <Text style={[styles.locationName, { color: themeColors.text }]}>{loc.name}</Text>
                 <Text style={[styles.locationProfit, loc.totalProfit >= 0 ? styles.profitText : styles.lossText]}>
                   {loc.totalProfit >= 0 ? '+' : ''}{loc.totalProfit.toFixed(2)}
                 </Text>
@@ -524,19 +546,19 @@ export default function ResultsScreen() {
               
               <View style={styles.locationStatsRow}>
                 <View style={styles.locationStat}>
-                  <Text style={styles.statLabel}>Sessions</Text>
-                  <Text style={styles.statValue}>{loc.sessions}</Text>
+                  <Text style={[styles.statLabel, { color: themeColors.subText }]}>Sessions</Text>
+                  <Text style={[styles.statValue, { color: themeColors.text }]}>{loc.sessions}</Text>
                 </View>
                 <View style={styles.locationStat}>
-                  <Text style={styles.statLabel}>Hours</Text>
-                  <Text style={styles.statValue}>{loc.totalHours.toFixed(1)}h</Text>
+                  <Text style={[styles.statLabel, { color: themeColors.subText }]}>Hours</Text>
+                  <Text style={[styles.statValue, { color: themeColors.text }]}>{loc.totalHours.toFixed(1)}h</Text>
                 </View>
                 <View style={styles.locationStat}>
-                  <Text style={styles.statLabel}>Win Rate</Text>
-                  <Text style={styles.statValue}>{loc.winRate.toFixed(0)}%</Text>
+                  <Text style={[styles.statLabel, { color: themeColors.subText }]}>Win Rate</Text>
+                  <Text style={[styles.statValue, { color: themeColors.text }]}>{loc.winRate.toFixed(0)}%</Text>
                 </View>
                 <View style={styles.locationStat}>
-                  <Text style={styles.statLabel}>Hourly</Text>
+                  <Text style={[styles.statLabel, { color: themeColors.subText }]}>Hourly</Text>
                   <Text style={[styles.statValue, loc.hourlyRate >= 0 ? styles.profitText : styles.lossText]}>
                     {loc.hourlyRate.toFixed(2)}/hr
                   </Text>

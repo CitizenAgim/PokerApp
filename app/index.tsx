@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { auth } from '@/config/firebase';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { enableGuestMode } from '@/services/guestMode';
 import { useRouter } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -15,6 +16,16 @@ import {
 export default function LandingScreen() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  const themeColors = {
+    tagline: isDark ? '#aaa' : '#888',
+    secondaryButtonText: isDark ? '#4fc3f7' : '#0a7ea4',
+    secondaryButtonBorder: isDark ? '#4fc3f7' : '#0a7ea4',
+    guestButtonText: isDark ? '#aaa' : '#888',
+    guestNote: isDark ? '#888' : '#666',
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -46,7 +57,7 @@ export default function LandingScreen() {
         <ThemedText type="title" style={styles.logo}>
           ♠️ PokerApp
         </ThemedText>
-        <ThemedText style={styles.tagline}>
+        <ThemedText style={[styles.tagline, { color: themeColors.tagline }]}>
           Your ultimate poker companion
         </ThemedText>
 
@@ -59,10 +70,10 @@ export default function LandingScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.secondaryButton}
+            style={[styles.secondaryButton, { borderColor: themeColors.secondaryButtonBorder }]}
             onPress={() => router.push('/(auth)/signup')}
           >
-            <ThemedText style={styles.secondaryButtonText}>
+            <ThemedText style={[styles.secondaryButtonText, { color: themeColors.secondaryButtonText }]}>
               Create Account
             </ThemedText>
           </TouchableOpacity>
@@ -71,13 +82,13 @@ export default function LandingScreen() {
             style={styles.guestButton}
             onPress={handleContinueAsGuest}
           >
-            <ThemedText style={styles.guestButtonText}>
+            <ThemedText style={[styles.guestButtonText, { color: themeColors.guestButtonText }]}>
               Continue as Guest
             </ThemedText>
           </TouchableOpacity>
         </View>
 
-        <ThemedText style={styles.guestNote}>
+        <ThemedText style={[styles.guestNote, { color: themeColors.guestNote }]}>
           Your data will be saved locally. Sign in later to sync across devices.
         </ThemedText>
       </View>

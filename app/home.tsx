@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { auth } from '@/config/firebase';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { disableGuestMode, isGuestMode } from '@/services/guestMode';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
@@ -8,6 +9,12 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  const themeColors = {
+    disabledButton: isDark ? '#333' : '#ccc',
+  };
 
   const handleSignOut = async () => {
     try {
@@ -58,7 +65,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={[styles.menuButton, styles.menuButtonDisabled]}
+          style={[styles.menuButton, styles.menuButtonDisabled, { backgroundColor: themeColors.disabledButton }]}
           disabled
         >
           <ThemedText style={styles.menuButtonText}>🎰 Sessions</ThemedText>

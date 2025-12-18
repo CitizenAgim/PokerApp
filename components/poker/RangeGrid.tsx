@@ -1,4 +1,5 @@
 import { GRID_HEADERS, HAND_MATRIX } from '@/constants/hands';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Range, SelectionState } from '@/types/poker';
 import { getHandState, toggleHandInRange } from '@/utils/handRanking';
 import { haptics } from '@/utils/haptics';
@@ -24,13 +25,14 @@ interface HandCellProps {
   onPress: () => void;
   readonly?: boolean;
   cellSize: number;
+  colors: any;
 }
 
 // ============================================
 // COLORS
 // ============================================
 
-const COLORS = {
+const getThemeColors = (isDark: boolean) => ({
   // Base colors by hand type
   pair: '#4A90D9',        // Blue for pairs
   suited: '#7CB342',      // Green for suited
@@ -38,9 +40,9 @@ const COLORS = {
   
   // Selection states
   unselected: {
-    pair: '#E3F2FD',      // Light blue
-    suited: '#F1F8E9',    // Light green  
-    offsuit: '#FFF8E1',   // Light orange
+    pair: isDark ? '#102030' : '#E3F2FD',      // Darker blue / Light blue
+    suited: isDark ? '#152515' : '#F1F8E9',    // Darker green / Light green  
+    offsuit: isDark ? '#252010' : '#FFF8E1',   // Darker orange / Light orange
   },
   selected: {
     pair: '#1E88E5',      // Strong blue
@@ -48,20 +50,20 @@ const COLORS = {
     offsuit: '#FB8C00',   // Strong orange
   },
   manualUnselected: {
-    pair: '#BBDEFB',      // Faded blue with indicator
-    suited: '#C8E6C9',    // Faded green with indicator
-    offsuit: '#FFE0B2',   // Faded orange with indicator
+    pair: isDark ? '#1a3a5a' : '#BBDEFB',      // Faded blue with indicator
+    suited: isDark ? '#2a4a2a' : '#C8E6C9',    // Faded green with indicator
+    offsuit: isDark ? '#4a3a1a' : '#FFE0B2',   // Faded orange with indicator
   },
   
   // Text colors
   textLight: '#FFFFFF',
-  textDark: '#333333',
-  textMuted: '#666666',
+  textDark: isDark ? '#FFFFFF' : '#333333',
+  textMuted: isDark ? '#AAAAAA' : '#666666',
   
   // Grid
-  border: '#E0E0E0',
-  headerBg: '#F5F5F5',
-};
+  border: isDark ? '#333333' : '#E0E0E0',
+  headerBg: isDark ? '#1c1c1e' : '#F5F5F5',
+});
 
 // ============================================
 // HAND CELL COMPONENT
@@ -75,24 +77,25 @@ const HandCell: React.FC<HandCellProps> = React.memo(({
   onPress,
   readonly,
   cellSize,
+  colors,
 }) => {
   const getBackgroundColor = (): string => {
     switch (state) {
       case 'manual-selected':
       case 'auto-selected':
-        return COLORS.selected[type];
+        return colors.selected[type];
       case 'manual-unselected':
-        return COLORS.manualUnselected[type];
+        return colors.manualUnselected[type];
       default:
-        return COLORS.unselected[type];
+        return colors.unselected[type];
     }
   };
   
   const getTextColor = (): string => {
     if (state === 'manual-selected' || state === 'auto-selected') {
-      return COLORS.textLight;
+      return colors.textLight;
     }
-    return COLORS.textDark;
+    return colors.textDark;
   };
   
   const isSelected = state === 'manual-selected' || state === 'auto-selected';
@@ -105,6 +108,7 @@ const HandCell: React.FC<HandCellProps> = React.memo(({
           width: cellSize,
           height: cellSize,
           backgroundColor: getBackgroundColor(),
+          borderColor: colors.border,
         },
         isSelected && styles.cellSelected,
       ]}
@@ -130,9 +134,9 @@ const HandCell: React.FC<HandCellProps> = React.memo(({
 // HEADER CELL COMPONENT
 // ============================================
 
-const HeaderCell: React.FC<{ label: string; cellSize: number }> = ({ label, cellSize }) => (
-  <View style={[styles.headerCell, { width: cellSize, height: cellSize }]}>
-    <Text style={styles.headerText}>{label}</Text>
+const HeaderCell: React.FC<{ label: string; cellSize: number; colors: any }> = ({ label, cellSize, colors }) => (
+  <View style={[styles.headerCell, { width: cellSize, height: cellSize, backgroundColor: colors.headerBg, borderColor: colors.border }]}>
+    <Text style={[styles.headerText, { color: colors.textDark }]}>{label}</Text>
   </View>
 );
 
@@ -146,6 +150,10 @@ export const RangeGrid: React.FC<RangeGridProps> = ({
   readonly = false,
   showPercentage = true,
 }) => {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const colors = getThemeColors(isDark);
+
   // Calculate cell size based on screen width
   const screenWidth = Dimensions.get('window').width;
   const padding = 16;
@@ -169,7 +177,7 @@ export const RangeGrid: React.FC<RangeGridProps> = ({
     <View style={styles.container}>
       {showPercentage && (
         <View style={styles.statsRow}>
-          <Text style={styles.statsText}>
+          <Text style={[styles.statsText, { color: colors.textMuted }]}>
             {selectedCount} hands selected ({percentage}%)
           </Text>
         </View>
@@ -177,18 +185,18 @@ export const RangeGrid: React.FC<RangeGridProps> = ({
       
       <View style={[styles.grid, { width: cellSize * 14 }]}>
         {/* Top-left empty corner */}
-        <View style={[styles.cornerCell, { width: cellSize, height: cellSize }]} />
+        <View style={[styles.cornerCell, { width: cellSize, height: cellSize, backgroundColor: colors.headerBg }]} />
         
         {/* Column headers */}
         {GRID_HEADERS.map((rank, col) => (
-          <HeaderCell key={`col-${col}`} label={rank} cellSize={cellSize} />
+          <HeaderCell key={`col-${col}`} label={rank} cellSize={cellSize} colors={colors} />
         ))}
         
         {/* Grid rows */}
         {HAND_MATRIX.map((row, rowIndex) => (
           <React.Fragment key={`row-${rowIndex}`}>
             {/* Row header */}
-            <HeaderCell label={GRID_HEADERS[rowIndex]} cellSize={cellSize} />
+            <HeaderCell label={GRID_HEADERS[rowIndex]} cellSize={cellSize} colors={colors} />
             
             {/* Hand cells */}
             {row.map((hand) => (
@@ -201,6 +209,7 @@ export const RangeGrid: React.FC<RangeGridProps> = ({
                 onPress={() => handleCellPress(hand.id)}
                 readonly={readonly}
                 cellSize={cellSize}
+                colors={colors}
               />
             ))}
           </React.Fragment>
@@ -210,16 +219,16 @@ export const RangeGrid: React.FC<RangeGridProps> = ({
       {/* Legend */}
       <View style={styles.legend}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: COLORS.selected.pair }]} />
-          <Text style={styles.legendText}>Pairs</Text>
+          <View style={[styles.legendColor, { backgroundColor: colors.selected.pair }]} />
+          <Text style={[styles.legendText, { color: colors.textMuted }]}>Pairs</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: COLORS.selected.suited }]} />
-          <Text style={styles.legendText}>Suited</Text>
+          <View style={[styles.legendColor, { backgroundColor: colors.selected.suited }]} />
+          <Text style={[styles.legendText, { color: colors.textMuted }]}>Suited</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: COLORS.selected.offsuit }]} />
-          <Text style={styles.legendText}>Offsuit</Text>
+          <View style={[styles.legendColor, { backgroundColor: colors.selected.offsuit }]} />
+          <Text style={[styles.legendText, { color: colors.textMuted }]}>Offsuit</Text>
         </View>
       </View>
     </View>

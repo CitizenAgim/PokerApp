@@ -1,3 +1,4 @@
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -28,6 +29,27 @@ interface ToastConfig {
 interface ToastState extends ToastConfig {
   id: string;
 }
+
+const getThemeColors = (isDark: boolean) => ({
+  successBg: isDark ? '#1b3320' : '#e8f5e9',
+  successBorder: '#27ae60',
+  successIcon: '#27ae60',
+  
+  errorBg: isDark ? '#3a1c1c' : '#ffebee',
+  errorBorder: '#e74c3c',
+  errorIcon: '#e74c3c',
+  
+  warningBg: isDark ? '#332b1e' : '#fff8e1',
+  warningBorder: '#f39c12',
+  warningIcon: '#f39c12',
+  
+  infoBg: isDark ? '#1a2733' : '#e3f2fd',
+  infoBorder: '#0a7ea4',
+  infoIcon: '#0a7ea4',
+  
+  message: isDark ? '#FFFFFF' : '#333',
+  closeIcon: isDark ? '#AAAAAA' : '#999',
+});
 
 // ============================================
 // TOAST CONTEXT
@@ -69,6 +91,9 @@ interface ToastItemProps {
 const ToastItem: React.FC<ToastItemProps> = ({ toast, onHide }) => {
   const translateY = useRef(new Animated.Value(-100)).current;
   const opacity = useRef(new Animated.Value(0)).current;
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const colors = getThemeColors(isDark);
 
   useEffect(() => {
     // Animate in
@@ -132,36 +157,36 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onHide }) => {
     }
   };
 
-  const getColors = () => {
+  const getToastColors = () => {
     switch (toast.type) {
       case 'success':
-        return { bg: '#e8f5e9', border: '#27ae60', icon: '#27ae60' };
+        return { bg: colors.successBg, border: colors.successBorder, icon: colors.successIcon };
       case 'error':
-        return { bg: '#ffebee', border: '#e74c3c', icon: '#e74c3c' };
+        return { bg: colors.errorBg, border: colors.errorBorder, icon: colors.errorIcon };
       case 'warning':
-        return { bg: '#fff8e1', border: '#f39c12', icon: '#f39c12' };
+        return { bg: colors.warningBg, border: colors.warningBorder, icon: colors.warningIcon };
       case 'info':
       default:
-        return { bg: '#e3f2fd', border: '#0a7ea4', icon: '#0a7ea4' };
+        return { bg: colors.infoBg, border: colors.infoBorder, icon: colors.infoIcon };
     }
   };
 
-  const colors = getColors();
+  const toastColors = getToastColors();
 
   return (
     <Animated.View
       style={[
         styles.toast,
         {
-          backgroundColor: colors.bg,
-          borderLeftColor: colors.border,
+          backgroundColor: toastColors.bg,
+          borderLeftColor: toastColors.border,
           transform: [{ translateY }],
           opacity,
         },
       ]}
     >
-      <Ionicons name={getIcon()} size={22} color={colors.icon} />
-      <Text style={styles.message} numberOfLines={2}>
+      <Ionicons name={getIcon()} size={22} color={toastColors.icon} />
+      <Text style={[styles.message, { color: colors.message }]} numberOfLines={2}>
         {toast.message}
       </Text>
       {toast.action && (
@@ -172,13 +197,13 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onHide }) => {
             hideToast();
           }}
         >
-          <Text style={[styles.actionText, { color: colors.border }]}>
+          <Text style={[styles.actionText, { color: toastColors.border }]}>
             {toast.action.label}
           </Text>
         </TouchableOpacity>
       )}
       <TouchableOpacity onPress={hideToast} style={styles.closeButton}>
-        <Ionicons name="close" size={18} color="#999" />
+        <Ionicons name="close" size={18} color={colors.closeIcon} />
       </TouchableOpacity>
     </Animated.View>
   );

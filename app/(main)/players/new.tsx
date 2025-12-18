@@ -1,4 +1,5 @@
 import { usePlayers } from '@/hooks';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { resizeImage } from '@/utils/image';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -21,6 +22,22 @@ import {
 export default function NewPlayerScreen() {
   const router = useRouter();
   const { createPlayer } = usePlayers();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  // Theme colors
+  const themeColors = {
+    background: isDark ? '#000' : '#f5f5f5',
+    card: isDark ? '#1c1c1e' : '#fff',
+    text: isDark ? '#fff' : '#333',
+    subText: isDark ? '#aaa' : '#888',
+    border: isDark ? '#333' : '#e0e0e0',
+    inputBg: isDark ? '#1c1c1e' : '#fff',
+    placeholder: isDark ? '#666' : '#999',
+    tipsBg: isDark ? '#1a2a3a' : '#e3f2fd',
+    tipsText: isDark ? '#64b5f6' : '#1976d2',
+    tipsTitle: isDark ? '#64b5f6' : '#0a7ea4',
+  };
   
   const [name, setName] = useState('');
   const [notes, setNotes] = useState('');
@@ -65,7 +82,7 @@ export default function NewPlayerScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: themeColors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
@@ -96,25 +113,25 @@ export default function NewPlayerScreen() {
         {/* Form */}
         <View style={styles.form}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Name *</Text>
+            <Text style={[styles.label, { color: themeColors.text }]}>Name *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: themeColors.inputBg, color: themeColors.text, borderColor: themeColors.border }]}
               value={name}
               onChangeText={setName}
               placeholder="Enter player name"
-              placeholderTextColor="#999"
+              placeholderTextColor={themeColors.placeholder}
               autoFocus
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Notes</Text>
+            <Text style={[styles.label, { color: themeColors.text }]}>Notes</Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[styles.input, styles.textArea, { backgroundColor: themeColors.inputBg, color: themeColors.text, borderColor: themeColors.border }]}
               value={notes}
               onChangeText={setNotes}
               placeholder="Add notes about this player's tendencies..."
-              placeholderTextColor="#999"
+              placeholderTextColor={themeColors.placeholder}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -123,22 +140,22 @@ export default function NewPlayerScreen() {
         </View>
 
         {/* Tips */}
-        <View style={styles.tips}>
-          <Text style={styles.tipsTitle}>Tips</Text>
-          <Text style={styles.tipsText}>
+        <View style={[styles.tips, { backgroundColor: themeColors.tipsBg }]}>
+          <Text style={[styles.tipsTitle, { color: themeColors.tipsTitle }]}>Tips</Text>
+          <Text style={[styles.tipsText, { color: themeColors.tipsText }]}>
             • Use nicknames or identifiers you'll remember
           </Text>
-          <Text style={styles.tipsText}>
+          <Text style={[styles.tipsText, { color: themeColors.tipsText }]}>
             • Add notes about their playing style
           </Text>
-          <Text style={styles.tipsText}>
+          <Text style={[styles.tipsText, { color: themeColors.tipsText }]}>
             • You can edit ranges after creating the player
           </Text>
         </View>
       </ScrollView>
 
       {/* Save Button */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { backgroundColor: themeColors.card, borderTopColor: themeColors.border }]}>
         <TouchableOpacity
           style={[styles.saveButton, !name.trim() && styles.saveButtonDisabled]}
           onPress={handleSave}

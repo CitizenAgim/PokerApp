@@ -1,4 +1,5 @@
 import { HAND_MATRIX } from '@/constants/hands';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Range } from '@/types/poker';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -12,6 +13,23 @@ interface RangeStatsProps {
   showDetails?: boolean;
 }
 
+const getThemeColors = (isDark: boolean) => ({
+  containerBg: isDark ? '#1c1c1e' : '#FAFAFA',
+  percentageValue: '#0a7ea4',
+  percentageLabel: isDark ? '#AAAAAA' : '#888',
+  combosValue: isDark ? '#FFFFFF' : '#333',
+  combosLabel: isDark ? '#AAAAAA' : '#888',
+  handsValue: isDark ? '#FFFFFF' : '#333',
+  handsLabel: isDark ? '#AAAAAA' : '#888',
+  borderTop: isDark ? '#333333' : '#E0E0E0',
+  detailLabel: isDark ? '#AAAAAA' : '#666',
+  detailValue: isDark ? '#FFFFFF' : '#333',
+  // Dots
+  manualDot: '#4CAF50',
+  autoDot: '#81C784',
+  excludedDot: '#FF5722',
+});
+
 // ============================================
 // RANGE STATS COMPONENT
 // ============================================
@@ -20,6 +38,10 @@ export const RangeStats: React.FC<RangeStatsProps> = ({
   range,
   showDetails = true,
 }) => {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const colors = getThemeColors(isDark);
+
   // Calculate statistics
   const stats = React.useMemo(() => {
     let manualSelected = 0;
@@ -74,40 +96,40 @@ export const RangeStats: React.FC<RangeStatsProps> = ({
   }, [range]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.containerBg }]}>
       {/* Main percentage display */}
       <View style={styles.mainStats}>
         <View style={styles.statBox}>
-          <Text style={styles.percentageValue}>{stats.percentage}%</Text>
-          <Text style={styles.percentageLabel}>of hands</Text>
+          <Text style={[styles.percentageValue, { color: colors.percentageValue }]}>{stats.percentage}%</Text>
+          <Text style={[styles.percentageLabel, { color: colors.percentageLabel }]}>of hands</Text>
         </View>
         <View style={styles.statBox}>
-          <Text style={styles.combosValue}>{stats.selectedCombos}</Text>
-          <Text style={styles.combosLabel}>combos</Text>
+          <Text style={[styles.combosValue, { color: colors.combosValue }]}>{stats.selectedCombos}</Text>
+          <Text style={[styles.combosLabel, { color: colors.combosLabel }]}>combos</Text>
         </View>
         <View style={styles.statBox}>
-          <Text style={styles.handsValue}>{stats.selectedHands}</Text>
-          <Text style={styles.handsLabel}>hands</Text>
+          <Text style={[styles.handsValue, { color: colors.handsValue }]}>{stats.selectedHands}</Text>
+          <Text style={[styles.handsLabel, { color: colors.handsLabel }]}>hands</Text>
         </View>
       </View>
 
       {/* Detailed breakdown */}
       {showDetails && (
-        <View style={styles.detailsContainer}>
+        <View style={[styles.detailsContainer, { borderTopColor: colors.borderTop }]}>
           <View style={styles.detailRow}>
-            <View style={[styles.colorDot, { backgroundColor: '#4CAF50' }]} />
-            <Text style={styles.detailLabel}>Manual</Text>
-            <Text style={styles.detailValue}>{stats.manualSelected}</Text>
+            <View style={[styles.colorDot, { backgroundColor: colors.manualDot }]} />
+            <Text style={[styles.detailLabel, { color: colors.detailLabel }]}>Manual</Text>
+            <Text style={[styles.detailValue, { color: colors.detailValue }]}>{stats.manualSelected}</Text>
           </View>
           <View style={styles.detailRow}>
-            <View style={[styles.colorDot, { backgroundColor: '#81C784' }]} />
-            <Text style={styles.detailLabel}>Auto</Text>
-            <Text style={styles.detailValue}>{stats.autoSelected}</Text>
+            <View style={[styles.colorDot, { backgroundColor: colors.autoDot }]} />
+            <Text style={[styles.detailLabel, { color: colors.detailLabel }]}>Auto</Text>
+            <Text style={[styles.detailValue, { color: colors.detailValue }]}>{stats.autoSelected}</Text>
           </View>
           <View style={styles.detailRow}>
-            <View style={[styles.colorDot, { backgroundColor: '#FF5722' }]} />
-            <Text style={styles.detailLabel}>Excluded</Text>
-            <Text style={styles.detailValue}>{stats.manualUnselected}</Text>
+            <View style={[styles.colorDot, { backgroundColor: colors.excludedDot }]} />
+            <Text style={[styles.detailLabel, { color: colors.detailLabel }]}>Excluded</Text>
+            <Text style={[styles.detailValue, { color: colors.detailValue }]}>{stats.manualUnselected}</Text>
           </View>
         </View>
       )}

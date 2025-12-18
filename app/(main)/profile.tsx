@@ -1,6 +1,7 @@
 import { ProfileSkeleton } from '@/components/ui';
 import { auth } from '@/config/firebase';
 import { useCurrentUser, usePlayers, useSessions, useSettings } from '@/hooks';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { disableGuestMode, hasGuestData, isGuestMode, migrateGuestDataToUser } from '@/services/guestMode';
 import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,10 +23,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  
   const { user, loading: userLoading, updateProfile } = useCurrentUser();
   const { players, refreshPlayers } = usePlayers();
   const { sessions } = useSessions();
-  const { ninjaMode, toggleNinjaMode } = useSettings();
+  const { ninjaMode, toggleNinjaMode, themeMode, setThemeMode } = useSettings();
   
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState('');
@@ -35,6 +39,19 @@ export default function ProfileScreen() {
   const [syncing, setSyncing] = useState(false);
 
   const currentUser = auth.currentUser;
+
+  // Theme colors
+  const themeColors = {
+    background: isDark ? '#000' : '#f5f5f5',
+    card: isDark ? '#1c1c1e' : '#fff',
+    text: isDark ? '#fff' : '#333',
+    subText: isDark ? '#aaa' : '#666',
+    border: isDark ? '#333' : '#e0e0e0',
+    inputBg: isDark ? '#2c2c2e' : '#f5f5f5',
+    icon: isDark ? '#aaa' : '#666',
+    bannerBg: isDark ? '#0d2b3a' : '#e3f2fd',
+    settingIconBg: isDark ? '#2c2c2e' : '#f5f5f5',
+  };
 
   // Check guest mode status on mount and when user changes
   useEffect(() => {
@@ -180,15 +197,15 @@ export default function ProfileScreen() {
   const email = guestModeActive ? 'Not signed in' : (user?.email || currentUser?.email || '');
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Guest Mode Banner */}
         {guestModeActive && (
-          <View style={styles.guestBanner}>
+          <View style={[styles.guestBanner, { backgroundColor: themeColors.bannerBg }]}>
             <Ionicons name="information-circle" size={24} color="#0a7ea4" />
             <View style={styles.guestBannerText}>
               <Text style={styles.guestBannerTitle}>You're using Guest Mode</Text>
-              <Text style={styles.guestBannerSubtitle}>
+              <Text style={[styles.guestBannerSubtitle, { color: themeColors.subText }]}>
                 Create an account to sync your data across devices
               </Text>
             </View>
@@ -214,7 +231,7 @@ export default function ProfileScreen() {
         )}
 
         {/* Profile Header */}
-        <View style={styles.profileHeader}>
+        <View style={[styles.profileHeader, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
           <View style={[styles.avatarLarge, guestModeActive && styles.avatarGuest]}>
             <Text style={styles.avatarLargeText}>
               {guestModeActive ? '?' : displayUserName.charAt(0).toUpperCase()}
@@ -224,18 +241,19 @@ export default function ProfileScreen() {
           {editing ? (
             <View style={styles.editContainer}>
               <TextInput
-                style={styles.editInput}
+                style={[styles.editInput, { backgroundColor: themeColors.inputBg, color: themeColors.text }]}
                 value={displayName}
                 onChangeText={setDisplayName}
                 placeholder="Display Name"
+                placeholderTextColor={themeColors.subText}
                 autoFocus
               />
               <View style={styles.editActions}>
                 <TouchableOpacity
-                  style={styles.cancelEditButton}
+                  style={[styles.cancelEditButton, { backgroundColor: isDark ? '#333' : '#f0f0f0' }]}
                   onPress={() => setEditing(false)}
                 >
-                  <Text style={styles.cancelEditText}>Cancel</Text>
+                  <Text style={[styles.cancelEditText, { color: themeColors.subText }]}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.saveButton}
@@ -252,8 +270,8 @@ export default function ProfileScreen() {
             </View>
           ) : guestModeActive ? (
             <>
-              <Text style={styles.profileName}>{displayUserName}</Text>
-              <Text style={styles.profileEmail}>{email}</Text>
+              <Text style={[styles.profileName, { color: themeColors.text }]}>{displayUserName}</Text>
+              <Text style={[styles.profileEmail, { color: themeColors.subText }]}>{email}</Text>
               <View style={styles.guestActions}>
                 <TouchableOpacity style={styles.createAccountButton} onPress={handleCreateAccount}>
                   <Ionicons name="person-add" size={16} color="#fff" />
@@ -266,9 +284,9 @@ export default function ProfileScreen() {
             </>
           ) : (
             <>
-              <Text style={styles.profileName}>{displayUserName}</Text>
-              <Text style={styles.profileEmail}>{email}</Text>
-              <TouchableOpacity style={styles.editButton} onPress={handleStartEdit}>
+              <Text style={[styles.profileName, { color: themeColors.text }]}>{displayUserName}</Text>
+              <Text style={[styles.profileEmail, { color: themeColors.subText }]}>{email}</Text>
+              <TouchableOpacity style={[styles.editButton, { backgroundColor: isDark ? '#0a7ea420' : '#f0f9ff' }]} onPress={handleStartEdit}>
                 <Ionicons name="pencil" size={16} color="#0a7ea4" />
                 <Text style={styles.editButtonText}>Edit Profile</Text>
               </TouchableOpacity>
@@ -278,32 +296,32 @@ export default function ProfileScreen() {
 
         {/* Stats */}
         <View style={styles.statsSection}>
-          <Text style={styles.sectionTitle}>Statistics</Text>
+          <Text style={[styles.sectionTitle, { color: themeColors.subText }]}>Statistics</Text>
           <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
+            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
               <Ionicons name="people" size={24} color="#0a7ea4" />
-              <Text style={styles.statValue}>{players.length}</Text>
-              <Text style={styles.statLabel}>Players Tracked</Text>
+              <Text style={[styles.statValue, { color: themeColors.text }]}>{players.length}</Text>
+              <Text style={[styles.statLabel, { color: themeColors.subText }]}>Players Tracked</Text>
             </View>
-            <View style={styles.statCard}>
+            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
               <Ionicons name="game-controller" size={24} color="#27ae60" />
-              <Text style={styles.statValue}>{sessions.length}</Text>
-              <Text style={styles.statLabel}>Sessions</Text>
+              <Text style={[styles.statValue, { color: themeColors.text }]}>{sessions.length}</Text>
+              <Text style={[styles.statLabel, { color: themeColors.subText }]}>Sessions</Text>
             </View>
           </View>
         </View>
 
         {/* Settings */}
         <View style={styles.settingsSection}>
-          <Text style={styles.sectionTitle}>Settings</Text>
+          <Text style={[styles.sectionTitle, { color: themeColors.subText }]}>Settings</Text>
           
-          <View style={styles.settingItem}>
-            <View style={styles.settingIcon}>
-              <Ionicons name={ninjaMode ? "eye-off-outline" : "eye-outline"} size={22} color="#666" />
+          <View style={[styles.settingItem, { backgroundColor: themeColors.card }]}>
+            <View style={[styles.settingIcon, { backgroundColor: themeColors.settingIconBg }]}>
+              <Ionicons name={ninjaMode ? "eye-off-outline" : "eye-outline"} size={22} color={themeColors.icon} />
             </View>
             <View style={styles.settingContent}>
-              <Text style={styles.settingText}>Hide Pictures (Ninja Mode)</Text>
-              <Text style={styles.settingSubtext}>Hide player photos for privacy</Text>
+              <Text style={[styles.settingText, { color: themeColors.text }]}>Hide Pictures (Ninja Mode)</Text>
+              <Text style={[styles.settingSubtext, { color: themeColors.subText }]}>Hide player photos for privacy</Text>
             </View>
             <Switch
               value={ninjaMode}
@@ -311,68 +329,101 @@ export default function ProfileScreen() {
                 haptics.lightTap();
                 toggleNinjaMode();
               }}
-              trackColor={{ false: '#e0e0e0', true: '#81c784' }}
+              trackColor={{ false: isDark ? '#333' : '#e0e0e0', true: '#81c784' }}
               thumbColor={ninjaMode ? '#27ae60' : '#f5f5f5'}
             />
           </View>
 
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingIcon}>
-              <Ionicons name="notifications-outline" size={22} color="#666" />
+          <View style={[styles.settingItem, { backgroundColor: themeColors.card }]}>
+            <View style={[styles.settingIcon, { backgroundColor: themeColors.settingIconBg }]}>
+              <Ionicons name="moon-outline" size={22} color={themeColors.icon} />
             </View>
-            <Text style={styles.settingText}>Notifications</Text>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+            <View style={styles.settingContent}>
+              <Text style={[styles.settingText, { color: themeColors.text }]}>App Theme</Text>
+              <View style={styles.themeSelector}>
+                {(['system', 'light', 'dark'] as const).map((mode) => (
+                  <TouchableOpacity
+                    key={mode}
+                    style={[
+                      styles.themeOption,
+                      { backgroundColor: isDark ? '#333' : '#f0f0f0' },
+                      themeMode === mode && styles.themeOptionActive
+                    ]}
+                    onPress={() => {
+                      haptics.lightTap();
+                      setThemeMode(mode);
+                    }}
+                  >
+                    <Text style={[
+                      styles.themeOptionText,
+                      { color: themeColors.subText },
+                      themeMode === mode && styles.themeOptionTextActive
+                    ]}>
+                      {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          <TouchableOpacity style={[styles.settingItem, { backgroundColor: themeColors.card }]}>
+            <View style={[styles.settingIcon, { backgroundColor: themeColors.settingIconBg }]}>
+              <Ionicons name="notifications-outline" size={22} color={themeColors.icon} />
+            </View>
+            <Text style={[styles.settingText, { color: themeColors.text }]}>Notifications</Text>
+            <Ionicons name="chevron-forward" size={20} color={themeColors.icon} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingIcon}>
-              <Ionicons name="cloud-outline" size={22} color="#666" />
+          <TouchableOpacity style={[styles.settingItem, { backgroundColor: themeColors.card }]}>
+            <View style={[styles.settingIcon, { backgroundColor: themeColors.settingIconBg }]}>
+              <Ionicons name="cloud-outline" size={22} color={themeColors.icon} />
             </View>
-            <Text style={styles.settingText}>Sync Settings</Text>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+            <Text style={[styles.settingText, { color: themeColors.text }]}>Sync Settings</Text>
+            <Ionicons name="chevron-forward" size={20} color={themeColors.icon} />
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={styles.settingItem}
+            style={[styles.settingItem, { backgroundColor: themeColors.card }]}
             onPress={() => router.push('/legal/privacy')}
           >
-            <View style={styles.settingIcon}>
-              <Ionicons name="shield-checkmark-outline" size={22} color="#666" />
+            <View style={[styles.settingIcon, { backgroundColor: themeColors.settingIconBg }]}>
+              <Ionicons name="shield-checkmark-outline" size={22} color={themeColors.icon} />
             </View>
-            <Text style={styles.settingText}>Privacy Policy</Text>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+            <Text style={[styles.settingText, { color: themeColors.text }]}>Privacy Policy</Text>
+            <Ionicons name="chevron-forward" size={20} color={themeColors.icon} />
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={styles.settingItem}
+            style={[styles.settingItem, { backgroundColor: themeColors.card }]}
             onPress={() => router.push('/legal/terms')}
           >
-            <View style={styles.settingIcon}>
-              <Ionicons name="document-text-outline" size={22} color="#666" />
+            <View style={[styles.settingIcon, { backgroundColor: themeColors.settingIconBg }]}>
+              <Ionicons name="document-text-outline" size={22} color={themeColors.icon} />
             </View>
-            <Text style={styles.settingText}>Terms of Service</Text>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+            <Text style={[styles.settingText, { color: themeColors.text }]}>Terms of Service</Text>
+            <Ionicons name="chevron-forward" size={20} color={themeColors.icon} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingIcon}>
-              <Ionicons name="help-circle-outline" size={22} color="#666" />
+          <TouchableOpacity style={[styles.settingItem, { backgroundColor: themeColors.card }]}>
+            <View style={[styles.settingIcon, { backgroundColor: themeColors.settingIconBg }]}>
+              <Ionicons name="help-circle-outline" size={22} color={themeColors.icon} />
             </View>
-            <Text style={styles.settingText}>Help & Support</Text>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+            <Text style={[styles.settingText, { color: themeColors.text }]}>Help & Support</Text>
+            <Ionicons name="chevron-forward" size={20} color={themeColors.icon} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingIcon}>
-              <Ionicons name="information-circle-outline" size={22} color="#666" />
+          <TouchableOpacity style={[styles.settingItem, { backgroundColor: themeColors.card }]}>
+            <View style={[styles.settingIcon, { backgroundColor: themeColors.settingIconBg }]}>
+              <Ionicons name="information-circle-outline" size={22} color={themeColors.icon} />
             </View>
-            <Text style={styles.settingText}>About</Text>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+            <Text style={[styles.settingText, { color: themeColors.text }]}>About</Text>
+            <Ionicons name="chevron-forward" size={20} color={themeColors.icon} />
           </TouchableOpacity>
         </View>
 
         {/* Sign Out / Exit Guest Mode */}
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+        <TouchableOpacity style={[styles.signOutButton, { backgroundColor: themeColors.card, borderColor: isDark ? '#e74c3c' : '#e74c3c' }]} onPress={handleSignOut}>
           <Ionicons name="log-out-outline" size={22} color="#e74c3c" />
           <Text style={styles.signOutText}>{guestModeActive ? 'Exit Guest Mode' : 'Sign Out'}</Text>
         </TouchableOpacity>
@@ -638,6 +689,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#888',
     marginTop: 2,
+  },
+  themeSelector: {
+    flexDirection: 'row',
+    marginTop: 8,
+    gap: 8,
+  },
+  themeOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  themeOptionActive: {
+    backgroundColor: '#e3f2fd',
+    borderColor: '#0a7ea4',
+  },
+  themeOptionText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+  themeOptionTextActive: {
+    color: '#0a7ea4',
+    fontWeight: '600',
   },
   signOutButton: {
     flexDirection: 'row',

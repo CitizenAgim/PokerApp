@@ -1,4 +1,5 @@
 import { PositionSelector, RangeGrid, RangeStats } from '@/components/poker';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Action, Position, Range } from '@/types/poker';
 import { createEmptyRange } from '@/utils/handRanking';
 import { useRouter } from 'expo-router';
@@ -19,12 +20,25 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function RangeEditorScreen() {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   
   // State
   const [position, setPosition] = useState<Position>('early');
   const [action, setAction] = useState<Action>('open-raise');
   const [range, setRange] = useState<Range>(createEmptyRange());
   const [playerName, setPlayerName] = useState('New Player');
+
+  // Theme colors
+  const themeColors = {
+    background: isDark ? '#000' : '#FFFFFF',
+    text: isDark ? '#fff' : '#333',
+    subText: isDark ? '#aaa' : '#666',
+    border: isDark ? '#333' : '#E0E0E0',
+    card: isDark ? '#1c1c1e' : '#F5F5F5',
+    instructionBg: isDark ? '#1c1c1e' : '#F5F5F5',
+    primary: '#0a7ea4',
+  };
   
   // Handlers
   const handleSelectionChange = (newPosition: Position, newAction: Action) => {
@@ -62,15 +76,15 @@ export default function RangeEditorScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: themeColors.border }]}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
+          <Text style={[styles.backText, { color: themeColors.primary }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Range Editor</Text>
+        <Text style={[styles.title, { color: themeColors.text }]}>Range Editor</Text>
         <TouchableOpacity onPress={handleSaveRange} style={styles.saveButton}>
-          <Text style={styles.saveText}>Save</Text>
+          <Text style={[styles.saveText, { color: themeColors.primary }]}>Save</Text>
         </TouchableOpacity>
       </View>
       
@@ -81,7 +95,7 @@ export default function RangeEditorScreen() {
       >
         {/* Player Name */}
         <View style={styles.playerHeader}>
-          <Text style={styles.playerName}>{playerName}</Text>
+          <Text style={[styles.playerName, { color: themeColors.text }]}>{playerName}</Text>
         </View>
         
         {/* Position & Action Selector */}
@@ -113,18 +127,18 @@ export default function RangeEditorScreen() {
         </View>
         
         {/* Instructions */}
-        <View style={styles.instructions}>
-          <Text style={styles.instructionTitle}>How to use:</Text>
-          <Text style={styles.instructionText}>
+        <View style={[styles.instructions, { backgroundColor: themeColors.instructionBg }]}>
+          <Text style={[styles.instructionTitle, { color: themeColors.text }]}>How to use:</Text>
+          <Text style={[styles.instructionText, { color: themeColors.subText }]}>
             • Tap a hand to select/deselect it
           </Text>
-          <Text style={styles.instructionText}>
+          <Text style={[styles.instructionText, { color: themeColors.subText }]}>
             • Better hands are auto-selected (green)
           </Text>
-          <Text style={styles.instructionText}>
+          <Text style={[styles.instructionText, { color: themeColors.subText }]}>
             • Manually selected hands are dark green
           </Text>
-          <Text style={styles.instructionText}>
+          <Text style={[styles.instructionText, { color: themeColors.subText }]}>
             • Excluded hands are orange
           </Text>
         </View>

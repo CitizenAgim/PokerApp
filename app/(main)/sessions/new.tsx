@@ -1,4 +1,5 @@
 import { useCurrentSession, useSessions } from '@/hooks';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import * as localStorage from '@/services/localStorage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -24,6 +25,23 @@ export default function NewSessionScreen() {
   const router = useRouter();
   const { createSession } = useSessions();
   const { startSession } = useCurrentSession();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  // Theme colors
+  const themeColors = {
+    background: isDark ? '#000' : '#f5f5f5',
+    card: isDark ? '#1c1c1e' : '#fff',
+    text: isDark ? '#fff' : '#333',
+    subText: isDark ? '#aaa' : '#666',
+    border: isDark ? '#333' : '#e0e0e0',
+    inputBg: isDark ? '#1c1c1e' : '#fff',
+    placeholder: isDark ? '#666' : '#999',
+    modalOverlay: 'rgba(0,0,0,0.5)',
+    modalBg: isDark ? '#1c1c1e' : '#fff',
+    modalInputBg: isDark ? '#2c2c2e' : '#f5f5f5',
+    icon: isDark ? '#aaa' : '#666',
+  };
 
   // Form State
   const [gameType, setGameType] = useState(GAME_TYPES[0]);
@@ -138,7 +156,7 @@ export default function NewSessionScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: themeColors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
@@ -151,39 +169,41 @@ export default function NewSessionScreen() {
           <View style={styles.iconCircle}>
             <Ionicons name="game-controller" size={40} color="#fff" />
           </View>
-          <Text style={styles.headerTitle}>New Session</Text>
+          <Text style={[styles.headerTitle, { color: themeColors.text }]}>New Session</Text>
         </View>
 
         <View style={styles.form}>
           {/* Location */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Location</Text>
+            <Text style={[styles.label, { color: themeColors.text }]}>Location</Text>
             <TouchableOpacity
-              style={styles.selectButton}
+              style={[styles.selectButton, { backgroundColor: themeColors.inputBg, borderColor: themeColors.border }]}
               onPress={() => setShowLocationModal(true)}
             >
-              <Text style={[styles.selectButtonText, !location && styles.placeholderText]}>
+              <Text style={[styles.selectButtonText, { color: location ? themeColors.text : themeColors.placeholder }]}>
                 {location || 'Select Location'}
               </Text>
-              <Ionicons name="chevron-down" size={20} color="#666" />
+              <Ionicons name="chevron-down" size={20} color={themeColors.icon} />
             </TouchableOpacity>
           </View>
 
           {/* Game Type */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Game Type</Text>
+            <Text style={[styles.label, { color: themeColors.text }]}>Game Type</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.gameTypeScroll}>
               {GAME_TYPES.map(type => (
                 <TouchableOpacity
                   key={type}
                   style={[
                     styles.gameTypeOption,
+                    { backgroundColor: themeColors.inputBg, borderColor: themeColors.border },
                     gameType === type && styles.gameTypeOptionActive,
                   ]}
                   onPress={() => setGameType(type)}
                 >
                   <Text style={[
                     styles.gameTypeText,
+                    { color: themeColors.text },
                     gameType === type && styles.gameTypeTextActive,
                   ]}>
                     {type}
@@ -195,39 +215,39 @@ export default function NewSessionScreen() {
 
           {/* Blinds */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Blinds</Text>
+            <Text style={[styles.label, { color: themeColors.text }]}>Blinds</Text>
             <View style={styles.row}>
               <View style={styles.halfInput}>
-                <Text style={styles.subLabel}>Small</Text>
+                <Text style={[styles.subLabel, { color: themeColors.subText }]}>Small</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: themeColors.inputBg, color: themeColors.text, borderColor: themeColors.border }]}
                   value={smallBlind}
                   onChangeText={setSmallBlind}
                   keyboardType="numeric"
                   placeholder="1"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={themeColors.placeholder}
                 />
               </View>
               <View style={styles.halfInput}>
-                <Text style={styles.subLabel}>Big</Text>
+                <Text style={[styles.subLabel, { color: themeColors.subText }]}>Big</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: themeColors.inputBg, color: themeColors.text, borderColor: themeColors.border }]}
                   value={bigBlind}
                   onChangeText={setBigBlind}
                   keyboardType="numeric"
                   placeholder="2"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={themeColors.placeholder}
                 />
               </View>
               <View style={styles.halfInput}>
-                <Text style={styles.subLabel}>3rd (Opt)</Text>
+                <Text style={[styles.subLabel, { color: themeColors.subText }]}>3rd (Opt)</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: themeColors.inputBg, color: themeColors.text, borderColor: themeColors.border }]}
                   value={thirdBlind}
                   onChangeText={setThirdBlind}
                   keyboardType="numeric"
                   placeholder="-"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={themeColors.placeholder}
                 />
               </View>
             </View>
@@ -236,25 +256,25 @@ export default function NewSessionScreen() {
           {/* Ante & Buy-in */}
           <View style={styles.row}>
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.label}>Ante (Optional)</Text>
+              <Text style={[styles.label, { color: themeColors.text }]}>Ante (Optional)</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: themeColors.inputBg, color: themeColors.text, borderColor: themeColors.border }]}
                 value={ante}
                 onChangeText={setAnte}
                 keyboardType="numeric"
                 placeholder="0"
-                placeholderTextColor="#999"
+                placeholderTextColor={themeColors.placeholder}
               />
             </View>
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.label}>Buy-in</Text>
+              <Text style={[styles.label, { color: themeColors.text }]}>Buy-in</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: themeColors.inputBg, color: themeColors.text, borderColor: themeColors.border }]}
                 value={buyIn}
                 onChangeText={setBuyIn}
                 keyboardType="numeric"
                 placeholder="100"
-                placeholderTextColor="#999"
+                placeholderTextColor={themeColors.placeholder}
               />
             </View>
           </View>
@@ -262,7 +282,7 @@ export default function NewSessionScreen() {
       </ScrollView>
 
       {/* Footer */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { backgroundColor: themeColors.card, borderTopColor: themeColors.border }]}>
         <TouchableOpacity
           style={styles.startButton}
           onPress={handleSave}
@@ -286,22 +306,22 @@ export default function NewSessionScreen() {
         transparent={true}
         onRequestClose={() => setShowLocationModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { backgroundColor: themeColors.modalOverlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.modalBg }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Location</Text>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Select Location</Text>
               <TouchableOpacity onPress={() => setShowLocationModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color={themeColors.text} />
               </TouchableOpacity>
             </View>
 
             <View style={styles.addLocationContainer}>
               <TextInput
-                style={styles.addLocationInput}
+                style={[styles.addLocationInput, { backgroundColor: themeColors.modalInputBg, color: themeColors.text }]}
                 value={newLocation}
                 onChangeText={setNewLocation}
                 placeholder="Add new location..."
-                placeholderTextColor="#999"
+                placeholderTextColor={themeColors.placeholder}
               />
               <TouchableOpacity 
                 style={styles.addLocationButton}
@@ -316,18 +336,18 @@ export default function NewSessionScreen() {
               keyExtractor={(item) => item}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={styles.locationItem}
+                  style={[styles.locationItem, { borderBottomColor: themeColors.border }]}
                   onPress={() => {
                     setLocation(item);
                     setShowLocationModal(false);
                   }}
                 >
-                  <Ionicons name="location-outline" size={20} color="#666" />
-                  <Text style={styles.locationText}>{item}</Text>
+                  <Ionicons name="location-outline" size={20} color={themeColors.icon} />
+                  <Text style={[styles.locationText, { color: themeColors.text }]}>{item}</Text>
                 </TouchableOpacity>
               )}
               ListEmptyComponent={
-                <Text style={styles.emptyText}>No saved locations yet</Text>
+                <Text style={[styles.emptyText, { color: themeColors.subText }]}>No saved locations yet</Text>
               }
             />
           </View>

@@ -1,5 +1,6 @@
 import { PlayerCardSkeleton } from '@/components/ui';
 import { usePlayers, useSettings } from '@/hooks';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Player } from '@/types/poker';
 import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +23,21 @@ export default function PlayersScreen() {
   const { ninjaMode } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  // Theme colors
+  const themeColors = {
+    background: isDark ? '#000' : '#f5f5f5',
+    card: isDark ? '#1c1c1e' : '#fff',
+    text: isDark ? '#fff' : '#333',
+    subText: isDark ? '#aaa' : '#888',
+    border: isDark ? '#333' : '#e0e0e0',
+    inputBg: isDark ? '#1c1c1e' : '#fff',
+    placeholder: isDark ? '#666' : '#888',
+    icon: isDark ? '#aaa' : '#888',
+    chevron: isDark ? '#666' : '#ccc',
+  };
 
   const filteredPlayers = players.filter(player =>
     player.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -35,7 +51,7 @@ export default function PlayersScreen() {
 
   const renderPlayer = ({ item }: { item: Player }) => (
     <TouchableOpacity
-      style={styles.playerCard}
+      style={[styles.playerCard, { backgroundColor: themeColors.card }]}
       onPress={() => {
         haptics.lightTap();
         router.push(`/(main)/players/${item.id}`);
@@ -51,22 +67,22 @@ export default function PlayersScreen() {
         </View>
       )}
       <View style={styles.playerInfo}>
-        <Text style={styles.playerName}>{item.name}</Text>
+        <Text style={[styles.playerName, { color: themeColors.text }]}>{item.name}</Text>
         {item.notes && (
-          <Text style={styles.playerNotes} numberOfLines={1}>
+          <Text style={[styles.playerNotes, { color: themeColors.subText }]} numberOfLines={1}>
             {item.notes}
           </Text>
         )}
       </View>
-      <Ionicons name="chevron-forward" size={20} color="#ccc" />
+      <Ionicons name="chevron-forward" size={20} color={themeColors.chevron} />
     </TouchableOpacity>
   );
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="people-outline" size={64} color="#ccc" />
-      <Text style={styles.emptyTitle}>No Players Yet</Text>
-      <Text style={styles.emptyText}>
+      <Ionicons name="people-outline" size={64} color={themeColors.icon} />
+      <Text style={[styles.emptyTitle, { color: themeColors.text }]}>No Players Yet</Text>
+      <Text style={[styles.emptyText, { color: themeColors.subText }]}>
         Add players to track their hand ranges
       </Text>
       <TouchableOpacity
@@ -84,13 +100,13 @@ export default function PlayersScreen() {
 
   if (loading && !refreshing) {
     return (
-      <View style={styles.container}>
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#888" style={styles.searchIcon} />
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+        <View style={[styles.searchContainer, { backgroundColor: themeColors.inputBg, borderColor: themeColors.border }]}>
+          <Ionicons name="search" size={20} color={themeColors.icon} style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: themeColors.text }]}
             placeholder="Search players..."
-            placeholderTextColor="#888"
+            placeholderTextColor={themeColors.placeholder}
             editable={false}
           />
         </View>
@@ -105,9 +121,9 @@ export default function PlayersScreen() {
 
   if (error) {
     return (
-      <View style={styles.errorContainer}>
+      <View style={[styles.errorContainer, { backgroundColor: themeColors.background }]}>
         <Ionicons name="alert-circle-outline" size={64} color="#e74c3c" />
-        <Text style={styles.errorText}>{error.message}</Text>
+        <Text style={[styles.errorText, { color: themeColors.subText }]}>{error.message}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={refresh}>
           <Text style={styles.retryText}>Retry</Text>
         </TouchableOpacity>
@@ -116,20 +132,20 @@ export default function PlayersScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#888" style={styles.searchIcon} />
+      <View style={[styles.searchContainer, { backgroundColor: themeColors.inputBg, borderColor: themeColors.border }]}>
+        <Ionicons name="search" size={20} color={themeColors.icon} style={styles.searchIcon} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: themeColors.text }]}
           placeholder="Search players..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#888"
+          placeholderTextColor={themeColors.placeholder}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={20} color="#888" />
+            <Ionicons name="close-circle" size={20} color={themeColors.icon} />
           </TouchableOpacity>
         )}
       </View>
@@ -146,6 +162,7 @@ export default function PlayersScreen() {
             refreshing={refreshing}
             onRefresh={handleRefresh}
             colors={['#0a7ea4']}
+            tintColor={themeColors.text}
           />
         }
       />

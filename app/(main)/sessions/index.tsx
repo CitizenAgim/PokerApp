@@ -1,5 +1,6 @@
 import { SessionCardSkeleton } from '@/components/ui';
 import { useSessions } from '@/hooks';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Session } from '@/types/poker';
 import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,19 @@ export default function SessionsScreen() {
   const router = useRouter();
   const { sessions, loading, error, refresh, deleteSession } = useSessions();
   const [refreshing, setRefreshing] = useState(false);
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  // Theme colors
+  const themeColors = {
+    background: isDark ? '#000' : '#f5f5f5',
+    card: isDark ? '#1c1c1e' : '#fff',
+    text: isDark ? '#fff' : '#333',
+    subText: isDark ? '#aaa' : '#888',
+    border: isDark ? '#333' : '#e0e0e0',
+    icon: isDark ? '#aaa' : '#888',
+    sectionHeader: isDark ? '#aaa' : '#888',
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -102,7 +116,7 @@ export default function SessionsScreen() {
 
     return (
     <TouchableOpacity
-      style={[styles.sessionCard, item.isActive && styles.sessionCardActive]}
+      style={[styles.sessionCard, { backgroundColor: themeColors.card }, item.isActive && styles.sessionCardActive]}
       onPress={() => {
         haptics.lightTap();
         router.push(`/(main)/sessions/${item.id}`);
@@ -112,8 +126,8 @@ export default function SessionsScreen() {
     >
       <View style={styles.sessionHeader}>
         <View style={styles.sessionInfo}>
-          <Text style={styles.sessionName}>{item.name}</Text>
-          <Text style={styles.sessionDetails}>
+          <Text style={[styles.sessionName, { color: themeColors.text }]}>{item.name}</Text>
+          <Text style={[styles.sessionDetails, { color: themeColors.subText }]}>
             {item.stakes && `${item.stakes} • `}
             {item.location || 'No location'}
           </Text>
@@ -132,12 +146,12 @@ export default function SessionsScreen() {
       
       <View style={styles.sessionMeta}>
         <View style={styles.metaItem}>
-          <Ionicons name="calendar-outline" size={14} color="#888" />
-          <Text style={styles.metaText}>{formatDate(item.startTime)}</Text>
+          <Ionicons name="calendar-outline" size={14} color={themeColors.icon} />
+          <Text style={[styles.metaText, { color: themeColors.subText }]}>{formatDate(item.startTime)}</Text>
         </View>
         <View style={styles.metaItem}>
-          <Ionicons name="time-outline" size={14} color="#888" />
-          <Text style={styles.metaText}>
+          <Ionicons name="time-outline" size={14} color={themeColors.icon} />
+          <Text style={[styles.metaText, { color: themeColors.subText }]}>
             {formatDuration(item.startTime, item.endTime)}
           </Text>
         </View>
@@ -148,9 +162,9 @@ export default function SessionsScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="game-controller-outline" size={64} color="#ccc" />
-      <Text style={styles.emptyTitle}>No Sessions Yet</Text>
-      <Text style={styles.emptyText}>
+      <Ionicons name="game-controller-outline" size={64} color={themeColors.icon} />
+      <Text style={[styles.emptyTitle, { color: themeColors.text }]}>No Sessions Yet</Text>
+      <Text style={[styles.emptyText, { color: themeColors.subText }]}>
         Start a session to track players at your table
       </Text>
       <TouchableOpacity
@@ -168,7 +182,7 @@ export default function SessionsScreen() {
 
   if (loading && !refreshing) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
         <View style={styles.listContent}>
           {[1, 2, 3, 4].map((i) => (
             <SessionCardSkeleton key={i} />
@@ -180,9 +194,9 @@ export default function SessionsScreen() {
 
   if (error) {
     return (
-      <View style={styles.errorContainer}>
+      <View style={[styles.errorContainer, { backgroundColor: themeColors.background }]}>
         <Ionicons name="alert-circle-outline" size={64} color="#e74c3c" />
-        <Text style={styles.errorText}>{error.message}</Text>
+        <Text style={[styles.errorText, { color: themeColors.subText }]}>{error.message}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={refresh}>
           <Text style={styles.retryText}>Retry</Text>
         </TouchableOpacity>
@@ -195,7 +209,7 @@ export default function SessionsScreen() {
   const pastSessions = sessions.filter(s => !s.isActive);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <FlatList
         data={[...activeSessions, ...pastSessions]}
         renderItem={renderSession}
@@ -207,11 +221,12 @@ export default function SessionsScreen() {
             refreshing={refreshing}
             onRefresh={handleRefresh}
             colors={['#0a7ea4']}
+            tintColor={themeColors.text}
           />
         }
         ListHeaderComponent={
           activeSessions.length > 0 ? (
-            <Text style={styles.sectionHeader}>Active Sessions</Text>
+            <Text style={[styles.sectionHeader, { color: themeColors.sectionHeader }]}>Active Sessions</Text>
           ) : null
         }
       />

@@ -1,3 +1,4 @@
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Action, Position } from '@/types/poker';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -31,18 +32,21 @@ const ACTIONS: { id: Action; label: string }[] = [
   { id: '4bet', label: '4-Bet' },
 ];
 
-const COLORS = {
+const getThemeColors = (isDark: boolean) => ({
   early: '#e74c3c',
   middle: '#f39c12',
   late: '#27ae60',
   blinds: '#3498db',
-  inactive: '#E0E0E0',
+  inactive: isDark ? '#333333' : '#E0E0E0',
   actionActive: '#0a7ea4',
-  actionInactive: '#F5F5F5',
-  textDark: '#333333',
+  actionInactive: isDark ? '#333333' : '#F5F5F5',
+  textDark: isDark ? '#FFFFFF' : '#333333',
   textLight: '#FFFFFF',
-  textMuted: '#888888',
-};
+  textMuted: isDark ? '#AAAAAA' : '#888888',
+  containerBg: isDark ? '#1c1c1e' : '#FAFAFA',
+  sectionLabel: isDark ? '#AAAAAA' : '#666',
+  actionBorder: isDark ? '#444444' : '#DDD',
+});
 
 // ============================================
 // POSITION SELECTOR COMPONENT
@@ -53,15 +57,19 @@ export const PositionSelector: React.FC<PositionSelectorProps> = ({
   selectedAction,
   onSelectionChange,
 }) => {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const colors = getThemeColors(isDark);
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.containerBg }]}>
       {/* Position Tabs */}
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Position</Text>
+        <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>Position</Text>
         <View style={styles.tabsContainer}>
           {POSITIONS.map(pos => {
             const isActive = selectedPosition === pos.id;
-            const bgColor = isActive ? COLORS[pos.id] : COLORS.inactive;
+            const bgColor = isActive ? colors[pos.id] : colors.inactive;
             
             return (
               <TouchableOpacity
@@ -75,7 +83,7 @@ export const PositionSelector: React.FC<PositionSelectorProps> = ({
                 <Text
                   style={[
                     styles.tabText,
-                    { color: isActive ? COLORS.textLight : COLORS.textMuted },
+                    { color: isActive ? colors.textLight : colors.textMuted },
                   ]}
                 >
                   {pos.label}
@@ -88,7 +96,7 @@ export const PositionSelector: React.FC<PositionSelectorProps> = ({
       
       {/* Action Tabs */}
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Action</Text>
+        <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>Action</Text>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
@@ -103,8 +111,8 @@ export const PositionSelector: React.FC<PositionSelectorProps> = ({
                 style={[
                   styles.actionTab,
                   {
-                    backgroundColor: isActive ? COLORS.actionActive : COLORS.actionInactive,
-                    borderColor: isActive ? COLORS.actionActive : '#DDD',
+                    backgroundColor: isActive ? colors.actionActive : colors.actionInactive,
+                    borderColor: isActive ? colors.actionActive : colors.actionBorder,
                   },
                 ]}
                 onPress={() => onSelectionChange(selectedPosition, action.id)}
@@ -112,7 +120,7 @@ export const PositionSelector: React.FC<PositionSelectorProps> = ({
                 <Text
                   style={[
                     styles.actionText,
-                    { color: isActive ? COLORS.textLight : COLORS.textDark },
+                    { color: isActive ? colors.textLight : colors.textDark },
                   ]}
                 >
                   {action.label}

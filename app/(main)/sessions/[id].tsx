@@ -1,4 +1,5 @@
 import { useCurrentSession, usePlayers, useSession, useSettings } from '@/hooks';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Seat } from '@/types/poker';
 import { resizeImage } from '@/utils/image';
 import { getPositionName } from '@/utils/positionCalculator';
@@ -63,9 +64,10 @@ interface SeatViewProps {
 
 interface SeatViewComponentProps extends SeatViewProps {
   buttonPosition: number;
+  themeColors: any;
 }
 
-function SeatView({ seat, isButton, isHero, onPress, buttonPosition }: SeatViewComponentProps) {
+function SeatView({ seat, isButton, isHero, onPress, buttonPosition, themeColors }: SeatViewComponentProps) {
   const { players } = usePlayers();
   const { ninjaMode } = useSettings();
   const player = players.find(p => p.id === seat.playerId);
@@ -84,9 +86,11 @@ function SeatView({ seat, isButton, isHero, onPress, buttonPosition }: SeatViewC
             { translateX: x },
             { translateY: y },
           ],
+          backgroundColor: themeColors.seatBg,
+          borderColor: themeColors.seatBorder,
         },
-        player && styles.seatOccupied,
-        isHero && styles.seatHero,
+        player && [styles.seatOccupied, { backgroundColor: themeColors.seatOccupiedBg, borderColor: themeColors.seatOccupiedBorder }],
+        isHero && [styles.seatHero, { backgroundColor: themeColors.seatHeroBg, borderColor: themeColors.seatHeroBorder }],
       ]}
       onPress={onPress}
     >
@@ -101,23 +105,23 @@ function SeatView({ seat, isButton, isHero, onPress, buttonPosition }: SeatViewC
               <View style={styles.seatOverlay} />
             </>
           )}
-          <Text style={[styles.seatPlayerName, showPhoto && styles.seatTextLight]} numberOfLines={1}>
+          <Text style={[styles.seatPlayerName, { color: themeColors.text }, showPhoto && styles.seatTextLight]} numberOfLines={1}>
             {player.name}
           </Text>
-          <Text style={[styles.seatPosition, showPhoto && styles.seatTextLight]}>
+          <Text style={[styles.seatPosition, { color: themeColors.subText }, showPhoto && styles.seatTextLight]}>
             {positionName}
           </Text>
         </>
       ) : (
         <>
-          <Ionicons name="add" size={20} color="#999" />
-          <Text style={styles.seatNumber}>Seat {seatNum}</Text>
+          <Ionicons name="add" size={20} color={themeColors.icon} />
+          <Text style={[styles.seatNumber, { color: themeColors.subText }]}>Seat {seatNum}</Text>
         </>
       )}
       
       {/* Button indicator */}
       {isButton && (
-        <View style={styles.buttonIndicator}>
+        <View style={[styles.buttonIndicator, { borderColor: themeColors.text }]}>
           <Text style={styles.buttonText}>D</Text>
         </View>
       )}
@@ -139,6 +143,40 @@ export default function SessionDetailScreen() {
   const { session, table, loading, updateButtonPosition, assignPlayerToSeat, endSession, getPositionForSeat, updateSessionDetails } = useSession(id);
   const { clearSession } = useCurrentSession();
   const { players, createPlayer } = usePlayers();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  // Theme colors
+  const themeColors = {
+    background: isDark ? '#000' : '#f5f5f5',
+    card: isDark ? '#1c1c1e' : '#fff',
+    text: isDark ? '#fff' : '#333',
+    subText: isDark ? '#aaa' : '#666',
+    border: isDark ? '#333' : '#e0e0e0',
+    inputBg: isDark ? '#2c2c2e' : '#f5f5f5',
+    placeholder: isDark ? '#666' : '#999',
+    modalOverlay: 'rgba(0,0,0,0.5)',
+    modalBg: isDark ? '#1c1c1e' : '#fff',
+    modalInputBg: isDark ? '#2c2c2e' : '#f5f5f5',
+    icon: isDark ? '#aaa' : '#666',
+    seatBg: isDark ? '#2c2c2e' : '#fff',
+    seatBorder: isDark ? '#444' : '#ddd',
+    seatOccupiedBg: isDark ? '#1a2a3a' : '#e3f2fd',
+    seatOccupiedBorder: isDark ? '#0d47a1' : '#2196f3',
+    seatHeroBg: isDark ? '#3a2a1a' : '#fff3e0',
+    seatHeroBorder: isDark ? '#e65100' : '#ff9800',
+    actionButtonBg: isDark ? '#1a2a3a' : '#f0f9ff',
+    actionButtonDangerBg: isDark ? '#3a1a1a' : '#fef2f2',
+    tabBg: isDark ? '#333' : '#e0e0e0',
+    tabActiveBg: isDark ? '#1c1c1e' : '#fff',
+    searchBg: isDark ? '#2c2c2e' : '#f5f5f5',
+    playerOptionBg: isDark ? '#2c2c2e' : '#f9f9f9',
+    createPlayerRowBg: isDark ? '#1c1c1e' : '#fff',
+    modalFooterBg: isDark ? '#1c1c1e' : '#fff',
+    modalHeaderBorder: isDark ? '#333' : '#e0e0e0',
+    tableFelt: '#27ae60', // Keep felt green
+    tableRail: '#3e2723', // Keep rail wood
+  };
   
   const [selectedSeat, setSelectedSeat] = useState<number | null>(null);
   const [showPlayerPicker, setShowPlayerPicker] = useState(false);
@@ -376,7 +414,7 @@ export default function SessionDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: themeColors.background }]}>
         <ActivityIndicator size="large" color="#0a7ea4" />
       </View>
     );
@@ -384,8 +422,8 @@ export default function SessionDetailScreen() {
 
   if (!session) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Session not found</Text>
+      <View style={[styles.errorContainer, { backgroundColor: themeColors.background }]}>
+        <Text style={[styles.errorText, { color: themeColors.subText }]}>Session not found</Text>
       </View>
     );
   }
@@ -403,10 +441,10 @@ export default function SessionDetailScreen() {
     const durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
     return (
-      <View style={styles.container}>
-        <View style={styles.summaryHeader}>
-          <Text style={styles.summaryTitle}>Session Result</Text>
-          <Text style={styles.summaryDate}>
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+        <View style={[styles.summaryHeader, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
+          <Text style={[styles.summaryTitle, { color: themeColors.text }]}>Session Result</Text>
+          <Text style={[styles.summaryDate, { color: themeColors.subText }]}>
             {new Date(session.startTime).toLocaleDateString(undefined, {
               weekday: 'long',
               year: 'numeric',
@@ -414,31 +452,31 @@ export default function SessionDetailScreen() {
               day: 'numeric',
             })}
           </Text>
-          <TouchableOpacity onPress={handleEditSession} style={styles.editButton}>
+          <TouchableOpacity onPress={handleEditSession} style={[styles.editButton, { backgroundColor: themeColors.actionButtonBg }]}>
             <Ionicons name="pencil" size={16} color="#0a7ea4" />
             <Text style={styles.editButtonText}>Edit Session</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.tabContainer}>
+        <View style={[styles.tabContainer, { backgroundColor: themeColors.tabBg }]}>
           <TouchableOpacity 
-            style={[styles.tabButton, activeTab === 'overview' && styles.activeTabButton]} 
+            style={[styles.tabButton, activeTab === 'overview' && [styles.activeTabButton, { backgroundColor: themeColors.tabActiveBg }]]} 
             onPress={() => setActiveTab('overview')}
           >
-            <Text style={[styles.tabText, activeTab === 'overview' && styles.activeTabText]}>Overview</Text>
+            <Text style={[styles.tabText, { color: themeColors.subText }, activeTab === 'overview' && styles.activeTabText]}>Overview</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.tabButton, activeTab === 'graph' && styles.activeTabButton]} 
+            style={[styles.tabButton, activeTab === 'graph' && [styles.activeTabButton, { backgroundColor: themeColors.tabActiveBg }]]} 
             onPress={() => setActiveTab('graph')}
           >
-            <Text style={[styles.tabText, activeTab === 'graph' && styles.activeTabText]}>Graph</Text>
+            <Text style={[styles.tabText, { color: themeColors.subText }, activeTab === 'graph' && styles.activeTabText]}>Graph</Text>
           </TouchableOpacity>
         </View>
 
         {activeTab === 'overview' ? (
-          <View style={styles.summaryCard}>
+          <View style={[styles.summaryCard, { backgroundColor: themeColors.card }]}>
             <View style={styles.resultContainer}>
-              <Text style={styles.resultLabel}>Total Profit/Loss</Text>
+              <Text style={[styles.resultLabel, { color: themeColors.subText }]}>Total Profit/Loss</Text>
               <Text style={[styles.resultAmount, isProfit ? styles.profitText : styles.lossText]}>
                 {isProfit ? '+' : ''}{profit}
               </Text>
@@ -446,33 +484,33 @@ export default function SessionDetailScreen() {
 
             <View style={styles.statsGrid}>
               <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Buy In</Text>
-                <Text style={styles.statValue}>{buyIn}</Text>
+                <Text style={[styles.statLabel, { color: themeColors.subText }]}>Buy In</Text>
+                <Text style={[styles.statValue, { color: themeColors.text }]}>{buyIn}</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Cash Out</Text>
-                <Text style={styles.statValue}>{cashOut}</Text>
+                <Text style={[styles.statLabel, { color: themeColors.subText }]}>Cash Out</Text>
+                <Text style={[styles.statValue, { color: themeColors.text }]}>{cashOut}</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Duration</Text>
-                <Text style={styles.statValue}>{durationStr}</Text>
+                <Text style={[styles.statLabel, { color: themeColors.subText }]}>Duration</Text>
+                <Text style={[styles.statValue, { color: themeColors.text }]}>{durationStr}</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Stakes</Text>
-                <Text style={styles.statValue}>{session.stakes || '-'}</Text>
+                <Text style={[styles.statLabel, { color: themeColors.subText }]}>Stakes</Text>
+                <Text style={[styles.statValue, { color: themeColors.text }]}>{session.stakes || '-'}</Text>
               </View>
             </View>
 
             {session.location && (
-              <View style={styles.locationContainer}>
-                <Ionicons name="location" size={16} color="#666" />
-                <Text style={styles.locationText}>{session.location}</Text>
+              <View style={[styles.locationContainer, { borderTopColor: themeColors.border }]}>
+                <Ionicons name="location" size={16} color={themeColors.icon} />
+                <Text style={[styles.locationText, { color: themeColors.subText }]}>{session.location}</Text>
               </View>
             )}
           </View>
         ) : (
-          <View style={styles.graphContainer}>
-            <Text style={styles.placeholderText}>Graph View Coming Soon</Text>
+          <View style={[styles.graphContainer, { backgroundColor: themeColors.card }]}>
+            <Text style={[styles.placeholderText, { color: themeColors.subText }]}>Graph View Coming Soon</Text>
           </View>
         )}
 
@@ -493,36 +531,38 @@ export default function SessionDetailScreen() {
         >
           <KeyboardAvoidingView 
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.centeredModalOverlay}
+            style={[styles.centeredModalOverlay, { backgroundColor: themeColors.modalOverlay }]}
           >
-            <View style={styles.centeredModalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Edit Session</Text>
+            <View style={[styles.centeredModalContent, { backgroundColor: themeColors.modalBg }]}>
+              <View style={[styles.modalHeader, { borderBottomColor: themeColors.border }]}>
+                <Text style={[styles.modalTitle, { color: themeColors.text }]}>Edit Session</Text>
                 <TouchableOpacity onPress={() => setShowEditSessionModal(false)}>
-                  <Ionicons name="close" size={24} color="#333" />
+                  <Ionicons name="close" size={24} color={themeColors.text} />
                 </TouchableOpacity>
               </View>
               
               <ScrollView style={styles.formContent}>
-                <Text style={styles.label}>Buy In</Text>
+                <Text style={[styles.label, { color: themeColors.text }]}>Buy In</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: themeColors.modalInputBg, color: themeColors.text, borderColor: themeColors.border }]}
                   value={editBuyIn}
                   onChangeText={setEditBuyIn}
                   placeholder="0"
+                  placeholderTextColor={themeColors.placeholder}
                   keyboardType="numeric"
                 />
 
-                <Text style={styles.label}>Cash Out</Text>
+                <Text style={[styles.label, { color: themeColors.text }]}>Cash Out</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: themeColors.modalInputBg, color: themeColors.text, borderColor: themeColors.border }]}
                   value={editCashOut}
                   onChangeText={setEditCashOut}
                   placeholder="0"
+                  placeholderTextColor={themeColors.placeholder}
                   keyboardType="numeric"
                 />
                 
-                <Text style={styles.label}>Start Time</Text>
+                <Text style={[styles.label, { color: themeColors.text }]}>Start Time</Text>
                 <View style={styles.datePickerContainer}>
                   {Platform.OS === 'ios' ? (
                     <RNDateTimePicker
@@ -531,18 +571,18 @@ export default function SessionDetailScreen() {
                       display="spinner"
                       onChange={(event, date) => date && setEditStartTime(date)}
                       style={styles.datePicker}
-                      textColor="#000000"
+                      textColor={themeColors.text}
                     />
                   ) : (
                     <View style={styles.androidPickerButtons}>
-                      <TouchableOpacity style={styles.androidPickerButton}>
-                        <Text>{editStartTime.toLocaleString()}</Text>
+                      <TouchableOpacity style={[styles.androidPickerButton, { backgroundColor: themeColors.modalInputBg }]}>
+                        <Text style={{ color: themeColors.text }}>{editStartTime.toLocaleString()}</Text>
                       </TouchableOpacity>
                     </View>
                   )}
                 </View>
 
-                <Text style={styles.label}>End Time</Text>
+                <Text style={[styles.label, { color: themeColors.text }]}>End Time</Text>
                 <View style={styles.datePickerContainer}>
                   {Platform.OS === 'ios' ? (
                     <RNDateTimePicker
@@ -551,12 +591,12 @@ export default function SessionDetailScreen() {
                       display="spinner"
                       onChange={(event, date) => date && setEditEndTime(date)}
                       style={styles.datePicker}
-                      textColor="#000000"
+                      textColor={themeColors.text}
                     />
                   ) : (
                     <View style={styles.androidPickerButtons}>
-                      <TouchableOpacity style={styles.androidPickerButton}>
-                        <Text>{editEndTime.toLocaleString()}</Text>
+                      <TouchableOpacity style={[styles.androidPickerButton, { backgroundColor: themeColors.modalInputBg }]}>
+                        <Text style={{ color: themeColors.text }}>{editEndTime.toLocaleString()}</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -564,7 +604,7 @@ export default function SessionDetailScreen() {
                 <View style={{ height: 20 }} />
               </ScrollView>
 
-              <View style={styles.modalFooter}>
+              <View style={[styles.modalFooter, { backgroundColor: themeColors.modalFooterBg, borderTopColor: themeColors.border }]}>
                 <TouchableOpacity 
                   style={styles.confirmButton}
                   onPress={confirmEditSession}
@@ -581,8 +621,8 @@ export default function SessionDetailScreen() {
 
   if (!table) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Table data not found</Text>
+      <View style={[styles.errorContainer, { backgroundColor: themeColors.background }]}>
+        <Text style={[styles.errorText, { color: themeColors.subText }]}>Table data not found</Text>
       </View>
     );
   }
@@ -590,33 +630,33 @@ export default function SessionDetailScreen() {
   const occupiedSeats = table.seats ? table.seats.filter(s => s.playerId).length : 0;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       {/* Session Info Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
         <View style={styles.headerInfo}>
-          <Text style={styles.sessionName}>{session.name}</Text>
+          <Text style={[styles.sessionName, { color: themeColors.text }]}>{session.name}</Text>
           <View style={styles.headerMeta}>
             {session.location && (
               <View style={styles.metaItem}>
-                <Ionicons name="location" size={14} color="#666" />
-                <Text style={styles.metaText}>{session.location}</Text>
+                <Ionicons name="location" size={14} color={themeColors.icon} />
+                <Text style={[styles.metaText, { color: themeColors.subText }]}>{session.location}</Text>
               </View>
             )}
             {session.stakes && (
               <View style={styles.metaItem}>
-                <Ionicons name="cash" size={14} color="#666" />
-                <Text style={styles.metaText}>{session.stakes}</Text>
+                <Ionicons name="cash" size={14} color={themeColors.icon} />
+                <Text style={[styles.metaText, { color: themeColors.subText }]}>{session.stakes}</Text>
               </View>
             )}
             <View style={styles.metaItem}>
-              <Ionicons name="wallet" size={14} color="#666" />
-              <Text style={styles.metaText}>Buy-in: {session.buyIn || 0}</Text>
+              <Ionicons name="wallet" size={14} color={themeColors.icon} />
+              <Text style={[styles.metaText, { color: themeColors.subText }]}>Buy-in: {session.buyIn || 0}</Text>
             </View>
           </View>
         </View>
         <View style={styles.headerStats}>
           <Text style={styles.statsNumber}>{occupiedSeats}/9</Text>
-          <Text style={styles.statsLabel}>Players</Text>
+          <Text style={[styles.statsLabel, { color: themeColors.subText }]}>Players</Text>
         </View>
       </View>
 
@@ -637,8 +677,8 @@ export default function SessionDetailScreen() {
               { translateY: DEALER_Y },
             ]
           }]}>
-            <MaterialCommunityIcons name="account-tie" size={32} color="#333" />
-            <Text style={styles.dealerText}>Dealer</Text>
+            <MaterialCommunityIcons name="account-tie" size={32} color={themeColors.text} />
+            <Text style={[styles.dealerText, { color: themeColors.subText }]}>Dealer</Text>
           </View>
           
           {/* Seats */}
@@ -652,6 +692,7 @@ export default function SessionDetailScreen() {
                 isHero={seatNum === heroSeat}
                 onPress={() => handleSeatPress(seatNum)}
                 buttonPosition={table.buttonPosition}
+                themeColors={themeColors}
               />
             );
           })}
@@ -659,9 +700,9 @@ export default function SessionDetailScreen() {
       </View>
 
       {/* Quick Actions */}
-      <View style={styles.actions}>
+      <View style={[styles.actions, { backgroundColor: themeColors.card, borderTopColor: themeColors.border }]}>
         <TouchableOpacity 
-          style={styles.actionButton}
+          style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg }]}
           onPress={() => {
             const nextButton = (table.buttonPosition % 9) + 1;
             updateButtonPosition(nextButton);
@@ -672,7 +713,7 @@ export default function SessionDetailScreen() {
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={[styles.actionButton, { backgroundColor: '#e8f5e9' }]}
+          style={[styles.actionButton, { backgroundColor: isDark ? '#1b3a24' : '#e8f5e9' }]}
           onPress={() => setShowRebuyModal(true)}
         >
           <Ionicons name="add-circle" size={20} color="#2e7d32" />
@@ -680,7 +721,7 @@ export default function SessionDetailScreen() {
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={[styles.actionButton, styles.actionButtonDanger]}
+          style={[styles.actionButton, styles.actionButtonDanger, { backgroundColor: themeColors.actionButtonDangerBg }]}
           onPress={handleEndSession}
         >
           <Ionicons name="stop-circle" size={20} color="#e74c3c" />
@@ -697,36 +738,37 @@ export default function SessionDetailScreen() {
       >
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, { backgroundColor: themeColors.modalOverlay }]}
         >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.modalBg }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: themeColors.border }]}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
                 Assign Player to Seat {selectedSeat}
               </Text>
               <TouchableOpacity onPress={() => setShowPlayerPicker(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color={themeColors.text} />
               </TouchableOpacity>
             </View>
             
-            <View style={styles.searchContainer}>
-              <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+            <View style={[styles.searchContainer, { backgroundColor: themeColors.searchBg }]}>
+              <Ionicons name="search" size={20} color={themeColors.icon} style={styles.searchIcon} />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: themeColors.text }]}
                 placeholder="Search players..."
+                placeholderTextColor={themeColors.placeholder}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 autoCorrect={false}
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={20} color="#999" />
+                  <Ionicons name="close-circle" size={20} color={themeColors.icon} />
                 </TouchableOpacity>
               )}
             </View>
 
             <TouchableOpacity
-              style={styles.createPlayerRow}
+              style={[styles.createPlayerRow, { backgroundColor: themeColors.createPlayerRowBg, borderBottomColor: themeColors.border }]}
               onPress={() => {
                 // Close the picker first to avoid "already presenting" error on iOS
                 setShowPlayerPicker(false);
@@ -745,7 +787,7 @@ export default function SessionDetailScreen() {
             <ScrollView style={styles.playerList} keyboardShouldPersistTaps="handled">
               {availablePlayers.length === 0 ? (
                 <View style={styles.emptyPlayers}>
-                  <Text style={styles.emptyPlayersText}>
+                  <Text style={[styles.emptyPlayersText, { color: themeColors.subText }]}>
                     No players found matching "{searchQuery}"
                   </Text>
                 </View>
@@ -753,7 +795,7 @@ export default function SessionDetailScreen() {
                 availablePlayers.map(player => (
                   <TouchableOpacity
                     key={player.id}
-                    style={styles.playerOption}
+                    style={[styles.playerOption, { backgroundColor: themeColors.playerOptionBg }]}
                     onPress={() => handleAssignPlayer(player.id)}
                   >
                     <View style={styles.playerAvatar}>
@@ -766,14 +808,14 @@ export default function SessionDetailScreen() {
                       )}
                     </View>
                     <View style={styles.playerInfo}>
-                      <Text style={styles.playerName}>{player.name}</Text>
+                      <Text style={[styles.playerName, { color: themeColors.text }]}>{player.name}</Text>
                       {player.notes && (
-                        <Text style={styles.playerNotes} numberOfLines={1}>
+                        <Text style={[styles.playerNotes, { color: themeColors.subText }]} numberOfLines={1}>
                           {player.notes}
                         </Text>
                       )}
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    <Ionicons name="chevron-forward" size={20} color={themeColors.icon} />
                   </TouchableOpacity>
                 ))
               )}
@@ -791,13 +833,13 @@ export default function SessionDetailScreen() {
       >
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.centeredModalOverlay}
+          style={[styles.centeredModalOverlay, { backgroundColor: themeColors.modalOverlay }]}
         >
-          <View style={styles.centeredModalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>New Player</Text>
+          <View style={[styles.centeredModalContent, { backgroundColor: themeColors.modalBg }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: themeColors.border }]}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>New Player</Text>
               <TouchableOpacity onPress={() => setShowCreatePlayerModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color={themeColors.text} />
               </TouchableOpacity>
             </View>
             
@@ -820,21 +862,23 @@ export default function SessionDetailScreen() {
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.label}>Name *</Text>
+              <Text style={[styles.label, { color: themeColors.text }]}>Name *</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: themeColors.modalInputBg, color: themeColors.text, borderColor: themeColors.border }]}
                 value={newPlayerName}
                 onChangeText={setNewPlayerName}
                 placeholder="Enter player name"
+                placeholderTextColor={themeColors.placeholder}
                 autoFocus
               />
 
-              <Text style={styles.label}>Notes</Text>
+              <Text style={[styles.label, { color: themeColors.text }]}>Notes</Text>
               <TextInput
-                style={[styles.input, styles.textArea]}
+                style={[styles.input, styles.textArea, { backgroundColor: themeColors.modalInputBg, color: themeColors.text, borderColor: themeColors.border }]}
                 value={newPlayerNotes}
                 onChangeText={setNewPlayerNotes}
                 placeholder="Add notes..."
+                placeholderTextColor={themeColors.placeholder}
                 multiline
                 numberOfLines={3}
                 textAlignVertical="top"
@@ -842,7 +886,7 @@ export default function SessionDetailScreen() {
               <View style={{ height: 20 }} />
             </ScrollView>
 
-            <View style={styles.modalFooter}>
+            <View style={[styles.modalFooter, { backgroundColor: themeColors.modalFooterBg, borderTopColor: themeColors.border }]}>
               <TouchableOpacity 
                 style={[styles.confirmButton, !newPlayerName.trim() && styles.saveButtonDisabled]}
                 onPress={handleSaveNewPlayer}
@@ -868,13 +912,13 @@ export default function SessionDetailScreen() {
       >
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.centeredModalOverlay}
+          style={[styles.centeredModalOverlay, { backgroundColor: themeColors.modalOverlay }]}
         >
-          <View style={styles.centeredModalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>End Session</Text>
+          <View style={[styles.centeredModalContent, { backgroundColor: themeColors.modalBg }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: themeColors.border }]}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>End Session</Text>
               <TouchableOpacity onPress={() => setShowEndSessionModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color={themeColors.text} />
               </TouchableOpacity>
             </View>
             
@@ -883,36 +927,38 @@ export default function SessionDetailScreen() {
               contentContainerStyle={{ paddingBottom: 20 }}
               keyboardShouldPersistTaps="handled"
             >
-              <Text style={styles.label}>Buy In Amount</Text>
+              <Text style={[styles.label, { color: themeColors.text }]}>Buy In Amount</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: themeColors.modalInputBg, color: themeColors.text, borderColor: themeColors.border }]}
                 value={endSessionBuyIn}
                 onChangeText={setEndSessionBuyIn}
                 placeholder="0"
+                placeholderTextColor={themeColors.placeholder}
                 keyboardType="numeric"
               />
 
-              <Text style={styles.label}>Cash Out Amount</Text>
+              <Text style={[styles.label, { color: themeColors.text }]}>Cash Out Amount</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: themeColors.modalInputBg, color: themeColors.text, borderColor: themeColors.border }]}
                 value={cashOutAmount}
                 onChangeText={setCashOutAmount}
                 placeholder="0"
+                placeholderTextColor={themeColors.placeholder}
                 keyboardType="numeric"
                 autoFocus
               />
               
               {/* Start Time Collapsible */}
               <TouchableOpacity 
-                style={styles.collapsibleHeader} 
+                style={[styles.collapsibleHeader, { borderBottomColor: themeColors.border }]} 
                 onPress={() => setIsStartTimeExpanded(!isStartTimeExpanded)}
               >
-                <Text style={styles.label}>Start Time</Text>
+                <Text style={[styles.label, { color: themeColors.text }]}>Start Time</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={styles.dateValue}>
+                  <Text style={[styles.dateValue, { color: themeColors.subText }]}>
                     {startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Text>
-                  <Ionicons name={isStartTimeExpanded ? "chevron-up" : "chevron-down"} size={20} color="#666" />
+                  <Ionicons name={isStartTimeExpanded ? "chevron-up" : "chevron-down"} size={20} color={themeColors.icon} />
                 </View>
               </TouchableOpacity>
               
@@ -925,12 +971,12 @@ export default function SessionDetailScreen() {
                       display="spinner"
                       onChange={(event, date) => date && setStartTime(date)}
                       style={styles.datePicker}
-                      textColor="#000000"
+                      textColor={themeColors.text}
                     />
                   ) : (
                     <View style={styles.androidPickerButtons}>
-                      <TouchableOpacity style={styles.androidPickerButton}>
-                        <Text>{startTime.toLocaleString()}</Text>
+                      <TouchableOpacity style={[styles.androidPickerButton, { backgroundColor: themeColors.modalInputBg }]}>
+                        <Text style={{ color: themeColors.text }}>{startTime.toLocaleString()}</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -939,15 +985,15 @@ export default function SessionDetailScreen() {
 
               {/* End Time Collapsible */}
               <TouchableOpacity 
-                style={styles.collapsibleHeader} 
+                style={[styles.collapsibleHeader, { borderBottomColor: themeColors.border }]} 
                 onPress={() => setIsEndTimeExpanded(!isEndTimeExpanded)}
               >
-                <Text style={styles.label}>End Time</Text>
+                <Text style={[styles.label, { color: themeColors.text }]}>End Time</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={styles.dateValue}>
+                  <Text style={[styles.dateValue, { color: themeColors.subText }]}>
                     {endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Text>
-                  <Ionicons name={isEndTimeExpanded ? "chevron-up" : "chevron-down"} size={20} color="#666" />
+                  <Ionicons name={isEndTimeExpanded ? "chevron-up" : "chevron-down"} size={20} color={themeColors.icon} />
                 </View>
               </TouchableOpacity>
 
@@ -960,12 +1006,12 @@ export default function SessionDetailScreen() {
                       display="spinner"
                       onChange={(event, date) => date && setEndTime(date)}
                       style={styles.datePicker}
-                      textColor="#000000"
+                      textColor={themeColors.text}
                     />
                   ) : (
                     <View style={styles.androidPickerButtons}>
-                      <TouchableOpacity style={styles.androidPickerButton}>
-                        <Text>{endTime.toLocaleString()}</Text>
+                      <TouchableOpacity style={[styles.androidPickerButton, { backgroundColor: themeColors.modalInputBg }]}>
+                        <Text style={{ color: themeColors.text }}>{endTime.toLocaleString()}</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -973,7 +1019,7 @@ export default function SessionDetailScreen() {
               )}
             </ScrollView>
 
-            <View style={styles.modalFooter}>
+            <View style={[styles.modalFooter, { backgroundColor: themeColors.modalFooterBg, borderTopColor: themeColors.border }]}>
               <TouchableOpacity 
                 style={styles.confirmButton}
                 onPress={confirmEndSession}
@@ -994,30 +1040,31 @@ export default function SessionDetailScreen() {
       >
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.centeredModalOverlay}
+          style={[styles.centeredModalOverlay, { backgroundColor: themeColors.modalOverlay }]}
         >
-          <View style={styles.centeredModalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Rebuy</Text>
+          <View style={[styles.centeredModalContent, { backgroundColor: themeColors.modalBg }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: themeColors.border }]}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Add Rebuy</Text>
               <TouchableOpacity onPress={() => setShowRebuyModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color={themeColors.text} />
               </TouchableOpacity>
             </View>
             
             <View style={styles.formContent}>
-              <Text style={styles.label}>Amount to Add</Text>
+              <Text style={[styles.label, { color: themeColors.text }]}>Amount to Add</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: themeColors.modalInputBg, color: themeColors.text, borderColor: themeColors.border }]}
                 value={rebuyAmount}
                 onChangeText={setRebuyAmount}
                 placeholder="0"
+                placeholderTextColor={themeColors.placeholder}
                 keyboardType="numeric"
                 autoFocus
               />
               <View style={{ height: 20 }} />
             </View>
 
-            <View style={styles.modalFooter}>
+            <View style={[styles.modalFooter, { backgroundColor: themeColors.modalFooterBg, borderTopColor: themeColors.border }]}>
               <TouchableOpacity 
                 style={[styles.confirmButton, { backgroundColor: '#2e7d32' }]}
                 onPress={handleRebuy}

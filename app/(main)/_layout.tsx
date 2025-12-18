@@ -1,20 +1,24 @@
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
 export default function MainLayout() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: '#0a7ea4',
-        tabBarInactiveTintColor: '#888',
+        tabBarInactiveTintColor: isDark ? '#888' : '#888',
         tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopColor: '#e0e0e0',
+          backgroundColor: isDark ? '#1c1c1e' : '#fff',
+          borderTopColor: isDark ? '#333' : '#e0e0e0',
         },
         headerStyle: {
-          backgroundColor: '#0a7ea4',
+          backgroundColor: isDark ? '#1c1c1e' : '#0a7ea4',
         },
-        headerTintColor: '#fff',
+        headerTintColor: isDark ? '#fff' : '#fff',
         headerTitleStyle: {
           fontWeight: '600',
         },

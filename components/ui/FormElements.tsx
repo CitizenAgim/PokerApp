@@ -1,3 +1,4 @@
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
@@ -19,6 +20,28 @@ interface InputProps extends TextInputProps {
   containerStyle?: object;
 }
 
+const getThemeColors = (isDark: boolean) => ({
+  label: isDark ? '#FFFFFF' : '#333',
+  inputBg: isDark ? '#333333' : '#f5f5f5',
+  inputBgFocused: isDark ? '#1c1c1e' : '#fff',
+  inputBgError: isDark ? '#3a1c1c' : '#fef2f2',
+  inputText: isDark ? '#FFFFFF' : '#333',
+  placeholder: isDark ? '#666666' : '#999',
+  icon: isDark ? '#AAAAAA' : '#888',
+  borderFocused: '#0a7ea4',
+  borderError: '#e74c3c',
+  hint: isDark ? '#AAAAAA' : '#888',
+  
+  // Button colors
+  btnPrimary: '#0a7ea4',
+  btnSecondary: isDark ? '#333333' : '#f0f0f0',
+  btnDanger: '#e74c3c',
+  btnDisabled: isDark ? '#444444' : '#ccc',
+  btnTextPrimary: '#fff',
+  btnTextSecondary: isDark ? '#FFFFFF' : '#333',
+  btnTextDisabled: isDark ? '#666666' : '#888',
+});
+
 export function Input({
   label,
   error,
@@ -32,26 +55,30 @@ export function Input({
 }: InputProps) {
   const [isPasswordVisible, setPasswordVisible] = useState(false);
   const [isFocused, setFocused] = useState(false);
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const colors = getThemeColors(isDark);
 
   const isPassword = secureTextEntry !== undefined;
   const showPassword = isPassword && isPasswordVisible;
 
   return (
     <View style={[styles.container, containerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <Text style={[styles.label, { color: colors.label }]}>{label}</Text>}
       
       <View
         style={[
           styles.inputContainer,
-          isFocused && styles.inputContainerFocused,
-          error && styles.inputContainerError,
+          { backgroundColor: colors.inputBg },
+          isFocused && [styles.inputContainerFocused, { backgroundColor: colors.inputBgFocused, borderColor: colors.borderFocused }],
+          error && [styles.inputContainerError, { backgroundColor: colors.inputBgError, borderColor: colors.borderError }],
         ]}
       >
         {leftIcon && (
           <Ionicons
             name={leftIcon}
             size={20}
-            color={error ? '#e74c3c' : isFocused ? '#0a7ea4' : '#888'}
+            color={error ? colors.borderError : isFocused ? colors.borderFocused : colors.icon}
             style={styles.leftIcon}
           />
         )}
@@ -59,10 +86,11 @@ export function Input({
         <TextInput
           style={[
             styles.input,
+            { color: colors.inputText },
             leftIcon && styles.inputWithLeftIcon,
             (rightIcon || isPassword) && styles.inputWithRightIcon,
           ]}
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.placeholder}
           secureTextEntry={isPassword && !showPassword}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
@@ -77,7 +105,7 @@ export function Input({
             <Ionicons
               name={showPassword ? 'eye-off' : 'eye'}
               size={20}
-              color="#888"
+              color={colors.icon}
             />
           </TouchableOpacity>
         )}
@@ -91,7 +119,7 @@ export function Input({
             <Ionicons
               name={rightIcon}
               size={20}
-              color={error ? '#e74c3c' : '#888'}
+              color={error ? colors.borderError : colors.icon}
             />
           </TouchableOpacity>
         )}
@@ -99,13 +127,13 @@ export function Input({
       
       {error && (
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle" size={14} color="#e74c3c" />
-          <Text style={styles.errorText}>{error}</Text>
+          <Ionicons name="alert-circle" size={14} color={colors.borderError} />
+          <Text style={[styles.errorText, { color: colors.borderError }]}>{error}</Text>
         </View>
       )}
       
       {hint && !error && (
-        <Text style={styles.hintText}>{hint}</Text>
+        <Text style={[styles.hintText, { color: colors.hint }]}>{hint}</Text>
       )}
     </View>
   );
@@ -132,27 +160,30 @@ export function Button({
   icon,
   style,
 }: ButtonProps) {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const colors = getThemeColors(isDark);
   const isDisabled = disabled || loading;
 
   const getBackgroundColor = () => {
-    if (isDisabled) return '#ccc';
+    if (isDisabled) return colors.btnDisabled;
     switch (variant) {
-      case 'primary': return '#0a7ea4';
-      case 'secondary': return '#f0f0f0';
-      case 'danger': return '#e74c3c';
+      case 'primary': return colors.btnPrimary;
+      case 'secondary': return colors.btnSecondary;
+      case 'danger': return colors.btnDanger;
       case 'ghost': return 'transparent';
-      default: return '#0a7ea4';
+      default: return colors.btnPrimary;
     }
   };
 
   const getTextColor = () => {
-    if (isDisabled && variant !== 'ghost') return '#888';
+    if (isDisabled && variant !== 'ghost') return colors.btnTextDisabled;
     switch (variant) {
-      case 'primary': return '#fff';
-      case 'secondary': return '#333';
-      case 'danger': return '#fff';
-      case 'ghost': return isDisabled ? '#ccc' : '#0a7ea4';
-      default: return '#fff';
+      case 'primary': return colors.btnTextPrimary;
+      case 'secondary': return colors.btnTextSecondary;
+      case 'danger': return colors.btnTextPrimary;
+      case 'ghost': return isDisabled ? colors.btnTextDisabled : colors.btnPrimary;
+      default: return colors.btnTextPrimary;
     }
   };
 
@@ -182,7 +213,7 @@ export function Button({
         styles.button,
         { backgroundColor: getBackgroundColor() },
         getPadding(),
-        variant === 'ghost' && styles.buttonGhost,
+        variant === 'ghost' && [styles.buttonGhost, { borderColor: colors.btnPrimary }],
         style,
       ]}
     >

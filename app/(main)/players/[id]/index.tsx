@@ -1,5 +1,6 @@
 import { HAND_MAP } from '@/constants/hands';
 import { usePlayer, usePlayerRanges, usePlayers, useSettings } from '@/hooks';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Action, NoteEntry, Position } from '@/types/poker';
 import { resizeImage } from '@/utils/image';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,6 +44,30 @@ export default function PlayerDetailScreen() {
   const { deletePlayer, updatePlayer } = usePlayers();
   const { ranges } = usePlayerRanges(id);
   const { ninjaMode } = useSettings();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  // Theme colors
+  const themeColors = {
+    background: isDark ? '#000' : '#f5f5f5',
+    card: isDark ? '#1c1c1e' : '#fff',
+    text: isDark ? '#fff' : '#333',
+    subText: isDark ? '#aaa' : '#888',
+    border: isDark ? '#333' : '#e0e0e0',
+    inputBg: isDark ? '#1c1c1e' : '#fff',
+    placeholder: isDark ? '#666' : '#999',
+    modalOverlay: 'rgba(0,0,0,0.5)',
+    modalBg: isDark ? '#1c1c1e' : '#fff',
+    modalInputBg: isDark ? '#2c2c2e' : '#f9f9f9',
+    icon: isDark ? '#aaa' : '#666',
+    actionCell: isDark ? '#2c2c2e' : '#f5f5f5',
+    actionCellActive: isDark ? '#1b3a24' : '#e8f5e9',
+    actionLabelActive: isDark ? '#4caf50' : '#2e7d32',
+    selectionHeader: isDark ? '#1a2a3a' : '#e3f2fd',
+    noteSelected: isDark ? '#1a2a3a' : '#e3f2fd',
+    editButtonBg: isDark ? '#1a2a3a' : '#e3f2fd',
+    deleteButtonBg: isDark ? '#3a1a1a' : '#ffebee',
+  };
   
   // Edit modal state
   const [showEditModal, setShowEditModal] = useState(false);
@@ -289,7 +314,7 @@ export default function PlayerDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: themeColors.background }]}>
         <ActivityIndicator size="large" color="#0a7ea4" />
       </View>
     );
@@ -297,9 +322,9 @@ export default function PlayerDetailScreen() {
 
   if (error || !player) {
     return (
-      <View style={styles.errorContainer}>
+      <View style={[styles.errorContainer, { backgroundColor: themeColors.background }]}>
         <Ionicons name="alert-circle-outline" size={64} color="#e74c3c" />
-        <Text style={styles.errorText}>Player not found</Text>
+        <Text style={[styles.errorText, { color: themeColors.subText }]}>Player not found</Text>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
@@ -308,9 +333,9 @@ export default function PlayerDetailScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: themeColors.background }]} contentContainerStyle={styles.content}>
       {/* Player Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
         {!ninjaMode && player.photoUrl ? (
           <Image source={{ uri: player.photoUrl }} style={styles.avatar} />
         ) : (
@@ -320,13 +345,13 @@ export default function PlayerDetailScreen() {
             </Text>
           </View>
         )}
-        <Text style={styles.playerName}>{player.name}</Text>
+        <Text style={[styles.playerName, { color: themeColors.text }]}>{player.name}</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.editButton} onPress={handleOpenEditModal}>
+          <TouchableOpacity style={[styles.editButton, { backgroundColor: themeColors.editButtonBg }]} onPress={handleOpenEditModal}>
             <Ionicons name="pencil" size={18} color="#0a7ea4" />
             <Text style={styles.editButtonText}>Edit</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+          <TouchableOpacity style={[styles.deleteButton, { backgroundColor: themeColors.deleteButtonBg }]} onPress={handleDelete}>
             <Ionicons name="trash" size={18} color="#e74c3c" />
             <Text style={styles.deleteButtonText}>Delete</Text>
           </TouchableOpacity>
@@ -337,9 +362,9 @@ export default function PlayerDetailScreen() {
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
           {isSelectionMode ? (
-            <View style={styles.selectionHeader}>
+            <View style={[styles.selectionHeader, { backgroundColor: themeColors.selectionHeader }]}>
               <TouchableOpacity onPress={handleCancelSelection}>
-                <Ionicons name="close" size={24} color="#666" />
+                <Ionicons name="close" size={24} color={themeColors.icon} />
               </TouchableOpacity>
               <Text style={styles.selectionTitle}>
                 {selectedNoteIds.size} selected
@@ -362,17 +387,17 @@ export default function PlayerDetailScreen() {
                 onPress={() => setShowNotes(!showNotes)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Notes</Text>
+                <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 0 }]}>Notes</Text>
                 <Ionicons 
                   name={showNotes ? "chevron-up" : "chevron-down"} 
                   size={24} 
-                  color="#666" 
+                  color={themeColors.icon} 
                 />
               </TouchableOpacity>
               
               {showNotes && !isAddingNote && (
                 <TouchableOpacity 
-                  style={styles.addNoteButton}
+                  style={[styles.addNoteButton, { backgroundColor: themeColors.editButtonBg }]}
                   onPress={() => setIsAddingNote(true)}
                 >
                   <Ionicons name="add" size={16} color="#0a7ea4" />
@@ -386,13 +411,13 @@ export default function PlayerDetailScreen() {
         {showNotes && (
           <View style={styles.notesContainer}>
             {isAddingNote && (
-              <View style={styles.addNoteContainer}>
+              <View style={[styles.addNoteContainer, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
                 <TextInput
-                  style={styles.addNoteInput}
+                  style={[styles.addNoteInput, { color: themeColors.text }]}
                   value={newNote}
                   onChangeText={setNewNote}
                   placeholder="Write a new note..."
-                  placeholderTextColor="#999"
+                  placeholderTextColor={themeColors.placeholder}
                   multiline
                   autoFocus
                 />
@@ -404,7 +429,7 @@ export default function PlayerDetailScreen() {
                       setNewNote('');
                     }}
                   >
-                    <Text style={styles.cancelNoteText}>Cancel</Text>
+                    <Text style={[styles.cancelNoteText, { color: themeColors.subText }]}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={[
@@ -433,7 +458,8 @@ export default function PlayerDetailScreen() {
                       key={note.id}
                       style={[
                         styles.noteItem,
-                        isSelected && styles.noteItemSelected,
+                        { backgroundColor: themeColors.card },
+                        isSelected && [styles.noteItemSelected, { backgroundColor: themeColors.noteSelected }],
                         isSelectionMode && !isSelected && styles.noteItemUnselected
                       ]}
                       onLongPress={() => handleLongPressNote(note.id)}
@@ -442,28 +468,28 @@ export default function PlayerDetailScreen() {
                       delayLongPress={300}
                     >
                       <View style={styles.noteHeader}>
-                        <Text style={styles.noteDate}>
+                        <Text style={[styles.noteDate, { color: themeColors.subText }]}>
                           {new Date(note.timestamp).toLocaleDateString()}
                         </Text>
                         {isSelected && (
                           <Ionicons name="checkmark-circle" size={20} color="#0a7ea4" />
                         )}
                         {isSelectionMode && !isSelected && (
-                          <Ionicons name="ellipse-outline" size={20} color="#ccc" />
+                          <Ionicons name="ellipse-outline" size={20} color={themeColors.icon} />
                         )}
                       </View>
-                      <Text style={styles.noteContent}>{note.content}</Text>
+                      <Text style={[styles.noteContent, { color: themeColors.text }]}>{note.content}</Text>
                     </TouchableOpacity>
                   );
                 })
               ) : player.notes ? (
                 // Legacy notes fallback
-                <View style={styles.noteItem}>
-                  <Text style={styles.noteDate}>Legacy Note</Text>
-                  <Text style={styles.noteContent}>{player.notes}</Text>
+                <View style={[styles.noteItem, { backgroundColor: themeColors.card }]}>
+                  <Text style={[styles.noteDate, { color: themeColors.subText }]}>Legacy Note</Text>
+                  <Text style={[styles.noteContent, { color: themeColors.text }]}>{player.notes}</Text>
                 </View>
               ) : !isAddingNote && (
-                <Text style={styles.emptyNoteText}>No notes added yet.</Text>
+                <Text style={[styles.emptyNoteText, { color: themeColors.subText }]}>No notes added yet.</Text>
               )}
             </View>
           </View>
@@ -472,12 +498,12 @@ export default function PlayerDetailScreen() {
 
       {/* Ranges Grid */}
       <View style={styles.rangesSection}>
-        <Text style={styles.sectionTitle}>Ranges</Text>
+        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Ranges</Text>
         {POSITIONS.map((pos) => (
-          <View key={pos.id} style={styles.positionCard}>
+          <View key={pos.id} style={[styles.positionCard, { backgroundColor: themeColors.card }]}>
             <View style={styles.positionHeader}>
               <View style={[styles.positionDot, { backgroundColor: pos.color }]} />
-              <Text style={styles.positionLabel}>{pos.label}</Text>
+              <Text style={[styles.positionLabel, { color: themeColors.text }]}>{pos.label}</Text>
             </View>
             <View style={styles.actionsGrid}>
               {ACTIONS.map((action) => {
@@ -489,19 +515,22 @@ export default function PlayerDetailScreen() {
                     key={action.id}
                     style={[
                       styles.actionCell,
-                      hasRange && styles.actionCellActive,
+                      { backgroundColor: themeColors.actionCell },
+                      hasRange && [styles.actionCellActive, { backgroundColor: themeColors.actionCellActive }],
                     ]}
                     onPress={() => handleEditRange(pos.id, action.id)}
                   >
                     <Text style={[
                       styles.actionLabel,
-                      hasRange && styles.actionLabelActive,
+                      { color: themeColors.subText },
+                      hasRange && [styles.actionLabelActive, { color: themeColors.actionLabelActive }],
                     ]}>
                       {action.label}
                     </Text>
                     <Text style={[
                       styles.actionPercentage,
-                      hasRange && styles.actionPercentageActive,
+                      { color: themeColors.subText },
+                      hasRange && [styles.actionPercentageActive, { color: themeColors.actionLabelActive }],
                     ]}>
                       {percentage}%
                     </Text>
@@ -515,19 +544,19 @@ export default function PlayerDetailScreen() {
 
       {/* Stats */}
       <View style={styles.statsSection}>
-        <Text style={styles.sectionTitle}>Statistics</Text>
+        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Statistics</Text>
         <View style={styles.statsGrid}>
-          <View style={styles.statBox}>
+          <View style={[styles.statBox, { backgroundColor: themeColors.card }]}>
             <Text style={styles.statValue}>
               {ranges?.handsObserved || 0}
             </Text>
-            <Text style={styles.statLabel}>Hands Observed</Text>
+            <Text style={[styles.statLabel, { color: themeColors.subText }]}>Hands Observed</Text>
           </View>
-          <View style={styles.statBox}>
+          <View style={[styles.statBox, { backgroundColor: themeColors.card }]}>
             <Text style={styles.statValue}>
               {ranges ? Object.keys(ranges.ranges).length : 0}
             </Text>
-            <Text style={styles.statLabel}>Ranges Set</Text>
+            <Text style={[styles.statLabel, { color: themeColors.subText }]}>Ranges Set</Text>
           </View>
         </View>
       </View>
@@ -540,15 +569,15 @@ export default function PlayerDetailScreen() {
         onRequestClose={handleCancelEdit}
       >
         <KeyboardAvoidingView
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, { backgroundColor: themeColors.modalOverlay }]}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
         >
-          <View style={styles.editModalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Player</Text>
+          <View style={[styles.editModalContent, { backgroundColor: themeColors.modalBg }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: themeColors.border }]}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Edit Player</Text>
               <TouchableOpacity onPress={handleCancelEdit}>
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color={themeColors.text} />
               </TouchableOpacity>
             </View>
             
@@ -578,24 +607,24 @@ export default function PlayerDetailScreen() {
               
               {/* Name Input */}
               <View style={styles.editInputGroup}>
-                <Text style={styles.editLabel}>Name *</Text>
+                <Text style={[styles.editLabel, { color: themeColors.text }]}>Name *</Text>
                 <TextInput
-                  style={styles.editInput}
+                  style={[styles.editInput, { backgroundColor: themeColors.modalInputBg, color: themeColors.text, borderColor: themeColors.border }]}
                   value={editName}
                   onChangeText={setEditName}
                   placeholder="Enter player name"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={themeColors.placeholder}
                 />
               </View>
             </ScrollView>
             
             {/* Action Buttons */}
-            <View style={styles.editModalFooter}>
+            <View style={[styles.editModalFooter, { borderTopColor: themeColors.border }]}>
               <TouchableOpacity
-                style={styles.cancelButton}
+                style={[styles.cancelButton, { backgroundColor: themeColors.modalInputBg }]}
                 onPress={handleCancelEdit}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={[styles.cancelButtonText, { color: themeColors.subText }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
@@ -624,13 +653,13 @@ export default function PlayerDetailScreen() {
         onRequestClose={() => setEditingNote(null)}
       >
         <KeyboardAvoidingView
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, { backgroundColor: themeColors.modalOverlay }]}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <View style={styles.editNoteModalContent}>
-            <Text style={styles.modalTitle}>Edit Note</Text>
+          <View style={[styles.editNoteModalContent, { backgroundColor: themeColors.modalBg }]}>
+            <Text style={[styles.modalTitle, { color: themeColors.text }]}>Edit Note</Text>
             <TextInput
-              style={styles.editNoteInput}
+              style={[styles.editNoteInput, { backgroundColor: themeColors.modalInputBg, color: themeColors.text, borderColor: themeColors.border }]}
               value={editNoteContent}
               onChangeText={setEditNoteContent}
               multiline
@@ -639,10 +668,10 @@ export default function PlayerDetailScreen() {
             />
             <View style={styles.editNoteActions}>
               <TouchableOpacity 
-                style={styles.cancelButton} 
+                style={[styles.cancelButton, { backgroundColor: themeColors.modalInputBg }]} 
                 onPress={() => setEditingNote(null)}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={[styles.cancelButtonText, { color: themeColors.subText }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[

@@ -1,5 +1,6 @@
 import { PositionSelector, RangeGrid, RangeStats } from '@/components/poker';
 import { usePlayer, useRange } from '@/hooks';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Action, Position } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -22,6 +23,21 @@ export default function PlayerRangeScreen() {
   }>();
   const router = useRouter();
   const { player, loading: playerLoading } = usePlayer(id);
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  // Theme colors
+  const themeColors = {
+    background: isDark ? '#000' : '#f5f5f5',
+    card: isDark ? '#1c1c1e' : '#fff',
+    text: isDark ? '#fff' : '#333',
+    subText: isDark ? '#aaa' : '#888',
+    border: isDark ? '#333' : '#e0e0e0',
+    instructionsBg: isDark ? '#1a2a3a' : '#e3f2fd',
+    instructionTitle: isDark ? '#4fc3f7' : '#0a7ea4',
+    instructionText: isDark ? '#b3e5fc' : '#1976d2',
+    clearButtonBg: isDark ? '#3a1a1a' : '#fff',
+  };
   
   const position = (initPosition as Position) || 'early';
   const action = (initAction as Action) || 'open-raise';
@@ -70,14 +86,14 @@ export default function PlayerRangeScreen() {
 
   if (loading || playerLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: themeColors.background }]}>
         <ActivityIndicator size="large" color="#0a7ea4" />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['bottom']}>
       <Stack.Screen
         options={{
           headerRight: () => (
@@ -86,7 +102,7 @@ export default function PlayerRangeScreen() {
               disabled={!canUndo}
               style={{ opacity: canUndo ? 1 : 0.5 }}
             >
-              <Ionicons name="arrow-undo-outline" size={24} color="#fff" />
+              <Ionicons name="arrow-undo-outline" size={24} color={isDark ? '#fff' : '#fff'} />
             </TouchableOpacity>
           ),
         }}
@@ -97,13 +113,13 @@ export default function PlayerRangeScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Player Info */}
-        <View style={styles.playerHeader}>
+        <View style={[styles.playerHeader, { backgroundColor: themeColors.card }]}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
               {player?.name?.charAt(0).toUpperCase() || '?'}
             </Text>
           </View>
-          <Text style={styles.playerName}>{player?.name || 'Unknown'}</Text>
+          <Text style={[styles.playerName, { color: themeColors.text }]}>{player?.name || 'Unknown'}</Text>
         </View>
 
         {/* Position & Action Selector */}
@@ -117,7 +133,7 @@ export default function PlayerRangeScreen() {
         <RangeStats range={range} showDetails={true} />
 
         {/* Range Grid */}
-        <View style={styles.gridContainer}>
+        <View style={[styles.gridContainer, { backgroundColor: themeColors.card }]}>
           <RangeGrid
             range={range}
             onRangeChange={setRange}
@@ -127,7 +143,7 @@ export default function PlayerRangeScreen() {
         {/* Action Buttons */}
         <View style={styles.actions}>
           <TouchableOpacity
-            style={styles.clearButton}
+            style={[styles.clearButton, { backgroundColor: themeColors.clearButtonBg }]}
             onPress={handleClear}
           >
             <Ionicons name="trash-outline" size={18} color="#e74c3c" />
@@ -151,15 +167,15 @@ export default function PlayerRangeScreen() {
         </View>
 
         {/* Instructions */}
-        <View style={styles.instructions}>
-          <Text style={styles.instructionTitle}>How to use:</Text>
-          <Text style={styles.instructionText}>
+        <View style={[styles.instructions, { backgroundColor: themeColors.instructionsBg }]}>
+          <Text style={[styles.instructionTitle, { color: themeColors.instructionTitle }]}>How to use:</Text>
+          <Text style={[styles.instructionText, { color: themeColors.instructionText }]}>
             • Tap a hand to select/deselect it
           </Text>
-          <Text style={styles.instructionText}>
+          <Text style={[styles.instructionText, { color: themeColors.instructionText }]}>
             • Better hands are auto-selected (lighter color)
           </Text>
-          <Text style={styles.instructionText}>
+          <Text style={[styles.instructionText, { color: themeColors.instructionText }]}>
             • Switch positions/actions using the tabs above
           </Text>
         </View>

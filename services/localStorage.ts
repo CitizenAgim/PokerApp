@@ -22,10 +22,12 @@ const KEYS = {
 
 export interface UserPreferences {
   ninjaMode: boolean;
+  themeMode: 'system' | 'light' | 'dark';
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
   ninjaMode: false,
+  themeMode: 'system',
 };
 
 export async function getUserPreferences(): Promise<UserPreferences> {

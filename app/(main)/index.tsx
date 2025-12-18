@@ -1,5 +1,6 @@
 import { auth } from '@/config/firebase';
 import { useCurrentSession, usePlayers, useSessions } from '@/hooks';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { startAutoSync, stopAutoSync } from '@/services/sync';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -18,6 +19,19 @@ export default function HomeScreen() {
   const { currentSession, loading } = useCurrentSession();
   const { players } = usePlayers();
   const { sessions } = useSessions();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  // Theme colors
+  const themeColors = {
+    background: isDark ? '#000' : '#f5f5f5',
+    card: isDark ? '#1c1c1e' : '#fff',
+    text: isDark ? '#fff' : '#333',
+    subText: isDark ? '#aaa' : '#888',
+    border: isDark ? '#333' : '#e0e0e0',
+    sectionTitle: isDark ? '#fff' : '#333',
+    chevron: isDark ? '#666' : '#ccc',
+  };
 
   // Start auto-sync when component mounts
   useEffect(() => {
@@ -37,75 +51,75 @@ export default function HomeScreen() {
   const user = auth.currentUser;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.greeting}>
+      <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
+        <Text style={[styles.greeting, { color: themeColors.text }]}>
           Hello, {user?.displayName || user?.email?.split('@')[0] || 'Player'}!
         </Text>
         <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
-          <Ionicons name="log-out-outline" size={24} color="#666" />
+          <Ionicons name="log-out-outline" size={24} color={themeColors.subText} />
         </TouchableOpacity>
       </View>
 
       {/* Quick Actions */}
       <View style={styles.quickActions}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <Text style={[styles.sectionTitle, { color: themeColors.sectionTitle }]}>Quick Actions</Text>
         
         <TouchableOpacity
-          style={styles.actionCard}
+          style={[styles.actionCard, { backgroundColor: themeColors.card }]}
           onPress={() => router.push('/(main)/sessions/new')}
         >
           <View style={[styles.actionIcon, { backgroundColor: '#27ae60' }]}>
             <Ionicons name="add-circle" size={32} color="#fff" />
           </View>
           <View style={styles.actionContent}>
-            <Text style={styles.actionTitle}>New Session</Text>
-            <Text style={styles.actionDesc}>Start a new poker session</Text>
+            <Text style={[styles.actionTitle, { color: themeColors.text }]}>New Session</Text>
+            <Text style={[styles.actionDesc, { color: themeColors.subText }]}>Start a new poker session</Text>
           </View>
-          <Ionicons name="chevron-forward" size={24} color="#ccc" />
+          <Ionicons name="chevron-forward" size={24} color={themeColors.chevron} />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.actionCard}
+          style={[styles.actionCard, { backgroundColor: themeColors.card }]}
           onPress={() => router.push('/(main)/players/new')}
         >
           <View style={[styles.actionIcon, { backgroundColor: '#3498db' }]}>
             <Ionicons name="person-add" size={32} color="#fff" />
           </View>
           <View style={styles.actionContent}>
-            <Text style={styles.actionTitle}>Add Player</Text>
-            <Text style={styles.actionDesc}>Track a new opponent</Text>
+            <Text style={[styles.actionTitle, { color: themeColors.text }]}>Add Player</Text>
+            <Text style={[styles.actionDesc, { color: themeColors.subText }]}>Track a new opponent</Text>
           </View>
-          <Ionicons name="chevron-forward" size={24} color="#ccc" />
+          <Ionicons name="chevron-forward" size={24} color={themeColors.chevron} />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.actionCard}
+          style={[styles.actionCard, { backgroundColor: themeColors.card }]}
           onPress={() => router.push('/range-editor')}
         >
           <View style={[styles.actionIcon, { backgroundColor: '#9b59b6' }]}>
             <Ionicons name="grid" size={32} color="#fff" />
           </View>
           <View style={styles.actionContent}>
-            <Text style={styles.actionTitle}>Range Editor</Text>
-            <Text style={styles.actionDesc}>Create hand ranges</Text>
+            <Text style={[styles.actionTitle, { color: themeColors.text }]}>Range Editor</Text>
+            <Text style={[styles.actionDesc, { color: themeColors.subText }]}>Create hand ranges</Text>
           </View>
-          <Ionicons name="chevron-forward" size={24} color="#ccc" />
+          <Ionicons name="chevron-forward" size={24} color={themeColors.chevron} />
         </TouchableOpacity>
       </View>
 
       {/* Active Session */}
       {currentSession && (
         <View style={styles.activeSession}>
-          <Text style={styles.sectionTitle}>Active Session</Text>
+          <Text style={[styles.sectionTitle, { color: themeColors.sectionTitle }]}>Active Session</Text>
           <TouchableOpacity
-            style={styles.sessionCard}
+            style={[styles.sessionCard, { backgroundColor: themeColors.card }]}
             onPress={() => router.push(`/(main)/sessions/${currentSession.session.id}`)}
           >
             <View style={styles.sessionInfo}>
-              <Text style={styles.sessionName}>{currentSession.session.name}</Text>
-              <Text style={styles.sessionDetails}>
+              <Text style={[styles.sessionName, { color: themeColors.text }]}>{currentSession.session.name}</Text>
+              <Text style={[styles.sessionDetails, { color: themeColors.subText }]}>
                 {currentSession.session.stakes && `${currentSession.session.stakes} • `}
                 {currentSession.session.location || 'No location'}
               </Text>
@@ -120,19 +134,19 @@ export default function HomeScreen() {
 
       {/* Stats Preview */}
       <View style={styles.statsPreview}>
-        <Text style={styles.sectionTitle}>Your Stats</Text>
+        <Text style={[styles.sectionTitle, { color: themeColors.sectionTitle }]}>Your Stats</Text>
         <View style={styles.statsRow}>
-          <View style={styles.statBox}>
+          <View style={[styles.statBox, { backgroundColor: themeColors.card }]}>
             <Text style={styles.statValue}>{players.length}</Text>
-            <Text style={styles.statLabel}>Players</Text>
+            <Text style={[styles.statLabel, { color: themeColors.subText }]}>Players</Text>
           </View>
-          <View style={styles.statBox}>
+          <View style={[styles.statBox, { backgroundColor: themeColors.card }]}>
             <Text style={styles.statValue}>{sessions.length}</Text>
-            <Text style={styles.statLabel}>Sessions</Text>
+            <Text style={[styles.statLabel, { color: themeColors.subText }]}>Sessions</Text>
           </View>
-          <View style={styles.statBox}>
+          <View style={[styles.statBox, { backgroundColor: themeColors.card }]}>
             <Text style={styles.statValue}>--</Text>
-            <Text style={styles.statLabel}>Hands</Text>
+            <Text style={[styles.statLabel, { color: themeColors.subText }]}>Hands</Text>
           </View>
         </View>
       </View>
