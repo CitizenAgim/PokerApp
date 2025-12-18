@@ -23,11 +23,21 @@ const KEYS = {
 export interface UserPreferences {
   ninjaMode: boolean;
   themeMode: 'system' | 'light' | 'dark';
+  language: 'en';
+  currency: 'EUR' | 'USD' | 'GBP';
+  country: string;
+  dateFormat: 'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD';
+  timeFormat: '12h' | '24h';
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
   ninjaMode: false,
   themeMode: 'system',
+  language: 'en',
+  currency: 'USD',
+  country: 'US',
+  dateFormat: 'MM/DD/YYYY',
+  timeFormat: '12h',
 };
 
 export async function getUserPreferences(): Promise<UserPreferences> {
@@ -253,6 +263,7 @@ export interface LastSessionConfig {
   thirdBlind: string;
   ante: string;
   buyIn: string;
+  currency?: string;
 }
 
 export async function getLastSessionConfig(): Promise<LastSessionConfig | null> {

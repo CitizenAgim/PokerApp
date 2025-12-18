@@ -1,4 +1,5 @@
 import { Player, Seat, TablePlayer } from '@/types/poker';
+import { getCurrencySymbol } from '@/utils/currency';
 import { getPositionName } from '@/utils/positionCalculator';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -36,11 +37,13 @@ interface SeatViewProps {
   buttonPosition: number;
   themeColors: any;
   isNinjaMode: boolean;
+  currency?: string;
 }
 
-function SeatView({ seat, player, isButton, isHero, onPress, buttonPosition, themeColors, isNinjaMode }: SeatViewProps) {
+function SeatView({ seat, player, isButton, isHero, onPress, buttonPosition, themeColors, isNinjaMode, currency }: SeatViewProps) {
   const seatNum = seat.seatNumber ?? (typeof seat.index === 'number' ? seat.index + 1 : 1);
   const positionName = getPositionName(seatNum, buttonPosition);
+  const currencySymbol = getCurrencySymbol(currency);
 
   const showPhoto = player?.photoUrl && !isNinjaMode;
   const { x, y } = getSeatPosition(seatNum);
@@ -82,7 +85,7 @@ function SeatView({ seat, player, isButton, isHero, onPress, buttonPosition, the
             </Text>
             {player.stack !== undefined && (
               <Text style={[styles.seatStack, { color: themeColors.text }, showPhoto && styles.seatTextLight]}>
-                ${player.stack}
+                {currencySymbol}{player.stack}
               </Text>
             )}
           </View>
@@ -120,6 +123,7 @@ interface PokerTableProps {
   themeColors: any;
   isNinjaMode?: boolean;
   centerText?: string;
+  currency?: string;
 }
 
 export function PokerTable({ 
@@ -130,7 +134,8 @@ export function PokerTable({
   onSeatPress, 
   themeColors, 
   isNinjaMode = false,
-  centerText = "Tap seat to assign player"
+  centerText = "Tap seat to assign player",
+  currency
 }: PokerTableProps) {
   
   return (
@@ -185,6 +190,7 @@ export function PokerTable({
               buttonPosition={buttonPosition}
               themeColors={themeColors}
               isNinjaMode={isNinjaMode}
+              currency={currency}
             />
           );
         })}

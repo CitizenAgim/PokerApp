@@ -1,4 +1,4 @@
-import { useCurrentSession, useSessions } from '@/hooks';
+import { useCurrentSession, useSessions, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import * as localStorage from '@/services/localStorage';
 import { getThemeColors, styles } from '@/styles/sessions/new.styles';
@@ -20,11 +20,13 @@ import {
 } from 'react-native';
 
 const GAME_TYPES = ['Texas Holdem', 'PLO', 'PLO5', 'Short Deck'];
+const CURRENCIES = ['USD', 'EUR', 'GBP'];
 
 export default function NewSessionScreen() {
   const router = useRouter();
   const { createSession } = useSessions();
   const { startSession } = useCurrentSession();
+  const { currency: defaultCurrency } = useSettings();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -39,10 +41,12 @@ export default function NewSessionScreen() {
   const [thirdBlind, setThirdBlind] = useState('');
   const [ante, setAnte] = useState('');
   const [buyIn, setBuyIn] = useState('');
+  const [selectedCurrency, setSelectedCurrency] = useState(defaultCurrency);
   
   // Location Management
   const [locations, setLocations] = useState<string[]>([]);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   const [newLocation, setNewLocation] = useState('');
   
   const [saving, setSaving] = useState(false);
@@ -52,6 +56,13 @@ export default function NewSessionScreen() {
     loadLocations();
     loadLastConfig();
   }, []);
+
+  // Update selected currency if default changes (and we haven't loaded a config yet)
+  useEffect(() => {
+    if (!location) { // Simple check to see if we've loaded config or started editing
+        setSelectedCurrency(defaultCurrency);
+    }
+  }, [defaultCurrency]);
 
   const loadLocations = async () => {
     const saved = await localStorage.getLocations();
@@ -68,6 +79,9 @@ export default function NewSessionScreen() {
       setThirdBlind(config.thirdBlind);
       setAnte(config.ante);
       setBuyIn(config.buyIn);
+      if (config.currency) {
+        setSelectedCurrency(config.currency);
+      }
     }
   };
 
@@ -113,7 +127,8 @@ export default function NewSessionScreen() {
         bb,
         bi,
         tb,
-        ant
+        ant,
+        selectedCurrency
       );
       
       // Save config for next time
@@ -124,7 +139,8 @@ export default function NewSessionScreen() {
         bigBlind,
         thirdBlind,
         ante,
-        buyIn
+        buyIn,
+        currency: selectedCurrency
       });
 
       // Set as current active session
@@ -199,6 +215,20 @@ export default function NewSessionScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
+          </View>
+
+          {/* Currency */}
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: themeColors.text }]}>Currency</Text>
+            <TouchableOpacity
+              style={[styles.selectButton, { backgroundColor: themeColors.inputBg, borderColor: themeColors.border }]}
+              onPress={() => setShowCurrencyModal(true)}
+            >
+              <Text style={[styles.selectButtonText, { color: themeColors.text }]}>
+                {selectedCurrency}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color={themeColors.icon} />
+            </TouchableOpacity>
           </View>
 
           {/* Blinds */}
@@ -337,6 +367,42 @@ export default function NewSessionScreen() {
               ListEmptyComponent={
                 <Text style={[styles.emptyText, { color: themeColors.subText }]}>No saved locations yet</Text>
               }
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Currency Modal */}
+      <Modal
+        visible={showCurrencyModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCurrencyModal(false)}
+      >
+        <View style={[styles.modalOverlay, { backgroundColor: themeColors.modalOverlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.modalBg }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Select Currency</Text>
+              <TouchableOpacity onPress={() => setShowCurrencyModal(false)}>
+                <Ionicons name="close" size={24} color={themeColors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={CURRENCIES}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.locationItem, { borderBottomColor: themeColors.border }]}
+                  onPress={() => {
+                    setSelectedCurrency(item);
+                    setShowCurrencyModal(false);
+                  }}
+                >
+                  <Text style={[styles.locationText, { color: themeColors.text }]}>{item}</Text>
+                  {selectedCurrency === item && <Ionicons name="checkmark" size={20} color="#0a7ea4" />}
+                </TouchableOpacity>
+              )}
             />
           </View>
         </View>

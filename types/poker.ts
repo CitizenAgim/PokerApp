@@ -111,6 +111,7 @@ export interface Session {
   thirdBlind?: number;
   ante?: number;
   buyIn?: number;
+  currency?: string;      // e.g., "USD", "EUR", "GBP"
   cashOut?: number;       // Amount cashed out
   stakes?: string;        // e.g., "1/2", "2/5" (Derived or legacy)
   startTime: number;      // Unix timestamp

@@ -629,6 +629,7 @@ export default function SessionDetailScreen() {
         onSeatPress={handleSeatPress}
         themeColors={themeColors}
         isNinjaMode={ninjaMode}
+        currency={session.currency}
       />
 
       {/* Quick Actions */}

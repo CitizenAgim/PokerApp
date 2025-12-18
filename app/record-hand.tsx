@@ -137,6 +137,7 @@ export default function RecordHandScreen() {
           onSeatPress={handleSeatPress}
           themeColors={themeColors}
           centerText="Tap seat to assign/edit"
+          currency={session?.currency}
         />
 
         {/* Controls */}

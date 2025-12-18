@@ -335,39 +335,6 @@ export default function ProfileScreen() {
             />
           </View>
 
-          <View style={[styles.settingItem, { backgroundColor: themeColors.card }]}>
-            <View style={[styles.settingIcon, { backgroundColor: themeColors.settingIconBg }]}>
-              <Ionicons name="moon-outline" size={22} color={themeColors.icon} />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={[styles.settingText, { color: themeColors.text }]}>App Theme</Text>
-              <View style={styles.themeSelector}>
-                {(['system', 'light', 'dark'] as const).map((mode) => (
-                  <TouchableOpacity
-                    key={mode}
-                    style={[
-                      styles.themeOption,
-                      { backgroundColor: themeColors.themeOptionBg },
-                      themeMode === mode && styles.themeOptionActive
-                    ]}
-                    onPress={() => {
-                      haptics.lightTap();
-                      setThemeMode(mode);
-                    }}
-                  >
-                    <Text style={[
-                      styles.themeOptionText,
-                      { color: themeColors.subText },
-                      themeMode === mode && styles.themeOptionTextActive
-                    ]}>
-                      {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          </View>
-
           <TouchableOpacity style={[styles.settingItem, { backgroundColor: themeColors.card }]}>
             <View style={[styles.settingIcon, { backgroundColor: themeColors.settingIconBg }]}>
               <Ionicons name="notifications-outline" size={22} color={themeColors.icon} />

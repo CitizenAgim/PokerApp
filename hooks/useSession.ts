@@ -22,7 +22,8 @@ interface UseSessionsResult {
     bigBlind: number,
     buyIn: number,
     thirdBlind?: number,
-    ante?: number
+    ante?: number,
+    currency?: string
   ) => Promise<Session>;
   deleteSession: (id: string) => Promise<void>;
 }
@@ -73,7 +74,8 @@ export function useSessions(): UseSessionsResult {
     bigBlind: number,
     buyIn: number,
     thirdBlind?: number,
-    ante?: number
+    ante?: number,
+    currency?: string
   ): Promise<Session> => {
     const userId = auth.currentUser?.uid;
     if (!userId) throw new Error('Not authenticated');
@@ -93,6 +95,7 @@ export function useSessions(): UseSessionsResult {
       thirdBlind,
       ante,
       buyIn,
+      currency,
       stakes,
       startTime: Date.now(),
       isActive: true,
