@@ -14,11 +14,11 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
-    StyleSheet,
     TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { getThemeColors, styles } from './_signup.styles';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -35,17 +35,7 @@ export default function SignUpScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  const themeColors = {
-    inputBg: isDark ? '#2A2A2A' : '#f5f5f5',
-    inputText: isDark ? '#fff' : '#333',
-    inputBorder: isDark ? '#333' : '#e0e0e0',
-    placeholder: isDark ? '#888' : '#aaa',
-    dividerLine: isDark ? '#444' : '#e0e0e0',
-    googleButtonBg: isDark ? '#fff' : '#fff',
-    googleButtonText: isDark ? '#333' : '#333',
-    googleButtonBorder: isDark ? 'transparent' : '#e0e0e0',
-    legalText: isDark ? '#888' : '#666',
-  };
+  const themeColors = getThemeColors(isDark);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: GOOGLE_WEB_CLIENT_ID,
@@ -218,102 +208,3 @@ export default function SignUpScreen() {
     </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  centered: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    width: '100%',
-    maxWidth: 400,
-    alignSelf: 'center',
-  },
-  title: {
-    textAlign: 'center',
-    marginBottom: 40,
-    fontSize: 32,
-  },
-  input: {
-    backgroundColor: '#2A2A2A',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 15,
-    color: '#fff',
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  button: {
-    backgroundColor: '#0a7ea4',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#444',
-  },
-  dividerText: {
-    marginHorizontal: 10,
-    color: '#888',
-    fontSize: 14,
-  },
-  googleButton: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  googleButtonText: {
-    color: '#333',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  switchButton: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  switchText: {
-    color: '#0a7ea4',
-    fontSize: 14,
-  },
-  legalContainer: {
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  legalText: {
-    fontSize: 12,
-    color: '#888',
-    textAlign: 'center',
-  },
-  legalLink: {
-    color: '#0a7ea4',
-    fontWeight: '600',
-  },
-});
