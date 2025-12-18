@@ -305,6 +305,17 @@ export default function ProfileScreen() {
         <View style={styles.settingsSection}>
           <Text style={[styles.sectionTitle, { color: themeColors.subText }]}>Settings</Text>
           
+          <TouchableOpacity 
+            style={[styles.settingItem, { backgroundColor: themeColors.card }]}
+            onPress={() => router.push('/(main)/settings')}
+          >
+            <View style={[styles.settingIcon, { backgroundColor: themeColors.settingIconBg }]}>
+              <Ionicons name="settings-outline" size={22} color={themeColors.icon} />
+            </View>
+            <Text style={[styles.settingText, { color: themeColors.text }]}>General Settings</Text>
+            <Ionicons name="chevron-forward" size={20} color={themeColors.icon} />
+          </TouchableOpacity>
+
           <View style={[styles.settingItem, { backgroundColor: themeColors.card }]}>
             <View style={[styles.settingIcon, { backgroundColor: themeColors.settingIconBg }]}>
               <Ionicons name={ninjaMode ? "eye-off-outline" : "eye-outline"} size={22} color={themeColors.icon} />
