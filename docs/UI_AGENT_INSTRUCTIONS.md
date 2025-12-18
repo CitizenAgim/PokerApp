@@ -10,8 +10,9 @@ This document serves as the **source of truth** for all UI development in the Po
 *   **Never** define `StyleSheet.create(...)` inside the main component file.
 *   Create a sibling file for styles with the `.styles.ts` extension.
 *   **Naming Convention:**
-    *   **Components:** `ComponentName.tsx` → `ComponentName.styles.ts`
-    *   **App Routes:** `route-name.tsx` → `_route-name.styles.ts` (Prefix with `_` to prevent Expo Router from treating it as a route).
+    *   **Components:** `ComponentName.tsx` → `ComponentName.styles.ts` (Sibling file).
+    *   **App Routes:** `app/route-name.tsx` → `styles/route-name.styles.ts` (Move styles to the top-level `styles/` directory to avoid Expo Router conflicts).
+    *   **Nested Routes:** `app/(group)/route.tsx` → `styles/group/route.styles.ts`.
 
 ### Pattern Implementation
 Every style file must export two things:

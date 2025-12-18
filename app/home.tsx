@@ -6,7 +6,7 @@ import { disableGuestMode, isGuestMode } from '@/services/guestMode';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import { TouchableOpacity, View } from 'react-native';
-import { getThemeColors, styles } from './_home.styles';
+import { getThemeColors, styles } from '@/styles/home.styles';
 
 export default function HomeScreen() {
   const router = useRouter();

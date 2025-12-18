@@ -12,7 +12,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getThemeColors, styles } from './_range-editor.styles';
+import { getThemeColors, styles } from '@/styles/range-editor.styles';
 
 // ============================================
 // RANGE EDITOR SCREEN

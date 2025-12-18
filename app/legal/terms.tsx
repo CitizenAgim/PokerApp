@@ -1,16 +1,12 @@
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { getThemeColors, styles } from '@/styles/legal.styles';
+import { ScrollView, Text, View } from 'react-native';
 
 export default function TermsOfServiceScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  const themeColors = {
-    background: isDark ? '#000' : '#fff',
-    text: isDark ? '#fff' : '#333',
-    subText: isDark ? '#aaa' : '#444',
-    heading: isDark ? '#fff' : '#333',
-  };
+  const themeColors = getThemeColors(isDark);
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: themeColors.background }]} contentContainerStyle={styles.content}>
@@ -83,35 +79,3 @@ export default function TermsOfServiceScreen() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    padding: 20,
-  },
-  lastUpdated: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 20,
-    fontStyle: 'italic',
-  },
-  heading: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  paragraph: {
-    fontSize: 15,
-    color: '#444',
-    lineHeight: 22,
-    marginBottom: 10,
-  },
-  footer: {
-    height: 40,
-  },
-});

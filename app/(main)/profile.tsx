@@ -3,6 +3,7 @@ import { auth } from '@/config/firebase';
 import { useCurrentUser, usePlayers, useSessions, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { disableGuestMode, hasGuestData, isGuestMode, migrateGuestDataToUser } from '@/services/guestMode';
+import { getThemeColors, styles } from '@/styles/profile.styles';
 import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -12,7 +13,6 @@ import {
     ActivityIndicator,
     Alert,
     ScrollView,
-    StyleSheet,
     Switch,
     Text,
     TextInput,
@@ -41,17 +41,7 @@ export default function ProfileScreen() {
   const currentUser = auth.currentUser;
 
   // Theme colors
-  const themeColors = {
-    background: isDark ? '#000' : '#f5f5f5',
-    card: isDark ? '#1c1c1e' : '#fff',
-    text: isDark ? '#fff' : '#333',
-    subText: isDark ? '#aaa' : '#666',
-    border: isDark ? '#333' : '#e0e0e0',
-    inputBg: isDark ? '#2c2c2e' : '#f5f5f5',
-    icon: isDark ? '#aaa' : '#666',
-    bannerBg: isDark ? '#0d2b3a' : '#e3f2fd',
-    settingIconBg: isDark ? '#2c2c2e' : '#f5f5f5',
-  };
+  const themeColors = getThemeColors(isDark);
 
   // Check guest mode status on mount and when user changes
   useEffect(() => {
@@ -250,7 +240,7 @@ export default function ProfileScreen() {
               />
               <View style={styles.editActions}>
                 <TouchableOpacity
-                  style={[styles.cancelEditButton, { backgroundColor: isDark ? '#333' : '#f0f0f0' }]}
+                  style={[styles.cancelEditButton, { backgroundColor: themeColors.cancelEditButtonBg }]}
                   onPress={() => setEditing(false)}
                 >
                   <Text style={[styles.cancelEditText, { color: themeColors.subText }]}>Cancel</Text>
@@ -286,7 +276,7 @@ export default function ProfileScreen() {
             <>
               <Text style={[styles.profileName, { color: themeColors.text }]}>{displayUserName}</Text>
               <Text style={[styles.profileEmail, { color: themeColors.subText }]}>{email}</Text>
-              <TouchableOpacity style={[styles.editButton, { backgroundColor: isDark ? '#0a7ea420' : '#f0f9ff' }]} onPress={handleStartEdit}>
+              <TouchableOpacity style={[styles.editButton, { backgroundColor: themeColors.editButtonBg }]} onPress={handleStartEdit}>
                 <Ionicons name="pencil" size={16} color="#0a7ea4" />
                 <Text style={styles.editButtonText}>Edit Profile</Text>
               </TouchableOpacity>
@@ -346,7 +336,7 @@ export default function ProfileScreen() {
                     key={mode}
                     style={[
                       styles.themeOption,
-                      { backgroundColor: isDark ? '#333' : '#f0f0f0' },
+                      { backgroundColor: themeColors.themeOptionBg },
                       themeMode === mode && styles.themeOptionActive
                     ]}
                     onPress={() => {
@@ -423,7 +413,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Sign Out / Exit Guest Mode */}
-        <TouchableOpacity style={[styles.signOutButton, { backgroundColor: themeColors.card, borderColor: isDark ? '#e74c3c' : '#e74c3c' }]} onPress={handleSignOut}>
+        <TouchableOpacity style={[styles.signOutButton, { backgroundColor: themeColors.card, borderColor: themeColors.signOutBorder }]} onPress={handleSignOut}>
           <Ionicons name="log-out-outline" size={22} color="#e74c3c" />
           <Text style={styles.signOutText}>{guestModeActive ? 'Exit Guest Mode' : 'Sign Out'}</Text>
         </TouchableOpacity>
@@ -434,310 +424,3 @@ export default function ProfileScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    paddingBottom: 40,
-  },
-  guestBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#e3f2fd',
-    padding: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 12,
-    gap: 12,
-  },
-  guestBannerText: {
-    flex: 1,
-  },
-  guestBannerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0a7ea4',
-  },
-  guestBannerSubtitle: {
-    fontSize: 13,
-    color: '#666',
-    marginTop: 2,
-  },
-  syncBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#27ae60',
-    padding: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 12,
-    gap: 12,
-  },
-  syncBannerText: {
-    flex: 1,
-  },
-  syncBannerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  syncBannerSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
-  },
-  profileHeader: {
-    alignItems: 'center',
-    padding: 30,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  avatarLarge: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#0a7ea4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  avatarGuest: {
-    backgroundColor: '#888',
-  },
-  avatarLargeText: {
-    fontSize: 40,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  profileName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 4,
-  },
-  profileEmail: {
-    fontSize: 16,
-    color: '#888',
-    marginBottom: 16,
-  },
-  guestActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  createAccountButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#0a7ea4',
-    borderRadius: 25,
-  },
-  createAccountText: {
-    fontSize: 15,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  signInButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: '#0a7ea4',
-  },
-  signInText: {
-    fontSize: 15,
-    color: '#0a7ea4',
-    fontWeight: '600',
-  },
-  editButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#f0f9ff',
-    borderRadius: 20,
-  },
-  editButtonText: {
-    fontSize: 14,
-    color: '#0a7ea4',
-    fontWeight: '500',
-  },
-  editContainer: {
-    width: '100%',
-    paddingHorizontal: 20,
-  },
-  editInput: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 16,
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  editActions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  cancelEditButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
-  },
-  cancelEditText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  saveButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: '#0a7ea4',
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    fontSize: 14,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  statsSection: {
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#333',
-    marginTop: 8,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  settingsSection: {
-    paddingHorizontal: 20,
-    marginTop: 10,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  settingIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  settingText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  settingContent: {
-    flex: 1,
-  },
-  settingSubtext: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 2,
-  },
-  themeSelector: {
-    flexDirection: 'row',
-    marginTop: 8,
-    gap: 8,
-  },
-  themeOption: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#f0f0f0',
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  themeOptionActive: {
-    backgroundColor: '#e3f2fd',
-    borderColor: '#0a7ea4',
-  },
-  themeOptionText: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '500',
-  },
-  themeOptionTextActive: {
-    color: '#0a7ea4',
-    fontWeight: '600',
-  },
-  signOutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    marginHorizontal: 20,
-    marginTop: 20,
-    padding: 16,
-    borderRadius: 12,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#e74c3c',
-  },
-  signOutText: {
-    fontSize: 16,
-    color: '#e74c3c',
-    fontWeight: '600',
-  },
-  version: {
-    textAlign: 'center',
-    marginTop: 20,
-    fontSize: 14,
-    color: '#999',
-  },
-});

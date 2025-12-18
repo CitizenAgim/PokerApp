@@ -11,7 +11,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { getThemeColors, styles } from './_index.styles';
+import { getThemeColors, styles } from '@/styles/index.styles';
 
 export default function LandingScreen() {
   const [loading, setLoading] = useState(true);

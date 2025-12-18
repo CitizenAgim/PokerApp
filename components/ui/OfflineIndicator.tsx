@@ -1,14 +1,19 @@
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { isOnline } from '@/services/sync';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getThemeColors, styles } from './OfflineIndicator.styles';
 
 export function OfflineIndicator() {
   const [online, setOnline] = useState(true);
   const [visible, setVisible] = useState(false);
   const insets = useSafeAreaInsets();
   const translateY = useState(new Animated.Value(-50))[0];
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const colors = getThemeColors(isDark);
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -39,12 +44,13 @@ export function OfflineIndicator() {
         { 
           transform: [{ translateY }],
           paddingTop: insets.top > 0 ? insets.top : 8,
+          backgroundColor: colors.offlineBg,
         },
       ]}
     >
       <View style={styles.content}>
-        <Ionicons name="cloud-offline" size={18} color="#fff" />
-        <Text style={styles.text}>
+        <Ionicons name="cloud-offline" size={18} color={colors.offlineText} />
+        <Text style={[styles.text, { color: colors.offlineText }]}>
           You're offline. Changes will sync when connected.
         </Text>
       </View>
@@ -58,6 +64,10 @@ interface SyncStatusProps {
 }
 
 export function SyncStatus({ syncing, lastSyncTime }: SyncStatusProps) {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const colors = getThemeColors(isDark);
+
   const formatTime = (timestamp: number) => {
     const now = Date.now();
     const diff = now - timestamp;
@@ -72,53 +82,20 @@ export function SyncStatus({ syncing, lastSyncTime }: SyncStatusProps) {
     <View style={styles.syncStatus}>
       {syncing ? (
         <>
-          <Ionicons name="sync" size={14} color="#0a7ea4" />
-          <Text style={styles.syncText}>Syncing...</Text>
+          <Ionicons name="sync" size={14} color={colors.syncIcon} />
+          <Text style={[styles.syncText, { color: colors.syncText }]}>Syncing...</Text>
         </>
       ) : lastSyncTime ? (
         <>
-          <Ionicons name="checkmark-circle" size={14} color="#27ae60" />
-          <Text style={styles.syncText}>Synced {formatTime(lastSyncTime)}</Text>
+          <Ionicons name="checkmark-circle" size={14} color={colors.syncedIcon} />
+          <Text style={[styles.syncText, { color: colors.syncText }]}>Synced {formatTime(lastSyncTime)}</Text>
         </>
       ) : (
         <>
-          <Ionicons name="cloud-outline" size={14} color="#888" />
-          <Text style={styles.syncText}>Not synced</Text>
+          <Ionicons name="cloud-outline" size={14} color={colors.notSyncedIcon} />
+          <Text style={[styles.syncText, { color: colors.syncText }]}>Not synced</Text>
         </>
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#e74c3c',
-    zIndex: 1000,
-    paddingBottom: 8,
-    paddingHorizontal: 16,
-  },
-  content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  text: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  syncStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  syncText: {
-    fontSize: 12,
-    color: '#888',
-  },
-});

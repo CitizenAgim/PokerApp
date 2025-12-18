@@ -1,0 +1,301 @@
+import { StyleSheet } from 'react-native';
+import { Colors } from '@/constants/Colors';
+
+export const getThemeColors = (isDark: boolean) => ({
+  background: isDark ? '#000' : '#f5f5f5',
+  card: isDark ? '#1c1c1e' : '#fff',
+  text: isDark ? '#fff' : '#333',
+  subText: isDark ? '#aaa' : '#666',
+  border: isDark ? '#333' : '#e0e0e0',
+  inputBg: isDark ? '#2c2c2e' : '#f5f5f5',
+  icon: isDark ? '#aaa' : '#666',
+  bannerBg: isDark ? '#0d2b3a' : '#e3f2fd',
+  settingIconBg: isDark ? '#2c2c2e' : '#f5f5f5',
+  editButtonBg: isDark ? '#0a7ea420' : '#f0f9ff',
+  cancelEditButtonBg: isDark ? '#333' : '#f0f0f0',
+  themeOptionBg: isDark ? '#333' : '#f0f0f0',
+  signOutBorder: '#e74c3c',
+});
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  content: {
+    paddingBottom: 40,
+  },
+  guestBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    gap: 12,
+  },
+  guestBannerText: {
+    flex: 1,
+  },
+  guestBannerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0a7ea4',
+  },
+  guestBannerSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  syncBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#27ae60',
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    gap: 12,
+  },
+  syncBannerText: {
+    flex: 1,
+  },
+  syncBannerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  syncBannerSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  profileHeader: {
+    alignItems: 'center',
+    padding: 30,
+    borderBottomWidth: 1,
+  },
+  avatarLarge: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#0a7ea4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  avatarGuest: {
+    backgroundColor: '#888',
+  },
+  avatarLargeText: {
+    fontSize: 40,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  profileName: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  profileEmail: {
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  guestActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  createAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#0a7ea4',
+    borderRadius: 25,
+  },
+  createAccountText: {
+    fontSize: 15,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  signInButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: '#0a7ea4',
+  },
+  signInText: {
+    fontSize: 15,
+    color: '#0a7ea4',
+    fontWeight: '600',
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  editButtonText: {
+    fontSize: 14,
+    color: '#0a7ea4',
+    fontWeight: '500',
+  },
+  editContainer: {
+    width: '100%',
+    paddingHorizontal: 20,
+  },
+  editInput: {
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  editActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  cancelEditButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  cancelEditText: {
+    fontSize: 14,
+  },
+  saveButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#0a7ea4',
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  statsSection: {
+    padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  statValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    marginTop: 8,
+  },
+  statLabel: {
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  settingsSection: {
+    paddingHorizontal: 20,
+    marginTop: 10,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  settingIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  settingText: {
+    fontSize: 16,
+  },
+  settingContent: {
+    flex: 1,
+  },
+  settingSubtext: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  themeSelector: {
+    flexDirection: 'row',
+    marginTop: 8,
+    gap: 8,
+  },
+  themeOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  themeOptionActive: {
+    backgroundColor: '#e3f2fd',
+    borderColor: '#0a7ea4',
+  },
+  themeOptionText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  themeOptionTextActive: {
+    color: '#0a7ea4',
+    fontWeight: '600',
+  },
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+    borderWidth: 1,
+  },
+  signOutText: {
+    fontSize: 16,
+    color: '#e74c3c',
+    fontWeight: '600',
+  },
+  version: {
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 14,
+    color: '#999',
+  },
+});

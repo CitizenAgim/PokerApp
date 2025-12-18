@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Component, ErrorInfo, ReactNode } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { getThemeColors, styles } from './ErrorBoundary.styles';
 
 interface Props {
   children: ReactNode;
@@ -12,8 +14,8 @@ interface State {
   error: Error | null;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
+class ErrorBoundaryClass extends Component<Props & { isDark: boolean }, State> {
+  constructor(props: Props & { isDark: boolean }) {
     super(props);
     this.state = { hasError: false, error: null };
   }
@@ -36,18 +38,24 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
+      const { isDark } = this.props;
+      const colors = getThemeColors(isDark);
+
       return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
           <View style={styles.iconContainer}>
-            <Ionicons name="warning-outline" size={64} color="#e74c3c" />
+            <Ionicons name="warning-outline" size={64} color={colors.icon} />
           </View>
-          <Text style={styles.title}>Something went wrong</Text>
-          <Text style={styles.message}>
+          <Text style={[styles.title, { color: colors.title }]}>Something went wrong</Text>
+          <Text style={[styles.message, { color: colors.message }]}>
             {this.state.error?.message || 'An unexpected error occurred'}
           </Text>
-          <TouchableOpacity style={styles.retryButton} onPress={this.handleRetry}>
-            <Ionicons name="refresh" size={20} color="#fff" />
-            <Text style={styles.retryText}>Try Again</Text>
+          <TouchableOpacity 
+            style={[styles.retryButton, { backgroundColor: colors.buttonBg }]} 
+            onPress={this.handleRetry}
+          >
+            <Ionicons name="refresh" size={20} color={colors.buttonText} />
+            <Text style={[styles.retryText, { color: colors.buttonText }]}>Try Again</Text>
           </TouchableOpacity>
         </View>
       );
@@ -57,42 +65,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-    backgroundColor: '#f5f5f5',
-  },
-  iconContainer: {
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 8,
-  },
-  message: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 20,
-  },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0a7ea4',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 10,
-    gap: 8,
-  },
-  retryText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+export function ErrorBoundary(props: Props) {
+  const colorScheme = useColorScheme();
+  return <ErrorBoundaryClass {...props} isDark={colorScheme === 'dark'} />;
+}

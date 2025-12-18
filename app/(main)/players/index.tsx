@@ -1,6 +1,7 @@
 import { PlayerCardSkeleton } from '@/components/ui';
 import { usePlayers, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { getThemeColors, styles } from '@/styles/players/index.styles';
 import { Player } from '@/types/poker';
 import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,7 +11,6 @@ import { useState } from 'react';
 import {
     FlatList,
     RefreshControl,
-    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
@@ -27,17 +27,7 @@ export default function PlayersScreen() {
   const isDark = colorScheme === 'dark';
 
   // Theme colors
-  const themeColors = {
-    background: isDark ? '#000' : '#f5f5f5',
-    card: isDark ? '#1c1c1e' : '#fff',
-    text: isDark ? '#fff' : '#333',
-    subText: isDark ? '#aaa' : '#888',
-    border: isDark ? '#333' : '#e0e0e0',
-    inputBg: isDark ? '#1c1c1e' : '#fff',
-    placeholder: isDark ? '#666' : '#888',
-    icon: isDark ? '#aaa' : '#888',
-    chevron: isDark ? '#666' : '#ccc',
-  };
+  const themeColors = getThemeColors(isDark);
 
   const filteredPlayers = players.filter(player =>
     player.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -182,150 +172,3 @@ export default function PlayersScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  retryButton: {
-    marginTop: 16,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    backgroundColor: '#0a7ea4',
-    borderRadius: 8,
-  },
-  retryText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    margin: 16,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#333',
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 100,
-  },
-  playerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#0a7ea4',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  playerInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  playerName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  playerNotes: {
-    fontSize: 14,
-    color: '#888',
-    marginTop: 2,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 100,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 16,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#888',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0a7ea4',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 20,
-    gap: 8,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#0a7ea4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-});

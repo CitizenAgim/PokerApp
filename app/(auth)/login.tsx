@@ -18,7 +18,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { getThemeColors, styles } from './_login.styles';
+import { getThemeColors, styles } from '@/styles/auth/login.styles';
 
 WebBrowser.maybeCompleteAuthSession();
 
