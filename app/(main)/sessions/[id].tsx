@@ -26,7 +26,7 @@ import {
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { session, table, loading, updateButtonPosition, assignPlayerToSeat, endSession, updateSessionDetails } = useSession(id);
+  const { session, table, loading, updateButtonPosition, assignPlayerToSeat, updateSeatStack, endSession, updateSessionDetails } = useSession(id);
   const { clearSession } = useCurrentSession();
   const { players, createPlayer } = usePlayers();
   const { ninjaMode } = useSettings();
@@ -42,6 +42,11 @@ export default function SessionDetailScreen() {
   const [heroSeat, setHeroSeat] = useState<number | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Stack Editor State
+  const [showStackEditor, setShowStackEditor] = useState(false);
+  const [editingSeat, setEditingSeat] = useState<number | null>(null);
+  const [stackAmount, setStackAmount] = useState('');
+
   // Create Player State
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerNotes, setNewPlayerNotes] = useState('');
@@ -98,15 +103,23 @@ export default function SessionDetailScreen() {
     });
     if (!seat) return;
     
-    if (seat.playerId) {
+    if (seat.playerId || seat.player) {
       // Show options for occupied seat
       Alert.alert(
-        `Seat ${seatNumber}`,
-        undefined,
+        `Seat ${seatNumber} - ${seat.player?.name || 'Player'}`,
+        `Stack: ${seat.player?.stack || 0}`,
         [
           {
+            text: 'Edit Stack',
+            onPress: () => {
+              setEditingSeat(seatNumber);
+              setStackAmount(seat.player?.stack?.toString() || '');
+              setShowStackEditor(true);
+            }
+          },
+          {
             text: 'View Range',
-            onPress: () => router.push(`/(main)/players/${seat.playerId}/range`),
+            onPress: () => seat.playerId ? router.push(`/(main)/players/${seat.playerId}/range`) : Alert.alert('Info', 'Cannot view range for unknown player'),
           },
           {
             text: 'Set as Button',
@@ -132,12 +145,101 @@ export default function SessionDetailScreen() {
     }
   };
 
+  const handleAssignUnknownPlayer = async () => {
+    if (selectedSeat === null) return;
+    
+    // Prompt for stack size first
+    Alert.prompt(
+      'Unknown Player',
+      'Enter initial stack size:',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Add Player',
+          onPress: async (stack) => {
+            const initialStack = stack ? parseFloat(stack) : 0;
+            if (isNaN(initialStack)) {
+              Alert.alert('Error', 'Invalid stack size');
+              return;
+            }
+            
+            await assignPlayerToSeat(selectedSeat, null, initialStack, {
+              name: 'Unknown',
+              isTemp: true,
+            });
+            setShowPlayerPicker(false);
+            setSelectedSeat(null);
+          },
+        },
+      ],
+      'plain-text',
+      '',
+      'numeric'
+    );
+  };
+
+  const handleSaveStack = async () => {
+    if (editingSeat === null) return;
+    
+    const stack = parseFloat(stackAmount);
+    if (isNaN(stack)) {
+      Alert.alert('Error', 'Please enter a valid stack amount');
+      return;
+    }
+
+    // Find player name if possible, to handle legacy seats without player object
+    let playerName: string | undefined;
+    if (table) {
+      const seat = table.seats.find(s => {
+        const sNum = s.seatNumber ?? (typeof s.index === 'number' ? s.index + 1 : 0);
+        return sNum === editingSeat;
+      });
+      
+      if (seat) {
+        if (seat.player) {
+          playerName = seat.player.name;
+        } else if (seat.playerId) {
+          const found = players.find(p => p.id === seat.playerId);
+          if (found) playerName = found.name;
+        }
+      }
+    }
+
+    await updateSeatStack(editingSeat, stack, playerName);
+    setShowStackEditor(false);
+    setEditingSeat(null);
+    setStackAmount('');
+  };
+
   const handleAssignPlayer = async (playerId: string) => {
     if (selectedSeat === null) return;
     
-    await assignPlayerToSeat(selectedSeat, playerId);
-    setShowPlayerPicker(false);
-    setSelectedSeat(null);
+    // Prompt for stack size
+    Alert.prompt(
+      'Initial Stack',
+      'Enter stack size:',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Assign',
+          onPress: async (stack) => {
+            const initialStack = stack ? parseFloat(stack) : 0;
+            await assignPlayerToSeat(selectedSeat, playerId, initialStack);
+            setShowPlayerPicker(false);
+            setSelectedSeat(null);
+          },
+        },
+      ],
+      'plain-text',
+      '',
+      'numeric'
+    );
   };
 
   const handlePickImage = async () => {
@@ -611,6 +713,16 @@ export default function SessionDetailScreen() {
               <Text style={styles.createPlayerText}>Create New Player</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity
+              style={[styles.createPlayerRow, { backgroundColor: themeColors.createPlayerRowBg, borderBottomColor: themeColors.border }]}
+              onPress={handleAssignUnknownPlayer}
+            >
+              <View style={[styles.createPlayerIcon, { backgroundColor: '#6c757d' }]}>
+                <Ionicons name="person-outline" size={24} color="#fff" />
+              </View>
+              <Text style={styles.createPlayerText}>Unknown Player</Text>
+            </TouchableOpacity>
+
             <ScrollView style={styles.playerList} keyboardShouldPersistTaps="handled">
               {availablePlayers.length === 0 ? (
                 <View style={styles.emptyPlayers}>
@@ -897,6 +1009,51 @@ export default function SessionDetailScreen() {
                 onPress={handleRebuy}
               >
                 <Text style={styles.confirmButtonText}>Confirm Rebuy</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Stack Editor Modal */}
+      <Modal
+        visible={showStackEditor}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowStackEditor(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={[styles.centeredModalOverlay, { backgroundColor: themeColors.modalOverlay }]}
+        >
+          <View style={[styles.centeredModalContent, { backgroundColor: themeColors.modalBg }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: themeColors.border }]}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Edit Stack</Text>
+              <TouchableOpacity onPress={() => setShowStackEditor(false)}>
+                <Ionicons name="close" size={24} color={themeColors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.formContent}>
+              <Text style={[styles.label, { color: themeColors.text }]}>Stack Amount</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: themeColors.modalInputBg, color: themeColors.text, borderColor: themeColors.border }]}
+                value={stackAmount}
+                onChangeText={setStackAmount}
+                placeholder="0"
+                placeholderTextColor={themeColors.placeholder}
+                keyboardType="numeric"
+                autoFocus
+              />
+              <View style={{ height: 20 }} />
+            </View>
+
+            <View style={[styles.modalFooter, { backgroundColor: themeColors.modalFooterBg, borderTopColor: themeColors.border }]}>
+              <TouchableOpacity 
+                style={styles.confirmButton}
+                onPress={handleSaveStack}
+              >
+                <Text style={styles.confirmButtonText}>Save Stack</Text>
               </TouchableOpacity>
             </View>
           </View>

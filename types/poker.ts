@@ -126,6 +126,7 @@ export interface TablePlayer {
   name: string;
   photoUrl?: string;
   isTemp: boolean; // True if the player is not saved to the global database
+  stack?: number;
 }
 
 export interface Seat {

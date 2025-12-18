@@ -167,7 +167,8 @@ interface UseSessionResult {
   refresh: () => Promise<void>;
   endSession: (cashOut?: number, endTime?: number, startTime?: number, buyIn?: number) => Promise<void>;
   updateButtonPosition: (position: number) => Promise<void>;
-  assignPlayerToSeat: (seatNumber: number, playerId: string | null) => Promise<void>;
+  assignPlayerToSeat: (seatNumber: number, playerId: string | null, initialStack?: number, playerDetails?: Partial<TablePlayer>) => Promise<void>;
+  updateSeatStack: (seatNumber: number, stack: number, playerName?: string) => Promise<void>;
   getPositionForSeat: (seatNumber: number) => Position | null;
   updateSessionDetails: (updates: { buyIn?: number; cashOut?: number; startTime?: number; endTime?: number }) => Promise<void>;
 }
@@ -266,28 +267,42 @@ export function useSession(sessionId: string): UseSessionResult {
       await localStorage.saveSession(updatedSession);
       setSession(updatedSession);
     }
-
-    // Table updates are local only now
-    /*
-    if (await isOnline()) {
-      try {
-        await sessionsFirebase.updateButtonPosition(sessionId, position);
-      } catch (err) {
-        console.warn('Could not update button position in cloud:', err);
-      }
-    }
-    */
   }, [table, session, sessionId]);
 
   const assignPlayerToSeat = useCallback(async (
     seatNumber: number,
-    playerId: string | null
+    playerId: string | null,
+    initialStack?: number,
+    playerDetails?: Partial<TablePlayer>
   ): Promise<void> => {
     if (!table) return;
 
     const updatedSeats = table.seats.map(seat => {
       if (seat.seatNumber === seatNumber) {
-        return { ...seat, playerId: playerId || undefined };
+        if (!playerId && !playerDetails) {
+          // Clearing the seat
+          return { ...seat, playerId: null, player: null };
+        }
+        
+        // Assigning player
+        const newSeat = { ...seat, playerId: playerId || undefined };
+        
+        // If we have player details (e.g. Unknown Player or just stack update)
+        if (playerDetails || initialStack !== undefined) {
+          newSeat.player = {
+            ...(seat.player || {}),
+            id: playerId || seat.player?.id || `temp-${Date.now()}`,
+            name: playerDetails?.name || seat.player?.name || 'Unknown',
+            isTemp: playerDetails?.isTemp ?? seat.player?.isTemp ?? false,
+            ...playerDetails,
+          };
+          
+          if (initialStack !== undefined) {
+            newSeat.player.stack = initialStack;
+          }
+        }
+        
+        return newSeat;
       }
       return seat;
     });
@@ -307,17 +322,50 @@ export function useSession(sessionId: string): UseSessionResult {
       await localStorage.saveSession(updatedSession);
       setSession(updatedSession);
     }
+  }, [table, session, sessionId]);
 
-    // Table updates are local only now
-    /*
-    if (await isOnline()) {
-      try {
-        await sessionsFirebase.assignPlayerToSeat(sessionId, seatNumber, playerId);
-      } catch (err) {
-        console.warn('Could not assign player in cloud:', err);
+  const updateSeatStack = useCallback(async (seatNumber: number, stack: number, playerName?: string): Promise<void> => {
+    if (!table) return;
+
+    const updatedSeats = table.seats.map(seat => {
+      if (seat.seatNumber === seatNumber) {
+        if (seat.player) {
+          return {
+            ...seat,
+            player: {
+              ...seat.player,
+              stack
+            }
+          };
+        } else if (seat.playerId) {
+          // Create player object if missing (legacy migration)
+          return {
+            ...seat,
+            player: {
+              id: seat.playerId,
+              name: playerName || 'Unknown',
+              isTemp: false,
+              stack
+            }
+          };
+        }
       }
+      return seat;
+    });
+
+    const updatedTable: Table = {
+      ...table,
+      seats: updatedSeats,
+    };
+
+    setTable(updatedTable);
+
+    if (session) {
+      await localStorage.setCurrentSession({ session, table: updatedTable });
+      const updatedSession = { ...session, table: updatedTable };
+      await localStorage.saveSession(updatedSession);
+      setSession(updatedSession);
     }
-    */
   }, [table, session, sessionId]);
 
   const getPositionForSeat = useCallback((seatNumber: number): Position | null => {
@@ -372,6 +420,7 @@ export function useSession(sessionId: string): UseSessionResult {
     endSession,
     updateButtonPosition,
     assignPlayerToSeat,
+    updateSeatStack,
     getPositionForSeat,
     updateSessionDetails,
   };

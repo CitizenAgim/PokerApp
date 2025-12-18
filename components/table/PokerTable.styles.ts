@@ -76,8 +76,22 @@ export const styles = StyleSheet.create({
     zIndex: 1,
   },
   seatPosition: {
-    fontSize: 9,
+    fontSize: 8,
+    fontWeight: '700',
     color: '#666',
+    zIndex: 1,
+    marginBottom: 2,
+  },
+  seatStack: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#333',
+    zIndex: 1,
+    marginTop: 2,
+  },
+  seatContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 1,
   },
   seatTextLight: {

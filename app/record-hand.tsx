@@ -4,11 +4,11 @@ import { ThemedView } from '@/components/themed-view';
 import { usePlayers, useSession } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getThemeColors, styles } from '@/styles/record-hand.styles';
-import { Seat, TablePlayer } from '@/types/poker';
+import { Seat } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, TextInput, TouchableOpacity, View, Modal, FlatList, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import { Alert, FlatList, Image, Modal, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function RecordHandScreen() {

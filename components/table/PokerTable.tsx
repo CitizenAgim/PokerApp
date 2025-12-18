@@ -1,4 +1,4 @@
-import { Seat, TablePlayer, Player } from '@/types/poker';
+import { Player, Seat, TablePlayer } from '@/types/poker';
 import { getPositionName } from '@/utils/positionCalculator';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -73,12 +73,19 @@ function SeatView({ seat, player, isButton, isHero, onPress, buttonPosition, the
               <View style={styles.seatOverlay} />
             </>
           )}
-          <Text style={[styles.seatPlayerName, { color: themeColors.text }, showPhoto && styles.seatTextLight]} numberOfLines={1}>
-            {player.name}
-          </Text>
-          <Text style={[styles.seatPosition, { color: themeColors.subText }, showPhoto && styles.seatTextLight]}>
-            {positionName}
-          </Text>
+          <View style={styles.seatContent}>
+            <Text style={[styles.seatPosition, { color: themeColors.subText }, showPhoto && styles.seatTextLight]}>
+              {positionName}
+            </Text>
+            <Text style={[styles.seatPlayerName, { color: themeColors.text }, showPhoto && styles.seatTextLight]} numberOfLines={1}>
+              {player.name}
+            </Text>
+            {player.stack !== undefined && (
+              <Text style={[styles.seatStack, { color: themeColors.text }, showPhoto && styles.seatTextLight]}>
+                ${player.stack}
+              </Text>
+            )}
+          </View>
         </>
       ) : (
         <>
@@ -153,14 +160,16 @@ export function PokerTable({
           
           // Resolve player: either from seat.player or lookup in players array
           let player = seat.player;
-          if (!player && seat.playerId && players) {
+          
+          if (seat.playerId && players) {
             const found = players.find(p => p.id === seat.playerId);
             if (found) {
               player = {
+                ...(player || {}), // Keep stack and other session props
                 id: found.id,
                 name: found.name,
                 photoUrl: found.photoUrl,
-                isTemp: false // Assuming looked up players are not temp
+                isTemp: false,
               };
             }
           }
