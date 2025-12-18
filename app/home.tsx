@@ -5,16 +5,14 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { disableGuestMode, isGuestMode } from '@/services/guestMode';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
+import { getThemeColors, styles } from './_home.styles';
 
 export default function HomeScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-
-  const themeColors = {
-    disabledButton: isDark ? '#333' : '#ccc',
-  };
+  const colors = getThemeColors(isDark);
 
   const handleSignOut = async () => {
     try {
@@ -65,7 +63,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={[styles.menuButton, styles.menuButtonDisabled, { backgroundColor: themeColors.disabledButton }]}
+          style={[styles.menuButton, styles.menuButtonDisabled, { backgroundColor: colors.disabledButton }]}
           disabled
         >
           <ThemedText style={styles.menuButtonText}>🎰 Sessions</ThemedText>
@@ -81,53 +79,3 @@ export default function HomeScreen() {
     </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 80,
-    paddingHorizontal: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 40,
-  },
-  menuContainer: {
-    gap: 16,
-  },
-  menuButton: {
-    backgroundColor: '#0a7ea4',
-    padding: 20,
-    borderRadius: 12,
-  },
-  menuButtonDisabled: {
-    backgroundColor: '#ccc',
-    opacity: 0.7,
-  },
-  menuButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  menuDescription: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
-    marginTop: 4,
-  },
-  signOutButton: {
-    position: 'absolute',
-    bottom: 50,
-    left: 20,
-    right: 20,
-    padding: 15,
-    backgroundColor: '#ff4444',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  signOutText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  }
-});

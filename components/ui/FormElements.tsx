@@ -2,13 +2,13 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
-    StyleSheet,
     Text,
     TextInput,
     TextInputProps,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { getThemeColors, styles } from './FormElements.styles';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -19,28 +19,6 @@ interface InputProps extends TextInputProps {
   onRightIconPress?: () => void;
   containerStyle?: object;
 }
-
-const getThemeColors = (isDark: boolean) => ({
-  label: isDark ? '#FFFFFF' : '#333',
-  inputBg: isDark ? '#333333' : '#f5f5f5',
-  inputBgFocused: isDark ? '#1c1c1e' : '#fff',
-  inputBgError: isDark ? '#3a1c1c' : '#fef2f2',
-  inputText: isDark ? '#FFFFFF' : '#333',
-  placeholder: isDark ? '#666666' : '#999',
-  icon: isDark ? '#AAAAAA' : '#888',
-  borderFocused: '#0a7ea4',
-  borderError: '#e74c3c',
-  hint: isDark ? '#AAAAAA' : '#888',
-  
-  // Button colors
-  btnPrimary: '#0a7ea4',
-  btnSecondary: isDark ? '#333333' : '#f0f0f0',
-  btnDanger: '#e74c3c',
-  btnDisabled: isDark ? '#444444' : '#ccc',
-  btnTextPrimary: '#fff',
-  btnTextSecondary: isDark ? '#FFFFFF' : '#333',
-  btnTextDisabled: isDark ? '#666666' : '#888',
-});
 
 export function Input({
   label,
@@ -239,80 +217,3 @@ export function Button({
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  inputContainerFocused: {
-    borderColor: '#0a7ea4',
-    backgroundColor: '#fff',
-  },
-  inputContainerError: {
-    borderColor: '#e74c3c',
-    backgroundColor: '#fef2f2',
-  },
-  input: {
-    flex: 1,
-    padding: 14,
-    fontSize: 16,
-    color: '#333',
-  },
-  inputWithLeftIcon: {
-    paddingLeft: 8,
-  },
-  inputWithRightIcon: {
-    paddingRight: 8,
-  },
-  leftIcon: {
-    marginLeft: 14,
-  },
-  rightIconButton: {
-    padding: 14,
-  },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-    gap: 4,
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#e74c3c',
-  },
-  hintText: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 6,
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-  },
-  buttonGhost: {
-    borderWidth: 1,
-    borderColor: '#0a7ea4',
-  },
-  buttonIcon: {
-    marginRight: 8,
-  },
-  buttonText: {
-    fontWeight: '600',
-  },
-});
