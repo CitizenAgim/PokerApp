@@ -40,18 +40,36 @@ export default function HomeScreen() {
     }
   };
 
+  const handleSignIn = () => {
+    router.push('/(auth)/login');
+  };
+
   const user = auth.currentUser;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
-        <Text style={[styles.greeting, { color: themeColors.text }]}>
-          Hello, {user?.displayName || user?.email?.split('@')[0] || 'Player'}!
-        </Text>
-        <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
-          <Ionicons name="log-out-outline" size={24} color={themeColors.subText} />
-        </TouchableOpacity>
+        <View>
+          <Text style={[styles.greeting, { color: themeColors.text }]}>
+            Hello, {user?.displayName || user?.email?.split('@')[0] || 'Guest'}!
+          </Text>
+          {!user && (
+            <Text style={{ fontSize: 12, color: themeColors.subText, marginTop: 2 }}>
+              Sign in to sync your data
+            </Text>
+          )}
+        </View>
+        
+        {user ? (
+          <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
+            <Ionicons name="log-out-outline" size={24} color={themeColors.subText} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity onPress={handleSignIn} style={styles.signInBtn}>
+            <Text style={styles.signInText}>Sign In</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Quick Actions */}

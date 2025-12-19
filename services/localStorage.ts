@@ -232,6 +232,12 @@ export async function deleteSession(id: string): Promise<void> {
   const filtered = sessions.filter(s => s.id !== id);
   await setItem(KEYS.SESSIONS, filtered);
   await addPendingSync('sessions', 'delete', { id });
+
+  // Check if this was the current session and clear it if so
+  const current = await getCurrentSession();
+  if (current && current.session.id === id) {
+    await clearCurrentSession();
+  }
 }
 
 // ============================================

@@ -33,6 +33,17 @@ export const styles = StyleSheet.create({
   signOutBtn: {
     padding: 8,
   },
+  signInBtn: {
+    backgroundColor: '#0a7ea4',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  signInText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
   quickActions: {
     padding: 20,
   },

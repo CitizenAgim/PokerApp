@@ -263,9 +263,9 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Profile Card */}
+        {/* Profile Header */}
         {!guestModeActive && (
-          <View style={[styles.profileCard, { backgroundColor: themeColors.card }]}>
+          <View style={styles.profileHeader}>
             {editing ? (
                <View style={styles.editContainer}>
                   <TextInput 
@@ -278,25 +278,23 @@ export default function SettingsScreen() {
                   />
                   <View style={styles.editActions}>
                     <TouchableOpacity onPress={() => setEditing(false)} style={styles.editActionBtn}>
-                      <Ionicons name="close-circle" size={28} color={themeColors.subText} />
+                      <Ionicons name="close-circle" size={32} color={themeColors.subText} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={handleSaveProfile} style={styles.editActionBtn}>
-                      <Ionicons name="checkmark-circle" size={28} color="#0a7ea4" />
+                      <Ionicons name="checkmark-circle" size={32} color="#0a7ea4" />
                     </TouchableOpacity>
                   </View>
                </View>
             ) : (
-              <View style={styles.profileRow}>
-                <View style={styles.avatarContainer}>
+              <View style={styles.profileContent}>
+                <TouchableOpacity onPress={handleStartEdit} style={styles.avatarContainer}>
                    <Text style={styles.avatarText}>{displayUserName.charAt(0).toUpperCase()}</Text>
-                </View>
-                <View style={styles.profileInfo}>
-                  <Text style={[styles.profileName, { color: themeColors.text }]}>{displayUserName}</Text>
-                  <Text style={[styles.profileEmail, { color: themeColors.subText }]}>{email}</Text>
-                </View>
-                <TouchableOpacity onPress={handleStartEdit} style={styles.editButton}>
-                  <Ionicons name="pencil" size={20} color={themeColors.icon} />
+                   <View style={[styles.editBadge, { backgroundColor: themeColors.card }]}>
+                     <Ionicons name="pencil" size={12} color={themeColors.icon} />
+                   </View>
                 </TouchableOpacity>
+                <Text style={[styles.profileName, { color: themeColors.text }]}>{displayUserName}</Text>
+                <Text style={[styles.profileEmail, { color: themeColors.subText }]}>{email}</Text>
               </View>
             )}
           </View>
@@ -665,60 +663,70 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
     marginTop: 2,
   },
-  profileCard: {
-    borderRadius: 12,
-    marginBottom: 8,
-    padding: 16,
+  profileHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+    marginTop: 8,
   },
-  profileRow: {
-    flexDirection: 'row',
+  profileContent: {
     alignItems: 'center',
   },
   avatarContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: '#0a7ea4',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginBottom: 12,
+    position: 'relative',
   },
   avatarText: {
-    fontSize: 20,
+    fontSize: 32,
     fontWeight: '600',
     color: '#fff',
   },
-  profileInfo: {
-    flex: 1,
+  editBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   profileName: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   profileEmail: {
-    fontSize: 14,
-  },
-  editButton: {
-    padding: 8,
+    fontSize: 16,
   },
   editContainer: {
-    flexDirection: 'row',
+    width: '100%',
     alignItems: 'center',
-    gap: 12,
   },
   editInput: {
-    flex: 1,
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 16,
+    width: '80%',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 16,
   },
   editActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 24,
   },
   editActionBtn: {
-    padding: 4,
+    padding: 8,
   },
   signOutButton: {
     flexDirection: 'row',

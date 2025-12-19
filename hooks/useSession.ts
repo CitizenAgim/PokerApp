@@ -448,6 +448,21 @@ export function useCurrentSession(): UseCurrentSessionResult {
   useEffect(() => {
     const load = async () => {
       const current = await localStorage.getCurrentSession();
+      
+      // Self-healing: Check if the current session actually exists in the main list
+      if (current) {
+        const allSessions = await localStorage.getSessions();
+        const exists = allSessions.some(s => s.id === current.session.id);
+        
+        if (!exists) {
+          console.warn('Found ghost active session (not in history), clearing...');
+          await localStorage.clearCurrentSession();
+          setCurrentSession(null);
+          setLoading(false);
+          return;
+        }
+      }
+
       setCurrentSession(current);
       setLoading(false);
     };
