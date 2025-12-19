@@ -51,6 +51,7 @@ export default function SignUpScreen() {
         .then(async () => {
           // Disable guest mode when user signs up
           await disableGuestMode();
+          router.replace('/(main)');
         })
         .catch((error) => {
           Alert.alert('Error', error.message);
@@ -80,6 +81,7 @@ export default function SignUpScreen() {
       await createUserWithEmailAndPassword(auth, email, password);
       // Disable guest mode when user signs up
       await disableGuestMode();
+      router.replace('/(main)');
     } catch (error: any) {
       Alert.alert('Error', error.message);
       setLoading(false);

@@ -1,5 +1,5 @@
 import { auth } from '@/config/firebase';
-import { useCurrentSession, usePlayers, useSessions } from '@/hooks';
+import { useCurrentSession, useCurrentUser, usePlayers, useSessions } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { startAutoSync, stopAutoSync } from '@/services/sync';
 import { getThemeColors, styles } from '@/styles/main/index.styles';
@@ -44,7 +44,7 @@ export default function HomeScreen() {
     router.push('/(auth)/login');
   };
 
-  const user = auth.currentUser;
+  const { user } = useCurrentUser();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>

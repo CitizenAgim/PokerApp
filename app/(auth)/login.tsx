@@ -50,6 +50,7 @@ export default function LoginScreen() {
         .then(async () => {
           // Disable guest mode when user signs in
           await disableGuestMode();
+          router.replace('/(main)');
         })
         .catch((error) => {
           Alert.alert('Error', error.message);
@@ -69,6 +70,7 @@ export default function LoginScreen() {
       await signInWithEmailAndPassword(auth, email, password);
       // Disable guest mode when user signs in
       await disableGuestMode();
+      router.replace('/(main)');
     } catch (error: any) {
       Alert.alert('Error', error.message);
       setLoading(false);
