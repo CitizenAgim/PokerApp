@@ -6,7 +6,6 @@ export { OfflineIndicator, SyncStatus } from './OfflineIndicator';
 export {
     FriendCardSkeleton,
     PlayerCardSkeleton,
-    ProfileSkeleton,
     RangeGridSkeleton,
     SessionCardSkeleton,
     Skeleton

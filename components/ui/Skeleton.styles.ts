@@ -53,8 +53,4 @@ export const styles = StyleSheet.create({
   rangeRow: {
     flexDirection: 'row',
   },
-  profile: {
-    alignItems: 'center',
-    padding: 30,
-  },
 });

@@ -124,16 +124,3 @@ export function RangeGridSkeleton() {
   );
 }
 
-export function ProfileSkeleton() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const colors = getThemeColors(isDark);
-
-  return (
-    <View style={[styles.profile, { backgroundColor: colors.cardBg }]}>
-      <Skeleton width={100} height={100} borderRadius={50} />
-      <Skeleton width={150} height={24} style={{ marginTop: 16 }} />
-      <Skeleton width={200} height={16} style={{ marginTop: 8 }} />
-    </View>
-  );
-}
