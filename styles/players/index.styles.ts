@@ -10,6 +10,12 @@ export const getThemeColors = (isDark: boolean) => ({
   placeholder: isDark ? '#666' : '#888',
   icon: isDark ? '#aaa' : '#888',
   chevron: isDark ? '#666' : '#ccc',
+  modalOverlay: 'rgba(0,0,0,0.5)',
+  modalBg: isDark ? '#1c1c1e' : '#fff',
+  filterChipBg: isDark ? '#2c2c2e' : '#f0f0f0',
+  filterChipActiveBg: isDark ? '#1a3a4a' : '#e0f7fa',
+  filterChipText: isDark ? '#aaa' : '#666',
+  filterChipActiveText: '#0a7ea4',
 });
 
 export const styles = StyleSheet.create({
@@ -50,14 +56,18 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 10,
     borderWidth: 1,
+    gap: 8,
   },
   searchIcon: {
-    marginRight: 8,
+    // marginRight: 8, // Removed in favor of gap
   },
   searchInput: {
     flex: 1,
     paddingVertical: 12,
     fontSize: 16,
+  },
+  filterButton: {
+    padding: 8,
   },
   listContent: {
     paddingHorizontal: 16,
@@ -146,5 +156,85 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  filterSection: {
+    marginBottom: 24,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  filterOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  filterChipActive: {
+    borderColor: '#0a7ea4',
+  },
+  filterChipText: {
+    fontSize: 14,
+  },
+  filterChipTextActive: {
+    fontWeight: '600',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+  resetButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  resetButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  applyButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    backgroundColor: '#0a7ea4',
+  },
+  applyButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

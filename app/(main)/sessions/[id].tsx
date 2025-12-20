@@ -53,6 +53,7 @@ export default function SessionDetailScreen() {
   const [showCreatePlayerModal, setShowCreatePlayerModal] = useState(false);
   const [heroSeat, setHeroSeat] = useState<number | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterLocation, setFilterLocation] = useState<string | null>(null);
   
   // Stack Editor State
   const [showStackEditor, setShowStackEditor] = useState(false);
@@ -92,6 +93,13 @@ export default function SessionDetailScreen() {
   // Result View State
   const [activeTab, setActiveTab] = useState<'overview' | 'graph'>('overview');
 
+  // Get all unique locations from players
+  const allLocations = useMemo(() => {
+    const locs = new Set<string>();
+    players.forEach(p => p.locations?.forEach(l => locs.add(l)));
+    return Array.from(locs).sort();
+  }, [players]);
+
   // Players not already at the table
   const availablePlayers = useMemo(() => {
     if (!table || !table.seats) return players;
@@ -106,9 +114,13 @@ export default function SessionDetailScreen() {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(p => p.name.toLowerCase().includes(query));
     }
+
+    if (filterLocation) {
+      filtered = filtered.filter(p => p.locations?.includes(filterLocation));
+    }
     
     return filtered;
-  }, [players, table, searchQuery]);
+  }, [players, table, searchQuery, filterLocation]);
 
   const handleSeatPress = (seatNumber: number) => {
     if (!table) return;
@@ -310,6 +322,7 @@ export default function SessionDetailScreen() {
         name: newPlayerName.trim(),
         notes: newPlayerNotes.trim() || undefined,
         photoUrl: newPlayerPhoto,
+        locations: session?.location ? [session.location] : [],
       });
       
       setShowCreatePlayerModal(false);
@@ -744,6 +757,43 @@ export default function SessionDetailScreen() {
                 </TouchableOpacity>
               )}
             </View>
+
+            {/* Location Filter */}
+            {allLocations.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip, 
+                    { backgroundColor: themeColors.filterChipBg },
+                    !filterLocation && [styles.filterChipActive, { backgroundColor: themeColors.filterChipActiveBg, borderColor: themeColors.filterChipActiveBg }]
+                  ]}
+                  onPress={() => setFilterLocation(null)}
+                >
+                  <Text style={[
+                    styles.filterChipText, 
+                    { color: themeColors.filterChipText },
+                    !filterLocation && [styles.filterChipTextActive, { color: themeColors.filterChipActiveText }]
+                  ]}>All</Text>
+                </TouchableOpacity>
+                {allLocations.map(loc => (
+                  <TouchableOpacity
+                    key={loc}
+                    style={[
+                      styles.filterChip, 
+                      { backgroundColor: themeColors.filterChipBg },
+                      filterLocation === loc && [styles.filterChipActive, { backgroundColor: themeColors.filterChipActiveBg, borderColor: themeColors.filterChipActiveBg }]
+                    ]}
+                    onPress={() => setFilterLocation(filterLocation === loc ? null : loc)}
+                  >
+                    <Text style={[
+                      styles.filterChipText, 
+                      { color: themeColors.filterChipText },
+                      filterLocation === loc && [styles.filterChipTextActive, { color: themeColors.filterChipActiveText }]
+                    ]}>{loc}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
 
             <TouchableOpacity
               style={[styles.createPlayerRow, { backgroundColor: themeColors.createPlayerRowBg, borderBottomColor: themeColors.border }]}

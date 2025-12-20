@@ -61,7 +61,7 @@ interface UsePlayersResult {
   error: Error | null;
   refresh: () => Promise<void>;
   refreshPlayers: () => Promise<void>;
-  createPlayer: (player: { name: string; notes?: string; photoUrl?: string }) => Promise<Player>;
+  createPlayer: (player: { name: string; notes?: string; photoUrl?: string; locations?: string[] }) => Promise<Player>;
   updatePlayer: (player: UpdatePlayer) => Promise<void>;
   deletePlayer: (id: string) => Promise<void>;
 }
@@ -107,7 +107,7 @@ export function usePlayers(): UsePlayersResult {
   }, []);
 
   const createPlayer = useCallback(async (
-    playerData: { name: string; notes?: string; photoUrl?: string }
+    playerData: { name: string; notes?: string; photoUrl?: string; locations?: string[] }
   ): Promise<Player> => {
     // Use Firebase user ID if logged in, otherwise use guest ID
     const userId = auth.currentUser?.uid || GUEST_USER_ID;

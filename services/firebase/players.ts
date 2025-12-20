@@ -30,6 +30,7 @@ interface FirestorePlayer {
   name: string;
   photoUrl?: string;
   color?: string;
+  locations?: string[];
   notes?: string;
   notesList?: NoteEntry[];
   createdBy: string;
@@ -43,6 +44,7 @@ function toPlayer(id: string, data: FirestorePlayer): Player {
     name: data.name,
     photoUrl: data.photoUrl,
     color: data.color,
+    locations: data.locations || [],
     notes: data.notes,
     notesList: data.notesList || [],
     createdBy: data.createdBy,
@@ -58,6 +60,7 @@ function toFirestoreData(player: CreatePlayer | UpdatePlayer): Partial<Firestore
   // Only include photoUrl if it's defined (not undefined)
   if ('photoUrl' in player && player.photoUrl !== undefined) data.photoUrl = player.photoUrl;
   if ('color' in player && player.color !== undefined) data.color = player.color;
+  if ('locations' in player && player.locations !== undefined) data.locations = player.locations;
   // Only include notes if it's defined (not undefined)
   if ('notes' in player && player.notes !== undefined) data.notes = player.notes;
   if ('notesList' in player && player.notesList !== undefined) data.notesList = player.notesList;

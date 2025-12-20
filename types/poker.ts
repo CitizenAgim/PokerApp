@@ -84,6 +84,7 @@ export interface Player {
   name: string;
   photoUrl?: string;
   color?: string;         // Hex color code for player categorization
+  locations?: string[];   // Places where the player plays
   notes?: string; // Deprecated, kept for backward compatibility
   notesList?: NoteEntry[];
   createdAt: number;      // Unix timestamp

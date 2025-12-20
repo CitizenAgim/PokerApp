@@ -36,6 +36,10 @@ export const getThemeColors = (isDark: boolean) => ({
   modalHeaderBorder: isDark ? '#333' : '#e0e0e0',
   tableFelt: '#27ae60', // Keep felt green
   tableRail: '#3e2723', // Keep rail wood
+  filterChipBg: isDark ? '#2c2c2e' : '#f0f0f0',
+  filterChipActiveBg: isDark ? '#1a3a4a' : '#e0f7fa',
+  filterChipText: isDark ? '#aaa' : '#666',
+  filterChipActiveText: '#0a7ea4',
 });
 
 export const styles = StyleSheet.create({
@@ -328,6 +332,32 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     height: '100%',
+  },
+  filterScroll: {
+    maxHeight: 50,
+    marginBottom: 8,
+    paddingHorizontal: 16,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  filterChipActive: {
+    backgroundColor: '#e0f7fa',
+    borderColor: '#0a7ea4',
+  },
+  filterChipText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  filterChipTextActive: {
+    color: '#0a7ea4',
+    fontWeight: '600',
   },
   playerList: {
     padding: 16,

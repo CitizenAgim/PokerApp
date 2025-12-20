@@ -1,16 +1,19 @@
 import { PlayerCardSkeleton } from '@/components/ui';
 import { usePlayers, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import * as localStorage from '@/services/localStorage';
 import { getThemeColors, styles } from '@/styles/players/index.styles';
 import { Player } from '@/types/poker';
 import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     FlatList,
+    Modal,
     RefreshControl,
+    ScrollView,
     Text,
     TextInput,
     TouchableOpacity,
@@ -23,15 +26,39 @@ export default function PlayersScreen() {
   const { ninjaMode } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filterLocation, setFilterLocation] = useState<string | null>(null);
+  const [storedLocations, setStoredLocations] = useState<string[]>([]);
+
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
   // Theme colors
   const themeColors = getThemeColors(isDark);
 
-  const filteredPlayers = players.filter(player =>
-    player.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Load stored locations
+  useEffect(() => {
+    localStorage.getLocations().then(setStoredLocations);
+  }, []);
+
+  // Get unique locations from players and stored locations
+  const availableLocations = useMemo(() => {
+    const locations = new Set<string>(storedLocations);
+    players.forEach(player => {
+      if (player.locations && player.locations.length > 0) {
+        player.locations.forEach(loc => locations.add(loc));
+      }
+    });
+    return Array.from(locations).sort();
+  }, [players, storedLocations]);
+
+  const filteredPlayers = useMemo(() => {
+    return players.filter(player => {
+      const matchesSearch = player.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesLocation = !filterLocation || (player.locations && player.locations.includes(filterLocation));
+      return matchesSearch && matchesLocation;
+    });
+  }, [players, searchQuery, filterLocation]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -71,20 +98,24 @@ export default function PlayersScreen() {
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="people-outline" size={64} color={themeColors.icon} />
-      <Text style={[styles.emptyTitle, { color: themeColors.text }]}>No Players Yet</Text>
+      <Text style={[styles.emptyTitle, { color: themeColors.text }]}>No Players Found</Text>
       <Text style={[styles.emptyText, { color: themeColors.subText }]}>
-        Add players to track their hand ranges
+        {searchQuery || filterLocation 
+          ? 'Try adjusting your search or filters' 
+          : 'Add players to track their hand ranges'}
       </Text>
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => {
-          haptics.lightTap();
-          router.push('/(main)/players/new');
-        }}
-      >
-        <Ionicons name="add" size={20} color="#fff" />
-        <Text style={styles.addButtonText}>Add Player</Text>
-      </TouchableOpacity>
+      {!searchQuery && !filterLocation && (
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => {
+            haptics.lightTap();
+            router.push('/(main)/players/new');
+          }}
+        >
+          <Ionicons name="add" size={20} color="#fff" />
+          <Text style={styles.addButtonText}>Add Player</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -138,6 +169,16 @@ export default function PlayersScreen() {
             <Ionicons name="close-circle" size={20} color={themeColors.icon} />
           </TouchableOpacity>
         )}
+        <TouchableOpacity 
+          style={styles.filterButton}
+          onPress={() => setShowFilterModal(true)}
+        >
+          <Ionicons 
+            name={filterLocation ? "filter" : "filter-outline"} 
+            size={20} 
+            color={filterLocation ? '#0a7ea4' : themeColors.icon} 
+          />
+        </TouchableOpacity>
       </View>
 
       {/* Players List */}
@@ -169,6 +210,81 @@ export default function PlayersScreen() {
           <Ionicons name="add" size={28} color="#fff" />
         </TouchableOpacity>
       )}
+
+      {/* Filter Modal */}
+      <Modal
+        visible={showFilterModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.modalBg }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Filter Players</Text>
+              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+                <Ionicons name="close" size={24} color={themeColors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.filterSection}>
+              <Text style={[styles.filterLabel, { color: themeColors.text }]}>Location</Text>
+              <View style={styles.filterOptions}>
+                {availableLocations.map(location => (
+                  <TouchableOpacity
+                    key={location}
+                    style={[
+                      styles.filterChip,
+                      { backgroundColor: themeColors.filterChipBg },
+                      filterLocation === location && styles.filterChipActive,
+                      filterLocation === location && { backgroundColor: themeColors.filterChipActiveBg }
+                    ]}
+                    onPress={() => {
+                      haptics.selectionChanged();
+                      setFilterLocation(filterLocation === location ? null : location);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        { color: themeColors.filterChipText },
+                        filterLocation === location && styles.filterChipTextActive,
+                        filterLocation === location && { color: themeColors.filterChipActiveText }
+                      ]}
+                    >
+                      {location}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                {availableLocations.length === 0 && (
+                  <Text style={{ color: themeColors.subText }}>No locations found</Text>
+                )}
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={[styles.resetButton, { borderColor: themeColors.border }]}
+                onPress={() => {
+                  haptics.lightTap();
+                  setFilterLocation(null);
+                }}
+              >
+                <Text style={[styles.resetButtonText, { color: themeColors.text }]}>Reset</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.applyButton}
+                onPress={() => {
+                  haptics.lightTap();
+                  setShowFilterModal(false);
+                }}
+              >
+                <Text style={styles.applyButtonText}>Show Results</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

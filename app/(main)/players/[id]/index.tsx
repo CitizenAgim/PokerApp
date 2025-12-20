@@ -68,6 +68,11 @@ export default function PlayerDetailScreen() {
   const [editingNote, setEditingNote] = useState<NoteEntry | null>(null);
   const [editNoteContent, setEditNoteContent] = useState('');
 
+  // Location state
+  const [isAddingLocation, setIsAddingLocation] = useState(false);
+  const [newLocation, setNewLocation] = useState('');
+  const [addingLocation, setAddingLocation] = useState(false);
+
   // Initialize edit form when player loads or modal opens
   useEffect(() => {
     if (player && showEditModal) {
@@ -248,6 +253,61 @@ export default function PlayerDetailScreen() {
     } catch (error) {
       Alert.alert('Error', 'Failed to update note');
     }
+  };
+
+  const handleAddLocation = async () => {
+    if (!newLocation.trim()) return;
+    
+    try {
+      setAddingLocation(true);
+      const currentLocations = player?.locations || [];
+      if (currentLocations.includes(newLocation.trim())) {
+        Alert.alert('Error', 'Location already exists');
+        return;
+      }
+      
+      const updatedLocations = [...currentLocations, newLocation.trim()];
+      
+      await updatePlayer({
+        id,
+        locations: updatedLocations,
+      });
+      
+      setNewLocation('');
+      setIsAddingLocation(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add location');
+    } finally {
+      setAddingLocation(false);
+    }
+  };
+
+  const handleDeleteLocation = (locationToDelete: string) => {
+    Alert.alert(
+      'Delete Location',
+      `Are you sure you want to remove "${locationToDelete}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const updatedLocations = (player?.locations || []).filter(
+                loc => loc !== locationToDelete
+              );
+              
+              await updatePlayer({
+                id,
+                locations: updatedLocations,
+              });
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete location');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleDelete = () => {
@@ -521,6 +581,88 @@ export default function PlayerDetailScreen() {
             </View>
           </View>
         ))}
+      </View>
+
+      {/* Locations Section */}
+      <View style={styles.sectionContainer}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Locations</Text>
+          {!isAddingLocation && (
+            <TouchableOpacity 
+              style={[styles.addNoteButton, { backgroundColor: themeColors.editButtonBg }]}
+              onPress={() => setIsAddingLocation(true)}
+            >
+              <Ionicons name="add" size={16} color="#0a7ea4" />
+              <Text style={styles.addNoteButtonText}>Add</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {isAddingLocation && (
+          <View style={[styles.addNoteContainer, { backgroundColor: themeColors.card, borderColor: themeColors.border, marginBottom: 12 }]}>
+            <TextInput
+              style={[styles.addNoteInput, { color: themeColors.text, height: 40 }]}
+              value={newLocation}
+              onChangeText={setNewLocation}
+              placeholder="Enter location..."
+              placeholderTextColor={themeColors.placeholder}
+              autoFocus
+            />
+            <View style={styles.addNoteActions}>
+              <TouchableOpacity 
+                style={styles.cancelNoteButton}
+                onPress={() => {
+                  setIsAddingLocation(false);
+                  setNewLocation('');
+                }}
+              >
+                <Text style={[styles.cancelNoteText, { color: themeColors.subText }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[
+                  styles.saveNoteButton,
+                  !newLocation.trim() && styles.saveNoteButtonDisabled
+                ]}
+                onPress={handleAddLocation}
+                disabled={!newLocation.trim() || addingLocation}
+              >
+                {addingLocation ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.saveNoteText}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        <View style={[styles.notesList, { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }]}>
+          {player.locations && player.locations.length > 0 ? (
+            player.locations.map((loc, index) => (
+              <TouchableOpacity
+                key={index}
+                style={{ 
+                  backgroundColor: themeColors.card, 
+                  borderColor: themeColors.border, 
+                  borderWidth: 1, 
+                  borderRadius: 16, 
+                  paddingHorizontal: 12, 
+                  paddingVertical: 6, 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  gap: 6 
+                }}
+                onPress={() => handleDeleteLocation(loc)}
+              >
+                <Ionicons name="location" size={14} color={themeColors.subText} />
+                <Text style={{ color: themeColors.text, fontSize: 14 }}>{loc}</Text>
+                <Ionicons name="close-circle" size={16} color={themeColors.subText} />
+              </TouchableOpacity>
+            ))
+          ) : (
+            !isAddingLocation && <Text style={[styles.emptyNoteText, { color: themeColors.subText }]}>No locations added yet.</Text>
+          )}
+        </View>
       </View>
 
       {/* Stats */}
