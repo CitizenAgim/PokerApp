@@ -10,16 +10,16 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 // Force refresh
@@ -159,7 +159,7 @@ export default function SessionDetailScreen() {
         },
         {
           text: 'Add Player',
-          onPress: async (stack) => {
+          onPress: async (stack?: string) => {
             const initialStack = stack ? parseFloat(stack) : 0;
             if (isNaN(initialStack)) {
               Alert.alert('Error', 'Invalid stack size');
@@ -228,7 +228,7 @@ export default function SessionDetailScreen() {
         },
         {
           text: 'Assign',
-          onPress: async (stack) => {
+          onPress: async (stack?: string) => {
             const initialStack = stack ? parseFloat(stack) : 0;
             await assignPlayerToSeat(selectedSeat, playerId, initialStack);
             setShowPlayerPicker(false);
