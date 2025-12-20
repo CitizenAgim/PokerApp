@@ -98,7 +98,19 @@ export function MyComponent() {
 
 ---
 
-## 4. Checklist for New UI Code
+## 5. Keyboard Handling
+
+**Requirement:** Every screen with input fields must handle the keyboard gracefully.
+
+*   **No Overlap:** The keyboard must never cover the active input field or the primary action button (e.g., "Submit", "Save").
+*   **Consistency:** Use `KeyboardAvoidingView` on all forms.
+*   **Header Awareness:** When using `KeyboardAvoidingView` with a navigation header, always account for the header height using `keyboardVerticalOffset`.
+    *   Use `useHeaderHeight()` from `@react-navigation/elements` to get the correct offset.
+*   **Dismissal:** Ensure the keyboard can be dismissed by tapping outside the input (use `ScrollView` with `keyboardShouldPersistTaps="handled"` or a `TouchableWithoutFeedback` wrapper).
+
+---
+
+## 6. Checklist for New UI Code
 
 Before marking a task as complete, verify:
 - [ ] Is the styling separated into a `*.styles.ts` file?
@@ -107,4 +119,5 @@ Before marking a task as complete, verify:
 - [ ] Does the component look correct in Light Mode?
 - [ ] Does the layout break on a small screen?
 - [ ] Are there any hardcoded dimensions that should be relative?
+- [ ] Is the keyboard handling implemented correctly (no overlapping)?
 

@@ -3,12 +3,15 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import * as localStorage from '@/services/localStorage';
 import { getThemeColors, styles } from '@/styles/sessions/new.styles';
 import { Ionicons } from '@expo/vector-icons';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
     FlatList,
+    InputAccessoryView,
+    Keyboard,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -24,6 +27,7 @@ const CURRENCIES = ['USD', 'EUR', 'GBP'];
 
 export default function NewSessionScreen() {
   const router = useRouter();
+  const headerHeight = useHeaderHeight();
   const { createSession } = useSessions();
   const { startSession } = useCurrentSession();
   const { currency: defaultCurrency } = useSettings();
@@ -32,6 +36,7 @@ export default function NewSessionScreen() {
 
   // Theme colors
   const themeColors = getThemeColors(isDark);
+  const inputAccessoryViewID = 'uniqueID';
 
   // Form State
   const [gameType, setGameType] = useState(GAME_TYPES[0]);
@@ -162,11 +167,13 @@ export default function NewSessionScreen() {
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: themeColors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={headerHeight}
     >
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
         {/* Header Icon */}
         <View style={styles.iconContainer}>
@@ -244,6 +251,7 @@ export default function NewSessionScreen() {
                   keyboardType="numeric"
                   placeholder="1"
                   placeholderTextColor={themeColors.placeholder}
+                  inputAccessoryViewID={inputAccessoryViewID}
                 />
               </View>
               <View style={styles.halfInput}>
@@ -255,6 +263,7 @@ export default function NewSessionScreen() {
                   keyboardType="numeric"
                   placeholder="2"
                   placeholderTextColor={themeColors.placeholder}
+                  inputAccessoryViewID={inputAccessoryViewID}
                 />
               </View>
               <View style={styles.halfInput}>
@@ -266,6 +275,7 @@ export default function NewSessionScreen() {
                   keyboardType="numeric"
                   placeholder="-"
                   placeholderTextColor={themeColors.placeholder}
+                  inputAccessoryViewID={inputAccessoryViewID}
                 />
               </View>
             </View>
@@ -282,6 +292,7 @@ export default function NewSessionScreen() {
                 keyboardType="numeric"
                 placeholder="0"
                 placeholderTextColor={themeColors.placeholder}
+                inputAccessoryViewID={inputAccessoryViewID}
               />
             </View>
             <View style={[styles.inputGroup, { flex: 1 }]}>
@@ -293,11 +304,22 @@ export default function NewSessionScreen() {
                 keyboardType="numeric"
                 placeholder="100"
                 placeholderTextColor={themeColors.placeholder}
+                inputAccessoryViewID={inputAccessoryViewID}
               />
             </View>
           </View>
         </View>
       </ScrollView>
+
+      {Platform.OS === 'ios' && (
+        <InputAccessoryView nativeID={inputAccessoryViewID}>
+          <View style={{ backgroundColor: themeColors.inputBg, borderTopWidth: 1, borderTopColor: themeColors.border, padding: 10, alignItems: 'flex-end' }}>
+            <TouchableOpacity onPress={() => Keyboard.dismiss()}>
+              <Text style={{ color: '#0a7ea4', fontWeight: 'bold', fontSize: 16 }}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </InputAccessoryView>
+      )}
 
       {/* Footer */}
       <View style={[styles.footer, { backgroundColor: themeColors.card, borderTopColor: themeColors.border }]}>
