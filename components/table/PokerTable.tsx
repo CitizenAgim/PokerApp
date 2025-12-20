@@ -48,6 +48,26 @@ function SeatView({ seat, player, isButton, isHero, onPress, buttonPosition, the
   const showPhoto = player?.photoUrl && !isNinjaMode;
   const { x, y } = getSeatPosition(seatNum);
 
+  // Determine background color
+  let backgroundColor = themeColors.seatBg;
+  let borderColor = themeColors.seatBorder;
+  let borderWidth = 2;
+
+  if (player) {
+    backgroundColor = themeColors.seatOccupiedBg;
+    borderColor = themeColors.seatOccupiedBorder;
+  }
+  
+  if (isHero) {
+    backgroundColor = themeColors.seatHeroBg;
+    borderColor = themeColors.seatHeroBorder;
+  }
+
+  if (player?.color) {
+    borderColor = player.color;
+    borderWidth = 4;
+  }
+
   return (
     <TouchableOpacity
       style={[
@@ -57,11 +77,10 @@ function SeatView({ seat, player, isButton, isHero, onPress, buttonPosition, the
             { translateX: x },
             { translateY: y },
           ],
-          backgroundColor: themeColors.seatBg,
-          borderColor: themeColors.seatBorder,
+          backgroundColor,
+          borderColor,
+          borderWidth,
         },
-        player && [styles.seatOccupied, { backgroundColor: themeColors.seatOccupiedBg, borderColor: themeColors.seatOccupiedBorder }],
-        isHero && [styles.seatHero, { backgroundColor: themeColors.seatHeroBg, borderColor: themeColors.seatHeroBorder }],
       ]}
       onPress={onPress}
     >
@@ -174,6 +193,7 @@ export function PokerTable({
                 id: found.id,
                 name: found.name,
                 photoUrl: found.photoUrl,
+                color: found.color,
                 isTemp: false,
               };
             }

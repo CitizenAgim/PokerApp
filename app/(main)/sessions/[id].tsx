@@ -23,12 +23,24 @@ import {
 } from 'react-native';
 
 // Force refresh
+const PLAYER_COLORS = [
+  { name: 'Green', hex: '#2ecc71' },
+  { name: 'Red', hex: '#e74c3c' },
+  { name: 'Yellow', hex: '#f1c40f' },
+  { name: 'Orange', hex: '#e67e22' },
+  { name: 'Purple', hex: '#9b59b6' },
+  { name: 'Blue', hex: '#3498db' },
+  { name: 'Cyan', hex: '#1abc9c' },
+  { name: 'Pink', hex: '#e91e63' },
+  { name: 'Gray', hex: '#95a5a6' },
+];
+
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { session, table, loading, updateButtonPosition, assignPlayerToSeat, updateSeatStack, endSession, updateSessionDetails } = useSession(id);
   const { clearSession } = useCurrentSession();
-  const { players, createPlayer } = usePlayers();
+  const { players, createPlayer, updatePlayer } = usePlayers();
   const { ninjaMode } = useSettings();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -46,6 +58,10 @@ export default function SessionDetailScreen() {
   const [showStackEditor, setShowStackEditor] = useState(false);
   const [editingSeat, setEditingSeat] = useState<number | null>(null);
   const [stackAmount, setStackAmount] = useState('');
+
+  // Color Picker State
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
 
   // Create Player State
   const [newPlayerName, setNewPlayerName] = useState('');
@@ -115,6 +131,17 @@ export default function SessionDetailScreen() {
               setEditingSeat(seatNumber);
               setStackAmount(seat.player?.stack?.toString() || '');
               setShowStackEditor(true);
+            }
+          },
+          {
+            text: 'Set Color',
+            onPress: () => {
+              if (seat.playerId) {
+                setEditingPlayerId(seat.playerId);
+                setShowColorPicker(true);
+              } else {
+                Alert.alert('Info', 'Cannot set color for unknown player');
+              }
             }
           },
           {
@@ -212,6 +239,21 @@ export default function SessionDetailScreen() {
     setShowStackEditor(false);
     setEditingSeat(null);
     setStackAmount('');
+  };
+
+  const handleColorSelect = async (color: string) => {
+    if (!editingPlayerId) return;
+
+    try {
+      await updatePlayer({
+        id: editingPlayerId,
+        color: color === '#95a5a6' ? undefined : color, // Reset if Gray is selected
+      });
+      setShowColorPicker(false);
+      setEditingPlayerId(null);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update player color');
+    }
   };
 
   const handleAssignPlayer = async (playerId: string) => {
@@ -1065,6 +1107,48 @@ export default function SessionDetailScreen() {
             </View>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Color Picker Modal */}
+      <Modal
+        visible={showColorPicker}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowColorPicker(false)}
+      >
+        <View style={[styles.centeredModalOverlay, { backgroundColor: themeColors.modalOverlay }]}>
+          <View style={[styles.centeredModalContent, { backgroundColor: themeColors.modalBg }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: themeColors.border }]}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Select Color</Text>
+              <TouchableOpacity onPress={() => setShowColorPicker(false)}>
+                <Ionicons name="close" size={24} color={themeColors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={[styles.formContent, { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 16, paddingVertical: 20 }]}>
+              {PLAYER_COLORS.map((color) => (
+                <TouchableOpacity
+                  key={color.hex}
+                  style={{
+                    width: 50,
+                    height: 50,
+                    borderRadius: 25,
+                    backgroundColor: color.hex,
+                    borderWidth: 2,
+                    borderColor: themeColors.border,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                  onPress={() => handleColorSelect(color.hex)}
+                >
+                  {color.name === 'Gray' && (
+                    <Ionicons name="close" size={24} color="#fff" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
       </Modal>
     </View>
   );
