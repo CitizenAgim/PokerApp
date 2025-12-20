@@ -53,9 +53,9 @@ export default function SessionDetailScreen() {
   const [newPlayerPhoto, setNewPlayerPhoto] = useState<string | undefined>(undefined);
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
 
-  // Rebuy State
-  const [showRebuyModal, setShowRebuyModal] = useState(false);
-  const [rebuyAmount, setRebuyAmount] = useState('');
+  // Edit Buy-in State
+  const [showEditBuyInModal, setShowEditBuyInModal] = useState(false);
+  const [editBuyInAmount, setEditBuyInAmount] = useState('');
 
   // End Session State
   const [showEndSessionModal, setShowEndSessionModal] = useState(false);
@@ -289,23 +289,29 @@ export default function SessionDetailScreen() {
     }
   };
 
-  const handleRebuy = async () => {
-    if (!rebuyAmount) return;
-    const amount = parseFloat(rebuyAmount);
-    if (isNaN(amount) || amount <= 0) {
+  const openEditBuyInModal = () => {
+    if (session) {
+      setEditBuyInAmount(session.buyIn?.toString() || '');
+      setShowEditBuyInModal(true);
+    }
+  };
+
+  const handleEditBuyIn = async () => {
+    if (!editBuyInAmount) return;
+    const amount = parseFloat(editBuyInAmount);
+    if (isNaN(amount) || amount < 0) {
       Alert.alert('Error', 'Please enter a valid amount');
       return;
     }
 
     try {
-      const currentBuyIn = session?.buyIn || 0;
       await updateSessionDetails({
-        buyIn: currentBuyIn + amount
+        buyIn: amount
       });
-      setShowRebuyModal(false);
-      setRebuyAmount('');
+      setShowEditBuyInModal(false);
+      setEditBuyInAmount('');
     } catch (error) {
-      Alert.alert('Error', 'Failed to add rebuy');
+      Alert.alert('Error', 'Failed to update buy-in');
     }
   };
 
@@ -644,10 +650,10 @@ export default function SessionDetailScreen() {
         
         <TouchableOpacity 
           style={[styles.actionButton, { backgroundColor: isDark ? '#1b3a24' : '#e8f5e9' }]}
-          onPress={() => setShowRebuyModal(true)}
+          onPress={openEditBuyInModal}
         >
-          <Ionicons name="add-circle" size={20} color="#2e7d32" />
-          <Text style={[styles.actionText, { color: '#2e7d32' }]}>Rebuy</Text>
+          <Ionicons name="cash-outline" size={20} color="#2e7d32" />
+          <Text style={[styles.actionText, { color: '#2e7d32' }]}>Edit Buy-in</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -971,12 +977,12 @@ export default function SessionDetailScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Rebuy Modal */}
+      {/* Edit Buy-in Modal */}
       <Modal
-        visible={showRebuyModal}
+        visible={showEditBuyInModal}
         animationType="fade"
         transparent
-        onRequestClose={() => setShowRebuyModal(false)}
+        onRequestClose={() => setShowEditBuyInModal(false)}
       >
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -984,18 +990,18 @@ export default function SessionDetailScreen() {
         >
           <View style={[styles.centeredModalContent, { backgroundColor: themeColors.modalBg }]}>
             <View style={[styles.modalHeader, { borderBottomColor: themeColors.border }]}>
-              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Add Rebuy</Text>
-              <TouchableOpacity onPress={() => setShowRebuyModal(false)}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Edit Buy-in</Text>
+              <TouchableOpacity onPress={() => setShowEditBuyInModal(false)}>
                 <Ionicons name="close" size={24} color={themeColors.text} />
               </TouchableOpacity>
             </View>
             
             <View style={styles.formContent}>
-              <Text style={[styles.label, { color: themeColors.text }]}>Amount to Add</Text>
+              <Text style={[styles.label, { color: themeColors.text }]}>Buy-in Amount</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: themeColors.modalInputBg, color: themeColors.text, borderColor: themeColors.border }]}
-                value={rebuyAmount}
-                onChangeText={setRebuyAmount}
+                value={editBuyInAmount}
+                onChangeText={setEditBuyInAmount}
                 placeholder="0"
                 placeholderTextColor={themeColors.placeholder}
                 keyboardType="numeric"
@@ -1007,9 +1013,9 @@ export default function SessionDetailScreen() {
             <View style={[styles.modalFooter, { backgroundColor: themeColors.modalFooterBg, borderTopColor: themeColors.border }]}>
               <TouchableOpacity 
                 style={[styles.confirmButton, { backgroundColor: '#2e7d32' }]}
-                onPress={handleRebuy}
+                onPress={handleEditBuyIn}
               >
-                <Text style={styles.confirmButtonText}>Confirm Rebuy</Text>
+                <Text style={styles.confirmButtonText}>Save Changes</Text>
               </TouchableOpacity>
             </View>
           </View>
