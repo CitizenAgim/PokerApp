@@ -323,9 +323,7 @@ export function useRange(
     const cached = getCachedRanges(playerId);
     if (cached) {
       const cachedRange = cached.ranges[rangeKey];
-      if (cachedRange) {
-        _setRange(cachedRange);
-      }
+      _setRange(cachedRange || createEmptyRange());
       setLoading(false);
       return;
     }
@@ -341,9 +339,7 @@ export function useRange(
           if (localRanges) {
             setCachedRanges(localRanges);
           }
-          if (localRange) {
-            _setRange(localRange);
-          }
+          _setRange(localRange || createEmptyRange());
           setLoading(false);
         }
       } catch (err) {

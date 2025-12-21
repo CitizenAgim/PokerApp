@@ -153,4 +153,24 @@ describe('propagateRangeUpdates', () => {
     const lateUpdate = updates.find(u => u.position === 'late');
     expect(lateUpdate?.range['AA']).toBe('manual-selected');
   });
+
+  it('should NOT propagate to other actions', async () => {
+    // User reported issue: "call-raise" propagating to "3bet"
+    const sourceRange = createRange(['AA']);
+    mockGetRange.mockResolvedValue({});
+
+    const updates = await propagateRangeUpdates(
+      'early',
+      'call-raise',
+      sourceRange,
+      mockGetRange
+    );
+
+    // Verify all updates are for 'call-raise'
+    updates.forEach(update => {
+      expect(update.action).toBe('call-raise');
+      expect(update.action).not.toBe('3bet');
+      expect(update.action).not.toBe('open-raise');
+    });
+  });
 });
