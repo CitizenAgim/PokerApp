@@ -40,6 +40,7 @@ export type Position = 'early' | 'middle' | 'late' | 'blinds';
 export type Action = 
   | 'open-raise'   // First to raise
   | 'call'         // Calling an open
+  | 'call-raise'   // Calling a raise
   | '3bet'         // Re-raising an open
   | 'call-3bet'    // Calling a 3-bet
   | '4bet';        // Re-raising a 3-bet
@@ -51,14 +52,17 @@ export interface RangeCategory {
 
 // All position-action combinations
 export const RANGE_CATEGORIES: RangeCategory[] = [
-  { position: 'early', action: 'open-raise' },
   { position: 'early', action: 'call' },
+  { position: 'early', action: 'open-raise' },
+  { position: 'early', action: 'call-raise' },
   { position: 'early', action: '3bet' },
-  { position: 'middle', action: 'open-raise' },
   { position: 'middle', action: 'call' },
+  { position: 'middle', action: 'open-raise' },
+  { position: 'middle', action: 'call-raise' },
   { position: 'middle', action: '3bet' },
-  { position: 'late', action: 'open-raise' },
   { position: 'late', action: 'call' },
+  { position: 'late', action: 'open-raise' },
+  { position: 'late', action: 'call-raise' },
   { position: 'late', action: '3bet' },
   { position: 'blinds', action: 'call' },
   { position: 'blinds', action: '3bet' },

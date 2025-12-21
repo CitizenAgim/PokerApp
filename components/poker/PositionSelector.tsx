@@ -26,8 +26,9 @@ const POSITIONS: { id: Position; label: string; shortLabel: string }[] = [
 ];
 
 const ACTIONS: { id: Action; label: string }[] = [
-  { id: 'open-raise', label: 'Open Raise' },
   { id: 'call', label: 'Call' },
+  { id: 'open-raise', label: 'Raise' },
+  { id: 'call-raise', label: 'Call Raise' },
   { id: '3bet', label: '3-Bet' },
   { id: 'call-3bet', label: 'Call 3-Bet' },
   { id: '4bet', label: '4-Bet' },
