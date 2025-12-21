@@ -30,7 +30,7 @@ const POSITIONS: { id: Position; label: string; color: string }[] = [
 ];
 
 const ACTIONS: { id: Action; label: string }[] = [
-  { id: 'call', label: 'Call' },
+  { id: 'call', label: 'Limp/Call' },
   { id: 'open-raise', label: 'Raise' },
   { id: 'call-raise', label: 'Call Raise' },
   { id: '3bet', label: '3-Bet' },
