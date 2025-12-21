@@ -174,6 +174,7 @@ interface UseSessionResult {
   updateSeatStack: (seatNumber: number, stack: number, playerName?: string) => Promise<void>;
   getPositionForSeat: (seatNumber: number) => Position | null;
   updateSessionDetails: (updates: { buyIn?: number; cashOut?: number; startTime?: number; endTime?: number }) => Promise<void>;
+  updateHeroSeat: (seatIndex: number | undefined) => Promise<void>;
 }
 
 export function useSession(sessionId: string): UseSessionResult {
@@ -250,6 +251,27 @@ export function useSession(sessionId: string): UseSessionResult {
     // Trigger sync immediately
     syncPendingChanges().catch(err => console.warn('Background sync failed:', err));
   }, [session, sessionId]);
+
+  const updateHeroSeat = useCallback(async (seatIndex: number | undefined): Promise<void> => {
+    if (!table) return;
+
+    const updatedTable: Table = {
+      ...table,
+      heroSeatIndex: seatIndex,
+    };
+
+    setTable(updatedTable);
+
+    // Update current session
+    if (session) {
+      await localStorage.setCurrentSession({ session, table: updatedTable });
+      
+      // Also update the session in the main list to persist table state
+      const updatedSession = { ...session, table: updatedTable };
+      await localStorage.saveSession(updatedSession);
+      setSession(updatedSession);
+    }
+  }, [table, session, sessionId]);
 
   const updateButtonPosition = useCallback(async (position: number): Promise<void> => {
     if (!table) return;
@@ -426,6 +448,7 @@ export function useSession(sessionId: string): UseSessionResult {
     updateSeatStack,
     getPositionForSeat,
     updateSessionDetails,
+    updateHeroSeat,
   };
 }
 
@@ -439,35 +462,38 @@ interface UseCurrentSessionResult {
   startSession: (session: Session) => Promise<void>;
   endSession: (cashOut?: number, endTime?: number, startTime?: number, buyIn?: number) => Promise<void>;
   clearSession: () => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 export function useCurrentSession(): UseCurrentSessionResult {
   const [currentSession, setCurrentSession] = useState<localStorage.CurrentSessionData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const load = async () => {
-      const current = await localStorage.getCurrentSession();
+  const load = useCallback(async () => {
+    setLoading(true);
+    const current = await localStorage.getCurrentSession();
+    
+    // Self-healing: Check if the current session actually exists in the main list
+    if (current) {
+      const allSessions = await localStorage.getSessions();
+      const exists = allSessions.some(s => s.id === current.session.id);
       
-      // Self-healing: Check if the current session actually exists in the main list
-      if (current) {
-        const allSessions = await localStorage.getSessions();
-        const exists = allSessions.some(s => s.id === current.session.id);
-        
-        if (!exists) {
-          console.warn('Found ghost active session (not in history), clearing...');
-          await localStorage.clearCurrentSession();
-          setCurrentSession(null);
-          setLoading(false);
-          return;
-        }
+      if (!exists) {
+        console.warn('Found ghost active session (not in history), clearing...');
+        await localStorage.clearCurrentSession();
+        setCurrentSession(null);
+        setLoading(false);
+        return;
       }
+    }
 
-      setCurrentSession(current);
-      setLoading(false);
-    };
-    load();
+    setCurrentSession(current);
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const startSession = useCallback(async (session: Session): Promise<void> => {
     // Create initial table with empty seats
@@ -538,6 +564,7 @@ export function useCurrentSession(): UseCurrentSessionResult {
     startSession,
     endSession,
     clearSession,
+    refresh: load,
   };
 }
 

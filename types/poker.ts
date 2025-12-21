@@ -148,6 +148,7 @@ export interface TableState {
 export interface Table {
   sessionId: string;
   buttonPosition: number; // Seat number with the button (1-9)
+  heroSeatIndex?: number; // Seat number of the hero (1-9)
   seats: Seat[];          // Array of 9 seats
 }
 

@@ -4,9 +4,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { startAutoSync, stopAutoSync } from '@/services/sync';
 import { getThemeColors, styles } from '@/styles/main/index.styles';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import {
     Text,
     TouchableOpacity,
@@ -16,14 +16,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { currentSession, loading } = useCurrentSession();
-  const { players } = usePlayers();
-  const { sessions } = useSessions();
+  const { currentSession, loading, refresh: refreshCurrentSession } = useCurrentSession();
+  const { players, refresh: refreshPlayers } = usePlayers();
+  const { sessions, refresh: refreshSessions } = useSessions();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
   // Theme colors
   const themeColors = getThemeColors(isDark);
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refreshCurrentSession();
+      refreshSessions();
+      refreshPlayers();
+    }, [refreshCurrentSession, refreshSessions, refreshPlayers])
+  );
 
   // Start auto-sync when component mounts
   useEffect(() => {

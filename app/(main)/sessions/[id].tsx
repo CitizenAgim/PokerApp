@@ -38,7 +38,7 @@ const PLAYER_COLORS = [
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { session, table, loading, updateButtonPosition, assignPlayerToSeat, updateSeatStack, endSession, updateSessionDetails } = useSession(id);
+  const { session, table, loading, updateButtonPosition, assignPlayerToSeat, updateSeatStack, endSession, updateSessionDetails, updateHeroSeat } = useSession(id);
   const { clearSession } = useCurrentSession();
   const { players, createPlayer, updatePlayer } = usePlayers();
   const { ninjaMode } = useSettings();
@@ -51,7 +51,6 @@ export default function SessionDetailScreen() {
   const [selectedSeat, setSelectedSeat] = useState<number | null>(null);
   const [showPlayerPicker, setShowPlayerPicker] = useState(false);
   const [showCreatePlayerModal, setShowCreatePlayerModal] = useState(false);
-  const [heroSeat, setHeroSeat] = useState<number | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterLocation, setFilterLocation] = useState<string | null>(null);
   
@@ -165,8 +164,8 @@ export default function SessionDetailScreen() {
             onPress: () => updateButtonPosition(seatNumber),
           },
           {
-            text: heroSeat === seatNumber ? 'Remove as Hero' : 'Set as Hero',
-            onPress: () => setHeroSeat(heroSeat === seatNumber ? undefined : seatNumber),
+            text: table?.heroSeatIndex === seatNumber ? 'Remove as Hero' : 'Set as Hero',
+            onPress: () => updateHeroSeat(table?.heroSeatIndex === seatNumber ? undefined : seatNumber),
           },
           {
             text: 'Remove Player',
@@ -686,7 +685,7 @@ export default function SessionDetailScreen() {
         seats={table.seats}
         players={players}
         buttonPosition={table.buttonPosition}
-        heroSeat={heroSeat}
+        heroSeat={table.heroSeatIndex}
         onSeatPress={handleSeatPress}
         themeColors={themeColors}
         isNinjaMode={ninjaMode}
