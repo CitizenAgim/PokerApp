@@ -168,7 +168,7 @@ interface UseSessionResult {
   loading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
-  endSession: (cashOut?: number, endTime?: number, startTime?: number, buyIn?: number) => Promise<void>;
+  endSession: (cashOut?: number, endTime?: number, startTime?: number, buyIn?: number, pauseDuration?: number) => Promise<void>;
   updateButtonPosition: (position: number) => Promise<void>;
   assignPlayerToSeat: (seatNumber: number, playerId: string | null, initialStack?: number, playerDetails?: Partial<TablePlayer>) => Promise<void>;
   updateSeatStack: (seatNumber: number, stack: number, playerName?: string) => Promise<void>;
@@ -226,13 +226,18 @@ export function useSession(sessionId: string): UseSessionResult {
     }
   }, [sessionId]);
 
-  const endSession = useCallback(async (cashOut?: number, endTime?: number, startTime?: number, buyIn?: number): Promise<void> => {
+  const endSession = useCallback(async (cashOut?: number, endTime?: number, startTime?: number, buyIn?: number, pauseDuration?: number): Promise<void> => {
     if (!session) return;
 
     const finalEndTime = endTime || Date.now();
     const finalStartTime = startTime || session.startTime;
     const finalBuyIn = buyIn !== undefined ? buyIn : session.buyIn;
-    const duration = finalEndTime - finalStartTime;
+    const finalPauseDuration = pauseDuration || 0;
+    
+    // Calculate duration in milliseconds
+    const totalDurationMs = finalEndTime - finalStartTime;
+    const pauseDurationMs = finalPauseDuration * 60 * 1000; // Convert minutes to ms
+    const duration = Math.max(0, totalDurationMs - pauseDurationMs);
 
     const updatedSession: Session = {
       ...session,
@@ -242,6 +247,7 @@ export function useSession(sessionId: string): UseSessionResult {
       cashOut,
       buyIn: finalBuyIn,
       duration,
+      pauseDuration: finalPauseDuration,
     };
 
     await localStorage.saveSession(updatedSession);
@@ -460,7 +466,7 @@ interface UseCurrentSessionResult {
   currentSession: localStorage.CurrentSessionData | null;
   loading: boolean;
   startSession: (session: Session) => Promise<void>;
-  endSession: (cashOut?: number, endTime?: number, startTime?: number, buyIn?: number) => Promise<void>;
+  endSession: (cashOut?: number, endTime?: number, startTime?: number, buyIn?: number, pauseDuration?: number) => Promise<void>;
   clearSession: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -528,12 +534,16 @@ export function useCurrentSession(): UseCurrentSessionResult {
     */
   }, []);
 
-  const endSession = useCallback(async (cashOut?: number, endTime?: number, startTime?: number, buyIn?: number): Promise<void> => {
+  const endSession = useCallback(async (cashOut?: number, endTime?: number, startTime?: number, buyIn?: number, pauseDuration?: number): Promise<void> => {
     if (currentSession) {
       const finalEndTime = endTime || Date.now();
       const finalStartTime = startTime || currentSession.session.startTime;
       const finalBuyIn = buyIn !== undefined ? buyIn : currentSession.session.buyIn;
-      const duration = finalEndTime - finalStartTime;
+      const finalPauseDuration = pauseDuration || 0;
+      
+      const totalDurationMs = finalEndTime - finalStartTime;
+      const pauseDurationMs = finalPauseDuration * 60 * 1000;
+      const duration = Math.max(0, totalDurationMs - pauseDurationMs);
 
       const updatedSession: Session = {
         ...currentSession.session,
@@ -543,6 +553,7 @@ export function useCurrentSession(): UseCurrentSessionResult {
         cashOut,
         buyIn: finalBuyIn,
         duration,
+        pauseDuration: finalPauseDuration,
       };
       await localStorage.saveSession(updatedSession);
       

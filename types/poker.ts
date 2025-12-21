@@ -123,6 +123,7 @@ export interface Session {
   startTime: number;      // Unix timestamp
   endTime?: number;       // Unix timestamp
   duration?: number;      // Duration in minutes
+  pauseDuration?: number; // Pause duration in minutes
   isActive: boolean;
   createdBy: string;      // User ID
   table?: Table;

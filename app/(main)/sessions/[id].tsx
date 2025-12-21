@@ -77,6 +77,7 @@ export default function SessionDetailScreen() {
   const [showEndSessionModal, setShowEndSessionModal] = useState(false);
   const [cashOutAmount, setCashOutAmount] = useState('');
   const [endSessionBuyIn, setEndSessionBuyIn] = useState('');
+  const [pauseDuration, setPauseDuration] = useState('');
   const [endTime, setEndTime] = useState(new Date());
   const [startTime, setStartTime] = useState(new Date());
   const [isStartTimeExpanded, setIsStartTimeExpanded] = useState(false);
@@ -376,6 +377,7 @@ export default function SessionDetailScreen() {
     }
     setEndTime(new Date());
     setCashOutAmount('');
+    setPauseDuration('');
     setIsStartTimeExpanded(false);
     setIsEndTimeExpanded(false);
     setShowEndSessionModal(true);
@@ -385,13 +387,22 @@ export default function SessionDetailScreen() {
     try {
       const cashOut = cashOutAmount ? parseFloat(cashOutAmount) : 0;
       const buyIn = endSessionBuyIn ? parseFloat(endSessionBuyIn) : (session?.buyIn || 0);
+      const pauseMins = pauseDuration ? parseFloat(pauseDuration) : 0;
       
       if (endTime < startTime) {
         Alert.alert('Error', 'End time cannot be earlier than start time');
         return;
       }
 
-      await endSession(cashOut, endTime.getTime(), startTime.getTime(), buyIn);
+      const totalDurationMs = endTime.getTime() - startTime.getTime();
+      const pauseDurationMs = pauseMins * 60 * 1000;
+
+      if (pauseDurationMs > totalDurationMs) {
+        Alert.alert('Error', 'Pause duration cannot be longer than the session duration');
+        return;
+      }
+
+      await endSession(cashOut, endTime.getTime(), startTime.getTime(), buyIn, pauseMins);
       await clearSession();
       setShowEndSessionModal(false);
       router.back();
@@ -1054,6 +1065,16 @@ export default function SessionDetailScreen() {
                   )}
                 </View>
               )}
+
+              <Text style={[styles.label, { color: themeColors.text }]}>Pause Duration (minutes)</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: themeColors.modalInputBg, color: themeColors.text, borderColor: themeColors.border }]}
+                value={pauseDuration}
+                onChangeText={setPauseDuration}
+                placeholder="0"
+                placeholderTextColor={themeColors.placeholder}
+                keyboardType="numeric"
+              />
             </ScrollView>
 
             <View style={[styles.modalFooter, { backgroundColor: themeColors.modalFooterBg, borderTopColor: themeColors.border }]}>
