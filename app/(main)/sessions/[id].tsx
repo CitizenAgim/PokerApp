@@ -159,12 +159,8 @@ export default function SessionDetailScreen() {
             }
           },
           {
-            text: 'View Range',
-            onPress: () => seat.playerId ? router.push(`/(main)/players/${seat.playerId}/range`) : Alert.alert('Info', 'Cannot view range for unknown player'),
-          },
-          {
-            text: 'Set as Button',
-            onPress: () => updateButtonPosition(seatNumber),
+            text: 'Ranges & Notes',
+            onPress: () => seat.playerId ? router.push(`/(main)/sessions/player/${seat.playerId}`) : Alert.alert('Info', 'Cannot view details for unknown player'),
           },
           {
             text: table?.heroSeatIndex === seatNumber ? 'Remove as Hero' : 'Set as Hero',
