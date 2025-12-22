@@ -2,6 +2,7 @@ import { usePlayers } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getThemeColors, styles } from '@/styles/players/new.styles';
 import { resizeImage } from '@/utils/image';
+import { normalizeLocation } from '@/utils/text';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -29,6 +30,7 @@ export default function NewPlayerScreen() {
   const themeColors = getThemeColors(isDark);
   
   const [name, setName] = useState('');
+  const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [photoUrl, setPhotoUrl] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
@@ -55,10 +57,13 @@ export default function NewPlayerScreen() {
 
     try {
       setSaving(true);
+      const normalizedLocation = normalizeLocation(location);
+      
       await createPlayer({
         name: name.trim(),
         notes: notes.trim() || undefined,
         photoUrl,
+        locations: normalizedLocation ? [normalizedLocation] : undefined,
       });
       router.back();
     } catch (error) {
@@ -110,6 +115,17 @@ export default function NewPlayerScreen() {
               placeholder="Enter player name"
               placeholderTextColor={themeColors.placeholder}
               autoFocus
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: themeColors.text }]}>Location</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: themeColors.inputBg, color: themeColors.text, borderColor: themeColors.border }]}
+              value={location}
+              onChangeText={setLocation}
+              placeholder="Enter location (optional)"
+              placeholderTextColor={themeColors.placeholder}
             />
           </View>
 

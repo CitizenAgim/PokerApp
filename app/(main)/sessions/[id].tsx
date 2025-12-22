@@ -62,6 +62,7 @@ export default function SessionDetailScreen() {
   // Color Picker State
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
+  const [colorPickerSeat, setColorPickerSeat] = useState<number | null>(null);
 
   // Create Player State
   const [newPlayerName, setNewPlayerName] = useState('');
@@ -148,11 +149,12 @@ export default function SessionDetailScreen() {
           {
             text: 'Set Color',
             onPress: () => {
-              if (seat.playerId) {
-                setEditingPlayerId(seat.playerId);
+              if (seat.player) {
+                setEditingPlayerId(seat.player.id);
+                setColorPickerSeat(seatNumber);
                 setShowColorPicker(true);
               } else {
-                Alert.alert('Info', 'Cannot set color for unknown player');
+                Alert.alert('Info', 'Cannot set color for empty seat');
               }
             }
           },
@@ -254,15 +256,38 @@ export default function SessionDetailScreen() {
   };
 
   const handleColorSelect = async (color: string) => {
-    if (!editingPlayerId) return;
+    if (!editingPlayerId && colorPickerSeat === null) return;
+
+    const finalColor = color === '#95a5a6' ? undefined : color;
 
     try {
-      await updatePlayer({
-        id: editingPlayerId,
-        color: color === '#95a5a6' ? undefined : color, // Reset if Gray is selected
-      });
+      // Check if it's a temp player
+      let isTemp = false;
+      if (colorPickerSeat !== null && table) {
+        const seat = table.seats.find(s => {
+          const sNum = s.seatNumber ?? (typeof s.index === 'number' ? s.index + 1 : 0);
+          return sNum === colorPickerSeat;
+        });
+        // Check if explicitly temp OR if it has no playerId (implicit temp)
+        if (seat?.player?.isTemp || !seat?.playerId) {
+          isTemp = true;
+        }
+      }
+
+      if (isTemp && colorPickerSeat !== null) {
+        // Update temp player in the seat
+        await assignPlayerToSeat(colorPickerSeat, null, undefined, { color: finalColor });
+      } else if (editingPlayerId) {
+        // Update persistent player
+        await updatePlayer({
+          id: editingPlayerId,
+          color: finalColor,
+        });
+      }
+
       setShowColorPicker(false);
       setEditingPlayerId(null);
+      setColorPickerSeat(null);
     } catch (error) {
       Alert.alert('Error', 'Failed to update player color');
     }
