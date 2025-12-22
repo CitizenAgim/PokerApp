@@ -1,4 +1,5 @@
 import { Player, PlayerRanges, Range, Session, Table } from '@/types/poker';
+import { normalizeLocation } from '@/utils/text';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ============================================
@@ -250,9 +251,15 @@ export async function getLocations(): Promise<string[]> {
 }
 
 export async function saveLocation(location: string): Promise<void> {
+  const normalized = normalizeLocation(location);
+  if (!normalized) return;
+
   const locations = await getLocations();
-  if (!locations.includes(location)) {
-    locations.push(location);
+  // Check case-insensitively just in case, though normalization should handle it
+  const exists = locations.some(l => l.toLowerCase() === normalized.toLowerCase());
+  
+  if (!exists) {
+    locations.push(normalized);
     await setItem(KEYS.LOCATIONS, locations);
   }
 }

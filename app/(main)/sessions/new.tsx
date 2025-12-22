@@ -2,6 +2,7 @@ import { useCurrentSession, useSessions, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import * as localStorage from '@/services/localStorage';
 import { getThemeColors, styles } from '@/styles/sessions/new.styles';
+import { normalizeLocation } from '@/utils/text';
 import { Ionicons } from '@expo/vector-icons';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useRouter } from 'expo-router';
@@ -92,7 +93,7 @@ export default function NewSessionScreen() {
 
   const handleAddLocation = async () => {
     if (!newLocation.trim()) return;
-    const loc = newLocation.trim();
+    const loc = normalizeLocation(newLocation);
     setLocation(loc);
     setNewLocation('');
     setShowLocationModal(false);

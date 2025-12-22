@@ -4,6 +4,7 @@ import * as localStorage from '@/services/localStorage';
 import { isOnline, syncPendingChanges } from '@/services/sync';
 import { Position, Session, Table } from '@/types/poker';
 import { calculatePosition } from '@/utils/positionCalculator';
+import { normalizeLocation } from '@/utils/text';
 import { useCallback, useEffect, useState } from 'react';
 
 // ============================================
@@ -84,11 +85,12 @@ export function useSessions(): UseSessionsResult {
     const dateStr = new Date().toLocaleDateString();
     const name = `${dateStr} - ${gameType}`;
     const stakes = `${smallBlind}/${bigBlind}${thirdBlind ? `/${thirdBlind}` : ''}`;
+    const normalizedLocation = normalizeLocation(location);
 
     const session: Session = {
       id,
       name,
-      location,
+      location: normalizedLocation,
       gameType,
       smallBlind,
       bigBlind,
@@ -105,8 +107,8 @@ export function useSessions(): UseSessionsResult {
     // Save locally
     await localStorage.saveSession(session);
     // Save location if new
-    if (location) {
-      await localStorage.saveLocation(location);
+    if (normalizedLocation) {
+      await localStorage.saveLocation(normalizedLocation);
     }
     
     setSessions(prev => [session, ...prev]);

@@ -4,6 +4,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getThemeColors, styles } from '@/styles/players/[id]/index.styles';
 import { Action, NoteEntry, Position } from '@/types/poker';
 import { resizeImage } from '@/utils/image';
+import { normalizeLocation } from '@/utils/text';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -261,18 +262,32 @@ export default function PlayerDetailScreen() {
     
     try {
       setAddingLocation(true);
+      const normalizedNewLocation = normalizeLocation(newLocation);
       const currentLocations = player?.locations || [];
-      if (currentLocations.includes(newLocation.trim())) {
+      
+      // Check case-insensitively
+      const exists = currentLocations.some(
+        loc => loc.toLowerCase() === normalizedNewLocation.toLowerCase()
+      );
+
+      if (exists) {
         Alert.alert('Error', 'Location already exists');
         return;
       }
       
-      const updatedLocations = [...currentLocations, newLocation.trim()];
+      const updatedLocations = [...currentLocations, normalizedNewLocation];
       
       await updatePlayer({
         id,
         locations: updatedLocations,
       });
+      
+      // Also save to global locations list
+      // Note: We don't have direct access to saveLocation here, but updatePlayer might trigger it?
+      // Actually, we should probably expose saveLocation via a hook or just let it be.
+      // The global list is usually updated when creating a session.
+      // But if we want this to appear in the global list immediately, we might need to add it.
+      // For now, let's just update the player.
       
       setNewLocation('');
       setIsAddingLocation(false);
