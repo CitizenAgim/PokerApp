@@ -45,6 +45,22 @@ const getCardPosition = (seatNumber: number) => {
   return { x, y };
 };
 
+const getBlindPosition = (seatNumber: number) => {
+  const { x: seatX, y: seatY } = getSeatPosition(seatNumber);
+  
+  // Calculate distance from center
+  const dist = Math.sqrt(seatX * seatX + seatY * seatY);
+  
+  // Place blinds further in than cards (which are at 55)
+  const offset = 85;
+  const factor = Math.max(0, (dist - offset) / dist);
+  
+  const x = seatX * factor;
+  const y = seatY * factor;
+  
+  return { x, y };
+};
+
 interface SeatViewProps {
   seat: Seat;
   player?: TablePlayer | null;
@@ -160,6 +176,8 @@ interface PokerTableProps {
   isNinjaMode?: boolean;
   centerText?: string;
   currency?: string;
+  smallBlind?: number;
+  bigBlind?: number;
 }
 
 export function PokerTable({ 
@@ -171,9 +189,42 @@ export function PokerTable({
   themeColors, 
   isNinjaMode = false,
   centerText = "Tap seat to assign player",
-  currency
+  currency,
+  smallBlind,
+  bigBlind,
 }: PokerTableProps) {
   
+  // Calculate SB and BB positions
+  const occupiedSeats = seats.filter(s => s.player || s.playerId).sort((a, b) => {
+    const seatA = a.seatNumber ?? (typeof a.index === 'number' ? a.index + 1 : 0);
+    const seatB = b.seatNumber ?? (typeof b.index === 'number' ? b.index + 1 : 0);
+    return seatA - seatB;
+  });
+  
+  let sbSeatNum = -1;
+  let bbSeatNum = -1;
+
+  if (occupiedSeats.length >= 2) {
+    // Find the first occupied seat that has seatNumber > buttonPosition
+    let nextIndex = occupiedSeats.findIndex(s => {
+      const sNum = s.seatNumber ?? (typeof s.index === 'number' ? s.index + 1 : 0);
+      return sNum > buttonPosition;
+    });
+    
+    if (nextIndex === -1) {
+      // Wrap around to the first occupied seat
+      nextIndex = 0;
+    }
+    
+    const sbSeat = occupiedSeats[nextIndex];
+    sbSeatNum = sbSeat.seatNumber ?? (typeof sbSeat.index === 'number' ? sbSeat.index + 1 : 0);
+    
+    // BB is the next one
+    let bbIndex = (nextIndex + 1) % occupiedSeats.length;
+    const bbSeat = occupiedSeats[bbIndex];
+    bbSeatNum = bbSeat.seatNumber ?? (typeof bbSeat.index === 'number' ? bbSeat.index + 1 : 0);
+  }
+
   return (
     <View style={styles.tableContainer}>
       <View style={styles.table}>
@@ -213,19 +264,41 @@ export function PokerTable({
           }
 
           const { x: cardX, y: cardY } = getCardPosition(seatNum);
+          const { x: blindX, y: blindY } = getBlindPosition(seatNum);
+          const isSB = seatNum === sbSeatNum;
+          const isBB = seatNum === bbSeatNum;
 
           return (
             <React.Fragment key={seatNum}>
               {player && (
-                <View style={[styles.cardContainer, {
-                  transform: [
-                    { translateX: cardX },
-                    { translateY: cardY },
-                  ]
-                }]}>
-                  <View style={styles.card} />
-                  <View style={[styles.card, styles.cardSecond]} />
-                </View>
+                <>
+                  <View style={[styles.cardContainer, {
+                    transform: [
+                      { translateX: cardX },
+                      { translateY: cardY },
+                    ]
+                  }]}>
+                    <View style={styles.card} />
+                    <View style={[styles.card, styles.cardSecond]} />
+                  </View>
+                  
+                  {/* Blinds */}
+                  {(isSB || isBB) && (smallBlind || bigBlind) && (
+                    <View style={[styles.blindContainer, {
+                      transform: [
+                        { translateX: blindX },
+                        { translateY: blindY },
+                      ]
+                    }]}>
+                      <View style={styles.blindBadge}>
+                        <Text style={styles.blindLabel}>{isSB ? 'SB' : 'BB'}</Text>
+                        <Text style={styles.blindText}>
+                          {isSB ? smallBlind : bigBlind}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </>
               )}
               <SeatView
                 seat={seat}

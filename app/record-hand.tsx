@@ -137,49 +137,13 @@ export default function RecordHandScreen() {
           themeColors={themeColors}
           centerText="Tap seat to assign/edit"
           currency={session?.currency}
+          smallBlind={session?.smallBlind}
+          bigBlind={session?.bigBlind}
         />
 
         {/* Controls */}
         <View style={styles.controls}>
-          <View style={styles.sectionTitle}>
-            <ThemedText style={[styles.sectionTitle, { color: themeColors.text }]}>Hand Details</ThemedText>
-          </View>
-
-          <View style={styles.row}>
-            <View style={[styles.col, styles.inputGroup]}>
-              <ThemedText style={[styles.label, { color: themeColors.subText }]}>Pot Size</ThemedText>
-              <TextInput
-                style={[styles.input, { backgroundColor: themeColors.inputBg, color: themeColors.text, borderColor: themeColors.border }]}
-                value={potSize}
-                onChangeText={setPotSize}
-                placeholder="0"
-                placeholderTextColor={themeColors.placeholder}
-                keyboardType="numeric"
-              />
-            </View>
-            <View style={[styles.col, styles.inputGroup]}>
-              <ThemedText style={[styles.label, { color: themeColors.subText }]}>Board Cards</ThemedText>
-              <TextInput
-                style={[styles.input, { backgroundColor: themeColors.inputBg, color: themeColors.text, borderColor: themeColors.border }]}
-                value={board}
-                onChangeText={setBoard}
-                placeholder="e.g. Ah Ks 2d"
-                placeholderTextColor={themeColors.placeholder}
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <ThemedText style={[styles.label, { color: themeColors.subText }]}>Notes</ThemedText>
-            <TextInput
-              style={[styles.input, styles.textArea, { backgroundColor: themeColors.inputBg, color: themeColors.text, borderColor: themeColors.border }]}
-              value={notes}
-              onChangeText={setNotes}
-              placeholder="Describe the action..."
-              placeholderTextColor={themeColors.placeholder}
-              multiline
-            />
-          </View>
+          {/* Hand Details Removed */}
         </View>
       </ScrollView>
 

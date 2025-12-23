@@ -185,4 +185,38 @@ export const styles = StyleSheet.create({
   cardSecond: {
     marginLeft: 2,
   },
+  blindContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginTop: -10,
+    marginLeft: -20,
+    width: 40,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  blindBadge: {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  blindText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  blindLabel: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#ffd700', // Gold color for SB/BB label
+    marginRight: 2,
+  },
 });
