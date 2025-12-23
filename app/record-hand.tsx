@@ -44,6 +44,9 @@ export default function RecordHandScreen() {
     if (sessionId && sessionTable) {
       setSeats(sessionTable.seats);
       setButtonPosition(sessionTable.buttonPosition);
+      if (sessionTable.heroSeatIndex !== undefined) {
+        setHeroSeat(sessionTable.heroSeatIndex);
+      }
     }
   }, [sessionId, sessionTable]);
 
