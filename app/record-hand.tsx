@@ -7,7 +7,7 @@ import { getThemeColors, styles } from '@/styles/record-hand.styles';
 import { Seat } from '@/types/poker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, FlatList, Image, Modal, ScrollView, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Image, Modal, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function RecordHandScreen() {
@@ -26,10 +26,14 @@ export default function RecordHandScreen() {
   const [buttonPosition, setButtonPosition] = useState(1);
   const [heroSeat, setHeroSeat] = useState<number | undefined>(undefined);
   
-  // Hand Details State
-  const [board, setBoard] = useState('');
-  const [potSize, setPotSize] = useState('');
-  const [notes, setNotes] = useState('');
+  // Betting State
+  const [bets, setBets] = useState<Record<number, number>>({});
+  const [straddleCount, setStraddleCount] = useState(0);
+  const [isMississippiActive, setIsMississippiActive] = useState(false);
+  
+  // Mississippi Modal State
+  const [showMississippiModal, setShowMississippiModal] = useState(false);
+  const [mississippiAmount, setMississippiAmount] = useState('');
 
   // UI State
   const [showPlayerPicker, setShowPlayerPicker] = useState(false);
@@ -40,8 +44,6 @@ export default function RecordHandScreen() {
     if (sessionId && sessionTable) {
       setSeats(sessionTable.seats);
       setButtonPosition(sessionTable.buttonPosition);
-      // We could also set heroSeat if it was stored in the session context, 
-      // but for now we'll leave it or maybe infer it.
     }
   }, [sessionId, sessionTable]);
 
@@ -93,11 +95,162 @@ export default function RecordHandScreen() {
         name: player.name,
         photoUrl: player.photoUrl,
         isTemp: false,
+        stack: player.stack
       },
     };
     setSeats(newSeats);
     setShowPlayerPicker(false);
     setSelectedSeatIndex(null);
+  };
+
+  const handleMississippi = () => {
+    if (straddleCount > 0) {
+      Alert.alert('Error', 'Cannot Mississippi when Straddle is active.');
+      return;
+    }
+    setMississippiAmount('');
+    setShowMississippiModal(true);
+  };
+
+  const confirmMississippi = () => {
+    const amount = parseFloat(mississippiAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid positive number.');
+      return;
+    }
+
+    // Find button seat
+    const buttonSeat = seats.find(s => (s.seatNumber ?? (s.index + 1)) === buttonPosition);
+    if (!buttonSeat || (!buttonSeat.player && !buttonSeat.playerId)) {
+      Alert.alert('Error', 'No player on the button.');
+      return;
+    }
+
+    if (buttonSeat.player && buttonSeat.player.stack !== undefined && buttonSeat.player.stack < amount) {
+      Alert.alert('Error', 'Insufficient stack for Mississippi.');
+      return;
+    }
+
+    // Update bets
+    setBets(prev => ({
+      ...prev,
+      [buttonPosition]: (prev[buttonPosition] || 0) + amount
+    }));
+
+    // Update stack
+    const newSeats = seats.map(s => {
+      const sNum = s.seatNumber ?? (s.index + 1);
+      if (sNum === buttonPosition && s.player && s.player.stack !== undefined) {
+        return {
+          ...s,
+          player: {
+            ...s.player,
+            stack: s.player.stack - amount
+          }
+        };
+      }
+      return s;
+    });
+    setSeats(newSeats);
+    setIsMississippiActive(true);
+    setShowMississippiModal(false);
+  };
+
+  const handleStraddle = () => {
+    if (isMississippiActive) {
+      Alert.alert('Error', 'Cannot Straddle when Mississippi is active.');
+      return;
+    }
+
+    // Find occupied seats sorted by seat number
+    const occupiedSeats = seats.filter(s => s.player || s.playerId).sort((a, b) => {
+      const seatA = a.seatNumber ?? (a.index + 1);
+      const seatB = b.seatNumber ?? (b.index + 1);
+      return seatA - seatB;
+    });
+
+    if (occupiedSeats.length < 2) {
+      Alert.alert('Error', 'Not enough players for straddle.');
+      return;
+    }
+
+    // Determine who is straddling
+    let buttonIndex = occupiedSeats.findIndex(s => (s.seatNumber ?? (s.index + 1)) === buttonPosition);
+    if (buttonIndex === -1) {
+       buttonIndex = 0; 
+    }
+
+    // Straddle logic: Button -> SB -> BB -> Straddle 1
+    // 0: Button
+    // 1: SB
+    // 2: BB
+    // 3: UTG (Straddle 1)
+    const straddleIndex = (buttonIndex + 3 + straddleCount) % occupiedSeats.length;
+    const straddlerSeat = occupiedSeats[straddleIndex];
+    const straddlerSeatNum = straddlerSeat.seatNumber ?? (straddlerSeat.index + 1);
+
+    // Calculate amount: 2 * BB * (2 ^ straddleCount)
+    const bbAmount = session?.bigBlind || 0;
+    if (bbAmount <= 0) {
+       Alert.alert('Error', 'Big Blind not set for this session.');
+       return;
+    }
+    const amount = bbAmount * Math.pow(2, straddleCount + 1);
+
+    if (straddlerSeat.player && straddlerSeat.player.stack !== undefined && straddlerSeat.player.stack < amount) {
+      Alert.alert('Error', 'Stack too low to straddle.');
+      return;
+    }
+
+    // Update bets
+    setBets(prev => ({
+      ...prev,
+      [straddlerSeatNum]: (prev[straddlerSeatNum] || 0) + amount
+    }));
+
+    // Update stack
+    const newSeats = seats.map(s => {
+      const sNum = s.seatNumber ?? (s.index + 1);
+      if (sNum === straddlerSeatNum && s.player && s.player.stack !== undefined) {
+        return {
+          ...s,
+          player: {
+            ...s.player,
+            stack: s.player.stack - amount
+          }
+        };
+      }
+      return s;
+    });
+    setSeats(newSeats);
+    setStraddleCount(prev => prev + 1);
+  };
+
+  const handleReset = () => {
+    // Restore stacks
+    const newSeats = seats.map(s => {
+      const sNum = s.seatNumber ?? (s.index + 1);
+      const betAmount = bets[sNum];
+      if (betAmount && s.player && s.player.stack !== undefined) {
+        return {
+          ...s,
+          player: {
+            ...s.player,
+            stack: s.player.stack + betAmount
+          }
+        };
+      }
+      return s;
+    });
+    setSeats(newSeats);
+    setBets({});
+    setStraddleCount(0);
+    setIsMississippiActive(false);
+  };
+
+  const handleStartHand = () => {
+    // Placeholder
+    Alert.alert('Info', 'Start Hand clicked (Not implemented yet)');
   };
 
   const handleSave = () => {
@@ -139,11 +292,37 @@ export default function RecordHandScreen() {
           currency={session?.currency}
           smallBlind={session?.smallBlind}
           bigBlind={session?.bigBlind}
+          bets={bets}
         />
 
         {/* Controls */}
         <View style={styles.controls}>
-          {/* Hand Details Removed */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
+             <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, flex: 1 }]} 
+                onPress={handleMississippi}
+             >
+                <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>Mississippi</ThemedText>
+             </TouchableOpacity>
+             <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, flex: 1 }]} 
+                onPress={handleStraddle}
+             >
+                <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>Straddle</ThemedText>
+             </TouchableOpacity>
+             <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, flex: 1 }]} 
+                onPress={handleReset}
+             >
+                <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>Reset</ThemedText>
+             </TouchableOpacity>
+          </View>
+          <TouchableOpacity 
+             style={[styles.actionButton, { backgroundColor: '#2196f3', width: '100%' }]} 
+             onPress={handleStartHand}
+          >
+             <ThemedText style={[styles.actionButtonText, { color: '#fff' }]}>Start Hand</ThemedText>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -176,6 +355,48 @@ export default function RecordHandScreen() {
               </TouchableOpacity>
             )}
           />
+        </View>
+      </Modal>
+
+      {/* Mississippi Amount Modal */}
+      <Modal
+        visible={showMississippiModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowMississippiModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: themeColors.card, borderRadius: 12, padding: 20, width: '100%', maxWidth: 400 }}>
+            <ThemedText style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16, color: themeColors.text }}>Mississippi Straddle Amount</ThemedText>
+            
+            <TextInput
+              style={{ 
+                borderWidth: 1, 
+                borderColor: themeColors.border, 
+                borderRadius: 8, 
+                padding: 12, 
+                fontSize: 16, 
+                color: themeColors.text,
+                marginBottom: 20,
+                backgroundColor: themeColors.inputBg
+              }}
+              placeholder="Enter amount"
+              placeholderTextColor={themeColors.subText}
+              keyboardType="numeric"
+              value={mississippiAmount}
+              onChangeText={setMississippiAmount}
+              autoFocus
+            />
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+              <TouchableOpacity onPress={() => setShowMississippiModal(false)} style={{ padding: 10 }}>
+                <ThemedText style={{ color: themeColors.subText, fontSize: 16 }}>Cancel</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={confirmMississippi} style={{ padding: 10, backgroundColor: '#2196f3', borderRadius: 8 }}>
+                <ThemedText style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Confirm</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </Modal>
     </ThemedView>

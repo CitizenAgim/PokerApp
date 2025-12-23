@@ -178,6 +178,7 @@ interface PokerTableProps {
   currency?: string;
   smallBlind?: number;
   bigBlind?: number;
+  bets?: Record<number, number>; // Map of seatNumber to bet amount
 }
 
 export function PokerTable({ 
@@ -192,6 +193,7 @@ export function PokerTable({
   currency,
   smallBlind,
   bigBlind,
+  bets = {},
 }: PokerTableProps) {
   
   // Calculate SB and BB positions
@@ -267,6 +269,7 @@ export function PokerTable({
           const { x: blindX, y: blindY } = getBlindPosition(seatNum);
           const isSB = seatNum === sbSeatNum;
           const isBB = seatNum === bbSeatNum;
+          const betAmount = bets[seatNum];
 
           return (
             <React.Fragment key={seatNum}>
@@ -282,8 +285,8 @@ export function PokerTable({
                     <View style={[styles.card, styles.cardSecond]} />
                   </View>
                   
-                  {/* Blinds */}
-                  {(isSB || isBB) && (smallBlind || bigBlind) && (
+                  {/* Blinds or Bets */}
+                  {(betAmount !== undefined || ((isSB || isBB) && (smallBlind || bigBlind))) && (
                     <View style={[styles.blindContainer, {
                       transform: [
                         { translateX: blindX },
@@ -291,10 +294,16 @@ export function PokerTable({
                       ]
                     }]}>
                       <View style={styles.blindBadge}>
-                        <Text style={styles.blindLabel}>{isSB ? 'SB' : 'BB'}</Text>
-                        <Text style={styles.blindText}>
-                          {isSB ? smallBlind : bigBlind}
-                        </Text>
+                        {betAmount !== undefined ? (
+                           <Text style={styles.blindText}>{betAmount}</Text>
+                        ) : (
+                          <>
+                            <Text style={styles.blindLabel}>{isSB ? 'SB' : 'BB'}</Text>
+                            <Text style={styles.blindText}>
+                              {isSB ? smallBlind : bigBlind}
+                            </Text>
+                          </>
+                        )}
                       </View>
                     </View>
                   )}
