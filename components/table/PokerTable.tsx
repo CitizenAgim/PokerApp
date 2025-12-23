@@ -178,11 +178,7 @@ export function PokerTable({
     <View style={styles.tableContainer}>
       <View style={styles.table}>
         {/* Table felt */}
-        <View style={styles.tableFelt}>
-          <Text style={styles.tableText}>
-            {centerText}
-          </Text>
-        </View>
+        <View style={styles.tableFelt} />
         
         {/* Dealer */}
         <View style={[styles.dealer, {
