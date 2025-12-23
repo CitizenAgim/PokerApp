@@ -163,6 +163,10 @@ export default function SessionDetailScreen() {
             onPress: () => seat.playerId ? router.push(`/(main)/sessions/player/${seat.playerId}`) : Alert.alert('Info', 'Cannot view details for unknown player'),
           },
           {
+            text: 'Set as Button',
+            onPress: () => updateButtonPosition(seatNumber),
+          },
+          {
             text: table?.heroSeatIndex === seatNumber ? 'Remove as Hero' : 'Set as Hero',
             onPress: () => updateHeroSeat(table?.heroSeatIndex === seatNumber ? undefined : seatNumber),
           },

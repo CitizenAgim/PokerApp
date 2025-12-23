@@ -56,6 +56,10 @@ export default function RecordHandScreen() {
         'Choose an action',
         [
           {
+            text: 'Set as Button',
+            onPress: () => setButtonPosition(seatNumber),
+          },
+          {
             text: 'Set as Hero',
             onPress: () => setHeroSeat(seatNumber),
           },
@@ -95,10 +99,6 @@ export default function RecordHandScreen() {
     setSeats(newSeats);
     setShowPlayerPicker(false);
     setSelectedSeatIndex(null);
-  };
-
-  const handleMoveButton = () => {
-    setButtonPosition((prev) => (prev % 9) + 1);
   };
 
   const handleSave = () => {
@@ -142,14 +142,6 @@ export default function RecordHandScreen() {
 
         {/* Controls */}
         <View style={styles.controls}>
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg }]}
-            onPress={handleMoveButton}
-          >
-            <Ionicons name="arrow-forward-circle" size={24} color="#0a7ea4" />
-            <ThemedText style={[styles.actionButtonText, { color: '#0a7ea4' }]}>Move Button</ThemedText>
-          </TouchableOpacity>
-
           <View style={styles.sectionTitle}>
             <ThemedText style={[styles.sectionTitle, { color: themeColors.text }]}>Hand Details</ThemedText>
           </View>

@@ -160,4 +160,29 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: -4,
   },
+  cardContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginTop: -12,
+    marginLeft: -18, // Centered (36/2)
+    width: 36,
+    height: 24,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 0,
+  },
+  card: {
+    width: 16,
+    height: 22,
+    backgroundColor: '#d32f2f',
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: '#fff',
+    backfaceVisibility: 'hidden',
+  },
+  cardSecond: {
+    marginLeft: 2,
+  },
 });

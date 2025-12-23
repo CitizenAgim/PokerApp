@@ -28,6 +28,23 @@ const getSeatPosition = (seatNumber: number) => {
   return { x, y };
 };
 
+const getCardPosition = (seatNumber: number) => {
+  const { x: seatX, y: seatY } = getSeatPosition(seatNumber);
+  
+  // Calculate distance from center
+  const dist = Math.sqrt(seatX * seatX + seatY * seatY);
+  
+  // Place cards at a fixed distance from the seat center (inwards)
+  // Seat radius is 30, so 55 gives a nice gap
+  const offset = 55;
+  const factor = Math.max(0, (dist - offset) / dist);
+  
+  const x = seatX * factor;
+  const y = seatY * factor;
+  
+  return { x, y };
+};
+
 interface SeatViewProps {
   seat: Seat;
   player?: TablePlayer | null;
@@ -199,19 +216,33 @@ export function PokerTable({
             }
           }
 
+          const { x: cardX, y: cardY } = getCardPosition(seatNum);
+
           return (
-            <SeatView
-              key={seatNum}
-              seat={seat}
-              player={player}
-              isButton={seatNum === buttonPosition}
-              isHero={seatNum === heroSeat}
-              onPress={() => onSeatPress(seatNum)}
-              buttonPosition={buttonPosition}
-              themeColors={themeColors}
-              isNinjaMode={isNinjaMode}
-              currency={currency}
-            />
+            <React.Fragment key={seatNum}>
+              {player && (
+                <View style={[styles.cardContainer, {
+                  transform: [
+                    { translateX: cardX },
+                    { translateY: cardY },
+                  ]
+                }]}>
+                  <View style={styles.card} />
+                  <View style={[styles.card, styles.cardSecond]} />
+                </View>
+              )}
+              <SeatView
+                seat={seat}
+                player={player}
+                isButton={seatNum === buttonPosition}
+                isHero={seatNum === heroSeat}
+                onPress={() => onSeatPress(seatNum)}
+                buttonPosition={buttonPosition}
+                themeColors={themeColors}
+                isNinjaMode={isNinjaMode}
+                currency={currency}
+              />
+            </React.Fragment>
           );
         })}
       </View>
