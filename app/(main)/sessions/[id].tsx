@@ -683,7 +683,7 @@ export default function SessionDetailScreen() {
     );
   }
 
-  const occupiedSeats = table.seats ? table.seats.filter(s => s.playerId).length : 0;
+  const occupiedSeats = table.seats ? table.seats.filter(s => s.playerId || s.player).length : 0;
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
