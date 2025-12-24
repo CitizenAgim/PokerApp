@@ -296,6 +296,7 @@ export default function RecordHandScreen() {
           smallBlind={session?.smallBlind}
           bigBlind={session?.bigBlind}
           bets={bets}
+          showCards={true}
         />
 
         {/* Controls */}

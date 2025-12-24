@@ -722,6 +722,7 @@ export default function SessionDetailScreen() {
         themeColors={themeColors}
         isNinjaMode={ninjaMode}
         currency={session.currency}
+        showCards={false}
       />
 
       {/* Quick Actions */}

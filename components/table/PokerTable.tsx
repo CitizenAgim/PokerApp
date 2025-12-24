@@ -179,6 +179,7 @@ interface PokerTableProps {
   smallBlind?: number;
   bigBlind?: number;
   bets?: Record<number, number>; // Map of seatNumber to bet amount
+  showCards?: boolean;
 }
 
 export function PokerTable({ 
@@ -194,6 +195,7 @@ export function PokerTable({
   smallBlind,
   bigBlind,
   bets = {},
+  showCards = true,
 }: PokerTableProps) {
   
   // Calculate SB and BB positions
@@ -275,15 +277,17 @@ export function PokerTable({
             <React.Fragment key={seatNum}>
               {player && (
                 <>
-                  <View style={[styles.cardContainer, {
-                    transform: [
-                      { translateX: cardX },
-                      { translateY: cardY },
-                    ]
-                  }]}>
-                    <View style={styles.card} />
-                    <View style={[styles.card, styles.cardSecond]} />
-                  </View>
+                  {showCards && (
+                    <View style={[styles.cardContainer, {
+                      transform: [
+                        { translateX: cardX },
+                        { translateY: cardY },
+                      ]
+                    }]}>
+                      <View style={styles.card} />
+                      <View style={[styles.card, styles.cardSecond]} />
+                    </View>
+                  )}
                   
                   {/* Blinds or Bets */}
                   {(betAmount !== undefined || ((isSB || isBB) && (smallBlind || bigBlind))) && (
