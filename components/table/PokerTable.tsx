@@ -36,7 +36,8 @@ const getCardPosition = (seatNumber: number) => {
   
   // Place cards at a fixed distance from the seat center (inwards)
   // Seat radius is 30, so 55 gives a nice gap
-  const offset = 55;
+  // Reduce offset for Seat 5 to avoid overlap with board
+  const offset = seatNumber === 5 ? 35 : 55;
   const factor = Math.max(0, (dist - offset) / dist);
   
   const x = seatX * factor;

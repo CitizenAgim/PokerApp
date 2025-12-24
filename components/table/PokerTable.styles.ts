@@ -202,7 +202,7 @@ export const styles = StyleSheet.create({
     top: '50%',
     left: '50%',
     marginTop: -15,
-    marginLeft: -60,
+    marginLeft: -75, // Moved from -60 to -75 (left)
     width: 120,
     height: 30,
     flexDirection: 'row',
