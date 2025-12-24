@@ -40,10 +40,18 @@ const getBlindPosition = (seatNumber: number) => {
   const dist = Math.sqrt(seatX * seatX + seatY * seatY);
   const factor = Math.max(0, (dist - BLIND_OFFSET) / dist);
   
-  return {
-    x: seatX * factor,
-    y: seatY * factor
-  };
+  let x = seatX * factor;
+  let y = seatY * factor;
+
+  // Align bottom seats (4, 5, 6) to the same vertical level
+  if (seatNumber === 5) {
+    const { x: s4X, y: s4Y } = getSeatPosition(4);
+    const d4 = Math.sqrt(s4X * s4X + s4Y * s4Y);
+    const f4 = Math.max(0, (d4 - BLIND_OFFSET) / d4);
+    y = s4Y * f4;
+  }
+  
+  return { x, y };
 };
 
 interface SeatViewProps {
