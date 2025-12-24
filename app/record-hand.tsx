@@ -41,8 +41,10 @@ export default function RecordHandScreen() {
   
   // Card State
   const [handCards, setHandCards] = useState<Record<number, string[]>>({});
+  const [communityCards, setCommunityCards] = useState<string[]>(['', '', '', '', '']);
   const [showCardPicker, setShowCardPicker] = useState(false);
   const [activeCardSeat, setActiveCardSeat] = useState<number | null>(null);
+  const [activeCommunityCardIndex, setActiveCommunityCardIndex] = useState<number | null>(null);
 
   // Mississippi Modal State
   const [showMississippiModal, setShowMississippiModal] = useState(false);
@@ -120,45 +122,73 @@ export default function RecordHandScreen() {
   };
 
   const handleCardPress = (seatNumber: number) => {
+    setActiveCommunityCardIndex(null);
     setActiveCardSeat(seatNumber);
     setShowCardPicker(true);
   };
 
-  const toggleCard = (cardId: string) => {
-    if (activeCardSeat === null) return;
+  const handleCommunityCardPress = (index: number) => {
+    setActiveCardSeat(null);
+    setActiveCommunityCardIndex(index);
+    setShowCardPicker(true);
+  };
 
-    const currentCards = handCards[activeCardSeat] || [];
-    const isAlreadySelectedByMe = currentCards.includes(cardId);
-    
-    if (isAlreadySelectedByMe) {
-      // Remove it
+  const toggleCard = (cardId: string) => {
+    if (activeCardSeat !== null) {
+      const currentCards = handCards[activeCardSeat] || [];
+      const isAlreadySelectedByMe = currentCards.includes(cardId);
+      
+      if (isAlreadySelectedByMe) {
+        setHandCards(prev => ({
+          ...prev,
+          [activeCardSeat]: prev[activeCardSeat].filter(c => c !== cardId)
+        }));
+        return;
+      }
+
+      // Check if card is used by someone else (player or community)
+      const usedByOtherPlayers = Object.entries(handCards).flatMap(([seat, cards]) => 
+        parseInt(seat) === activeCardSeat ? [] : cards
+      );
+      const usedByCommunity = communityCards;
+
+      if (usedByOtherPlayers.includes(cardId) || usedByCommunity.includes(cardId)) {
+        Alert.alert('Card Unavailable', 'This card is already in use.');
+        return;
+      }
+
+      if (currentCards.length >= 2) {
+        Alert.alert('Limit Reached', 'Each player can only have 2 cards.');
+        return;
+      }
+
       setHandCards(prev => ({
         ...prev,
-        [activeCardSeat]: prev[activeCardSeat].filter(c => c !== cardId)
+        [activeCardSeat]: [...(prev[activeCardSeat] || []), cardId]
       }));
-      return;
+    } else if (activeCommunityCardIndex !== null) {
+      const isAlreadySelectedByMe = communityCards[activeCommunityCardIndex] === cardId;
+
+      if (isAlreadySelectedByMe) {
+        const newCommunity = [...communityCards];
+        newCommunity[activeCommunityCardIndex] = '';
+        setCommunityCards(newCommunity);
+        return;
+      }
+
+      // Check if card is used by someone else (player or community)
+      const usedByPlayers = Object.values(handCards).flat();
+      const usedByOtherCommunity = communityCards.filter((_, i) => i !== activeCommunityCardIndex);
+
+      if (usedByPlayers.includes(cardId) || usedByOtherCommunity.includes(cardId)) {
+        Alert.alert('Card Unavailable', 'This card is already in use.');
+        return;
+      }
+
+      const newCommunity = [...communityCards];
+      newCommunity[activeCommunityCardIndex] = cardId;
+      setCommunityCards(newCommunity);
     }
-
-    // Check if card is used by someone else
-    const allUsedCards = Object.entries(handCards).flatMap(([seat, cards]) => 
-      parseInt(seat) === activeCardSeat ? [] : cards
-    );
-
-    if (allUsedCards.includes(cardId)) {
-      Alert.alert('Card Unavailable', 'This card is already assigned to another player.');
-      return;
-    }
-
-    if (currentCards.length >= 2) {
-      Alert.alert('Limit Reached', 'Each player can only have 2 cards.');
-      return;
-    }
-
-    // Add it
-    setHandCards(prev => ({
-      ...prev,
-      [activeCardSeat]: [...(prev[activeCardSeat] || []), cardId]
-    }));
   };
 
   const handleMississippi = () => {
@@ -305,6 +335,7 @@ export default function RecordHandScreen() {
     setStraddleCount(0);
     setIsMississippiActive(false);
     setHandCards({});
+    setCommunityCards(['', '', '', '', '']);
   };
 
   const handleStartHand = () => {
@@ -340,22 +371,24 @@ export default function RecordHandScreen() {
 
       <ScrollView style={styles.content}>
         {/* Table View */}
-        <PokerTable
-          seats={seats}
-          players={allPlayers}
-          buttonPosition={buttonPosition}
-          heroSeat={heroSeat}
-          onSeatPress={handleSeatPress}
-          themeColors={themeColors}
-          centerText="Tap seat to assign/edit"
-          currency={session?.currency}
-          smallBlind={session?.smallBlind}
-          bigBlind={session?.bigBlind}
-          bets={bets}
-          showCards={true}
-          handCards={handCards}
-          onCardPress={handleCardPress}
-        />
+          <PokerTable
+            seats={seats}
+            players={allPlayers}
+            buttonPosition={buttonPosition}
+            heroSeat={heroSeat}
+            onSeatPress={handleSeatPress}
+            themeColors={themeColors}
+            centerText="Tap seat to assign/edit"
+            currency={session?.currency}
+            smallBlind={session?.smallBlind}
+            bigBlind={session?.bigBlind}
+            bets={bets}
+            showCards={true}
+            handCards={handCards}
+            onCardPress={handleCardPress}
+            communityCards={communityCards}
+            onCommunityCardPress={handleCommunityCardPress}
+          />
 
         {/* Controls */}
         <View style={styles.controls}>
@@ -472,7 +505,7 @@ export default function RecordHandScreen() {
         <View style={[styles.container, { backgroundColor: themeColors.background }]}>
           <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomWidth: 1, borderBottomColor: themeColors.border }]}>
             <ThemedText style={[styles.headerTitle, { color: themeColors.text }]}>
-              Select Cards (Seat {activeCardSeat})
+              {activeCardSeat !== null ? `Select Cards (Seat ${activeCardSeat})` : `Select Community Card (${activeCommunityCardIndex === 0 || activeCommunityCardIndex === 1 || activeCommunityCardIndex === 2 ? 'Flop' : activeCommunityCardIndex === 3 ? 'Turn' : 'River'})`}
             </ThemedText>
             <TouchableOpacity onPress={() => setShowCardPicker(false)} style={styles.headerButton}>
               <ThemedText style={styles.headerButtonText}>Done</ThemedText>
@@ -489,10 +522,20 @@ export default function RecordHandScreen() {
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                     {RANKS.map(rank => {
                       const cardId = `${rank}${suit.id}`;
-                      const isSelectedByMe = (handCards[activeCardSeat!] || []).includes(cardId);
-                      const isUsedByOthers = Object.entries(handCards).some(([seat, cards]) => 
-                        parseInt(seat) !== activeCardSeat && cards.includes(cardId)
-                      );
+                      
+                      let isSelectedByMe = false;
+                      let isUsedByOthers = false;
+
+                      if (activeCardSeat !== null) {
+                        isSelectedByMe = (handCards[activeCardSeat] || []).includes(cardId);
+                        isUsedByOthers = Object.entries(handCards).some(([seat, cards]) => 
+                          parseInt(seat) !== activeCardSeat && cards.includes(cardId)
+                        ) || communityCards.includes(cardId);
+                      } else if (activeCommunityCardIndex !== null) {
+                        isSelectedByMe = communityCards[activeCommunityCardIndex] === cardId;
+                        isUsedByOthers = Object.values(handCards).flat().includes(cardId) || 
+                          communityCards.some((c, i) => i !== activeCommunityCardIndex && c === cardId);
+                      }
 
                       return (
                         <TouchableOpacity

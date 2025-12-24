@@ -197,6 +197,40 @@ export const styles = StyleSheet.create({
   cardSecond: {
     marginLeft: 2,
   },
+  communityCardsContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginTop: -15,
+    marginLeft: -60,
+    width: 120,
+    height: 30,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+    gap: 4,
+  },
+  communityCard: {
+    width: 20,
+    height: 28,
+    backgroundColor: '#d32f2f',
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  communityCardSelected: {
+    backgroundColor: '#fff',
+  },
+  communityCardText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  communityCardSuit: {
+    fontSize: 10,
+  },
   blindContainer: {
     position: 'absolute',
     top: '50%',
