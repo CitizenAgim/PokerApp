@@ -10,16 +10,16 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 // Force refresh
@@ -149,13 +149,9 @@ export default function SessionDetailScreen() {
           {
             text: 'Set Color',
             onPress: () => {
-              if (seat.player) {
-                setEditingPlayerId(seat.player.id);
-                setColorPickerSeat(seatNumber);
-                setShowColorPicker(true);
-              } else {
-                Alert.alert('Info', 'Cannot set color for empty seat');
-              }
+              setEditingPlayerId(seat.playerId || seat.player?.id || null);
+              setColorPickerSeat(seatNumber);
+              setShowColorPicker(true);
             }
           },
           {

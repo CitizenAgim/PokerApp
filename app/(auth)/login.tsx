@@ -25,6 +25,8 @@ WebBrowser.maybeCompleteAuthSession();
 const GOOGLE_WEB_CLIENT_ID = '432275305630-fd33knmjq7nouo9ra7lldjrg86jio2r0.apps.googleusercontent.com';
 // TODO: Replace with your actual iOS Client ID from Google Cloud Console
 const GOOGLE_IOS_CLIENT_ID = 'YOUR_IOS_CLIENT_ID_HERE';
+// TODO: Replace with your actual Android Client ID from Google Cloud Console
+const GOOGLE_ANDROID_CLIENT_ID = 'YOUR_ANDROID_CLIENT_ID_HERE';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -39,6 +41,7 @@ export default function LoginScreen() {
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: GOOGLE_WEB_CLIENT_ID,
     iosClientId: GOOGLE_IOS_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
   });
 
   useEffect(() => {

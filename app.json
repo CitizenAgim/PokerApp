@@ -13,7 +13,9 @@
       "bundleIdentifier": "com.anonymous.PokerApp",
       "infoPlist": {
         "NSLocalNetworkUsageDescription": "This app uses the local network to connect to the development server during development.",
-        "NSBonjourServices": ["_http._tcp"]
+        "NSBonjourServices": [
+          "_http._tcp"
+        ]
       }
     },
     "android": {
@@ -24,7 +26,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.PokerApp"
     },
     "web": {
       "output": "static",
