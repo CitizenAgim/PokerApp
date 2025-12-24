@@ -26,7 +26,7 @@ export default function RecordHandScreen() {
   const themeColors = getThemeColors(isDark);
   const insets = useSafeAreaInsets();
 
-  const { session, table: sessionTable } = useSession(sessionId || '');
+  const { session, table: sessionTable, updateSeatStack } = useSession(sessionId || '');
   const { players: allPlayers } = usePlayers();
 
   // Local State for the Hand Record
@@ -49,6 +49,11 @@ export default function RecordHandScreen() {
   // Mississippi Modal State
   const [showMississippiModal, setShowMississippiModal] = useState(false);
   const [mississippiAmount, setMississippiAmount] = useState('');
+
+  // Stack Edit Modal State
+  const [showStackModal, setShowStackModal] = useState(false);
+  const [stackAmount, setStackAmount] = useState('');
+  const [editingStackSeat, setEditingStackSeat] = useState<number | null>(null);
 
   // UI State
   const [showPlayerPicker, setShowPlayerPicker] = useState(false);
@@ -75,6 +80,14 @@ export default function RecordHandScreen() {
         'Choose an action',
         [
           {
+            text: 'Edit Stack',
+            onPress: () => {
+              setEditingStackSeat(seatNumber);
+              setStackAmount(seat.player?.stack?.toString() || '0');
+              setShowStackModal(true);
+            },
+          },
+          {
             text: 'Set as Button',
             onPress: () => setButtonPosition(seatNumber),
           },
@@ -98,6 +111,37 @@ export default function RecordHandScreen() {
     } else {
       setSelectedSeatIndex(index);
       setShowPlayerPicker(true);
+    }
+  };
+
+  const confirmStackUpdate = async () => {
+    const amount = parseFloat(stackAmount);
+    if (isNaN(amount) || amount < 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid number.');
+      return;
+    }
+
+    if (editingStackSeat !== null) {
+      // Update in session (persists to session screen)
+      await updateSeatStack(editingStackSeat, amount);
+      
+      // Update local state
+      const newSeats = seats.map(s => {
+        const sNum = s.seatNumber ?? (s.index + 1);
+        if (sNum === editingStackSeat && s.player) {
+          return {
+            ...s,
+            player: {
+              ...s.player,
+              stack: amount
+            }
+          };
+        }
+        return s;
+      });
+      setSeats(newSeats);
+      setShowStackModal(false);
+      setEditingStackSeat(null);
     }
   };
 
@@ -508,6 +552,48 @@ export default function RecordHandScreen() {
               </TouchableOpacity>
               <TouchableOpacity onPress={confirmMississippi} style={{ padding: 10, backgroundColor: '#2196f3', borderRadius: 8 }}>
                 <ThemedText style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Confirm</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Stack Edit Modal */}
+      <Modal
+        visible={showStackModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowStackModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: themeColors.card, borderRadius: 12, padding: 20, width: '100%', maxWidth: 400 }}>
+            <ThemedText style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16, color: themeColors.text }}>Edit Player Stack</ThemedText>
+            
+            <TextInput
+              style={{ 
+                borderWidth: 1, 
+                borderColor: themeColors.border, 
+                borderRadius: 8, 
+                padding: 12, 
+                fontSize: 16, 
+                color: themeColors.text,
+                marginBottom: 20,
+                backgroundColor: themeColors.inputBg
+              }}
+              placeholder="Enter stack amount"
+              placeholderTextColor={themeColors.subText}
+              keyboardType="numeric"
+              value={stackAmount}
+              onChangeText={setStackAmount}
+              autoFocus
+            />
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+              <TouchableOpacity onPress={() => setShowStackModal(false)} style={{ padding: 10 }}>
+                <ThemedText style={{ color: themeColors.subText, fontSize: 16 }}>Cancel</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={confirmStackUpdate} style={{ padding: 10, backgroundColor: '#2196f3', borderRadius: 8 }}>
+                <ThemedText style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Update</ThemedText>
               </TouchableOpacity>
             </View>
           </View>
