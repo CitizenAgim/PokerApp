@@ -1,17 +1,24 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
 
-// Vertical Table Layout
-export const TABLE_WIDTH = 200;
-export const TABLE_HEIGHT = 340;
-export const SEAT_SIZE = 60;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const PADDING = 10;
+const AVAILABLE_WIDTH = SCREEN_WIDTH - (PADDING * 2);
+
+// Horizontal Table Layout - Responsive scaling
+// We want the table + seats to fit. Seats are SEAT_SIZE and have SEAT_OFFSET.
+// Total width needed is roughly TABLE_WIDTH + (SEAT_SIZE + SEAT_OFFSET) * 2
+export const TABLE_WIDTH = Math.min(AVAILABLE_WIDTH * 0.65, 320);
+export const TABLE_HEIGHT = TABLE_WIDTH * 0.55;
+export const SEAT_SIZE = Math.min(AVAILABLE_WIDTH * 0.14, 52);
 
 export const styles = StyleSheet.create({
   tableContainer: {
-    flex: 1,
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    minHeight: 450, // Ensure enough space
+    paddingVertical: 40, // Space for seats at top/bottom
+    paddingHorizontal: PADDING,
+    minHeight: TABLE_HEIGHT + 140, 
   },
   table: {
     width: TABLE_WIDTH,
@@ -23,9 +30,9 @@ export const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: '#27ae60',
-    borderRadius: 150, // Oval approximation
-    borderWidth: 15,
-    borderColor: '#3e2723', // Wood rail
+    borderRadius: TABLE_HEIGHT / 2, 
+    borderWidth: Math.max(8, TABLE_WIDTH * 0.04),
+    borderColor: '#3e2723', 
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -36,7 +43,7 @@ export const styles = StyleSheet.create({
   },
   tableText: {
     color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 14,
+    fontSize: Math.max(10, TABLE_WIDTH * 0.04),
     textAlign: 'center',
     width: '60%',
   },
@@ -44,11 +51,11 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     top: '50%',
     left: '50%',
-    marginTop: -30, // -SEAT_SIZE / 2
-    marginLeft: -30, // -SEAT_SIZE / 2
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    marginTop: -SEAT_SIZE / 2,
+    marginLeft: -SEAT_SIZE / 2,
+    width: SEAT_SIZE,
+    height: SEAT_SIZE,
+    borderRadius: SEAT_SIZE / 2,
     backgroundColor: '#fff',
     borderWidth: 2,
     borderColor: '#ddd',
@@ -69,25 +76,25 @@ export const styles = StyleSheet.create({
     borderColor: '#ff9800',
   },
   seatPlayerName: {
-    fontSize: 10,
+    fontSize: Math.max(7, SEAT_SIZE * 0.16),
     fontWeight: '600',
     color: '#333',
     textAlign: 'center',
     zIndex: 1,
   },
   seatPosition: {
-    fontSize: 8,
+    fontSize: Math.max(6, SEAT_SIZE * 0.14),
     fontWeight: '700',
     color: '#666',
     zIndex: 1,
-    marginBottom: 2,
+    marginBottom: 1,
   },
   seatStack: {
-    fontSize: 10,
+    fontSize: Math.max(7, SEAT_SIZE * 0.16),
     fontWeight: '700',
     color: '#333',
     zIndex: 1,
-    marginTop: 2,
+    marginTop: 1,
   },
   seatContent: {
     alignItems: 'center',
@@ -106,78 +113,78 @@ export const styles = StyleSheet.create({
     borderRadius: SEAT_SIZE / 2,
   },
   seatNumber: {
-    fontSize: 8,
+    fontSize: Math.max(6, SEAT_SIZE * 0.14),
     color: '#999',
   },
   buttonIndicator: {
     position: 'absolute',
-    top: -8,
-    right: -8,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    top: -SEAT_SIZE * 0.12,
+    right: -SEAT_SIZE * 0.12,
+    width: SEAT_SIZE * 0.35,
+    height: SEAT_SIZE * 0.35,
+    borderRadius: (SEAT_SIZE * 0.35) / 2,
     backgroundColor: '#fff',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#333',
     justifyContent: 'center',
     alignItems: 'center',
   },
   buttonText: {
-    fontSize: 10,
+    fontSize: Math.max(7, SEAT_SIZE * 0.15),
     fontWeight: '700',
     color: '#333',
   },
   heroIndicator: {
     position: 'absolute',
-    top: -8,
-    left: -8,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    top: -SEAT_SIZE * 0.12,
+    left: -SEAT_SIZE * 0.12,
+    width: SEAT_SIZE * 0.3,
+    height: SEAT_SIZE * 0.3,
+    borderRadius: (SEAT_SIZE * 0.3) / 2,
     backgroundColor: '#ff9800',
     justifyContent: 'center',
     alignItems: 'center',
   },
   heroText: {
-    fontSize: 12,
+    fontSize: Math.max(8, SEAT_SIZE * 0.18),
     color: '#fff',
   },
   dealer: {
     position: 'absolute',
     top: '50%',
     left: '50%',
-    marginTop: -20,
-    marginLeft: -20,
-    width: 40,
-    height: 40,
+    marginTop: -TABLE_HEIGHT * 0.12,
+    marginLeft: -TABLE_HEIGHT * 0.12,
+    width: TABLE_HEIGHT * 0.24,
+    height: TABLE_HEIGHT * 0.24,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
   },
   dealerText: {
-    fontSize: 10,
+    fontSize: Math.max(7, TABLE_HEIGHT * 0.06),
     color: '#666',
     fontWeight: '600',
-    marginTop: -4,
+    marginTop: -2,
   },
   cardContainer: {
     position: 'absolute',
     top: '50%',
     left: '50%',
-    marginTop: -12,
-    marginLeft: -18, // Centered (36/2)
-    width: 36,
-    height: 24,
+    marginTop: -TABLE_HEIGHT * 0.08,
+    marginLeft: -TABLE_WIDTH * 0.06, 
+    width: TABLE_WIDTH * 0.12,
+    height: TABLE_HEIGHT * 0.15,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 0,
   },
   card: {
-    width: 16,
-    height: 22,
+    width: TABLE_WIDTH * 0.05,
+    height: TABLE_HEIGHT * 0.12,
     backgroundColor: '#d32f2f',
-    borderRadius: 3,
+    borderRadius: 2,
     borderWidth: 1,
     borderColor: '#fff',
     backfaceVisibility: 'hidden',
@@ -188,34 +195,34 @@ export const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   cardText: {
-    fontSize: 10,
+    fontSize: Math.max(7, TABLE_WIDTH * 0.03),
     fontWeight: 'bold',
   },
   cardSuit: {
-    fontSize: 8,
+    fontSize: Math.max(6, TABLE_WIDTH * 0.025),
   },
   cardSecond: {
-    marginLeft: 2,
+    marginLeft: 1,
   },
   communityCardsContainer: {
     position: 'absolute',
     top: '50%',
     left: '50%',
-    marginTop: -15,
-    marginLeft: -75, // Moved from -60 to -75 (left)
-    width: 120,
-    height: 30,
+    marginTop: -TABLE_HEIGHT * 0.1,
+    marginLeft: -TABLE_WIDTH * 0.2, 
+    width: TABLE_WIDTH * 0.4,
+    height: TABLE_HEIGHT * 0.2,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
-    gap: 4,
+    gap: 3,
   },
   communityCard: {
-    width: 20,
-    height: 28,
+    width: TABLE_WIDTH * 0.07,
+    height: TABLE_HEIGHT * 0.16,
     backgroundColor: '#d32f2f',
-    borderRadius: 3,
+    borderRadius: 2,
     borderWidth: 1,
     borderColor: '#fff',
     justifyContent: 'center',
@@ -225,44 +232,44 @@ export const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   communityCardText: {
-    fontSize: 12,
+    fontSize: Math.max(8, TABLE_WIDTH * 0.04),
     fontWeight: 'bold',
   },
   communityCardSuit: {
-    fontSize: 10,
+    fontSize: Math.max(7, TABLE_WIDTH * 0.03),
   },
   blindContainer: {
     position: 'absolute',
     top: '50%',
     left: '50%',
-    marginTop: -10,
-    marginLeft: -20,
-    width: 40,
-    height: 20,
+    marginTop: -TABLE_HEIGHT * 0.06,
+    marginLeft: -TABLE_WIDTH * 0.06,
+    width: TABLE_WIDTH * 0.12,
+    height: TABLE_HEIGHT * 0.12,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 2,
   },
   blindBadge: {
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 1,
   },
   blindText: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: Math.max(7, TABLE_WIDTH * 0.03),
     fontWeight: '700',
   },
   blindLabel: {
-    fontSize: 8,
+    fontSize: Math.max(6, TABLE_WIDTH * 0.025),
     fontWeight: '700',
-    color: '#ffd700', // Gold color for SB/BB label
-    marginRight: 2,
+    color: '#ffd700', 
+    marginRight: 1,
   },
 });

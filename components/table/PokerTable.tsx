@@ -7,59 +7,48 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SEAT_SIZE, styles, TABLE_HEIGHT, TABLE_WIDTH } from './PokerTable.styles';
 
-const RX = TABLE_WIDTH / 2;
-const RY = TABLE_HEIGHT / 2;
-const SEAT_OFFSET = 30;
-
-// Dealer Position (Between Seat 9 and Seat 1)
-const DEALER_ANGLE = 180;
-const DEALER_RAD = (DEALER_ANGLE * Math.PI) / 180;
-const DEALER_X = (RX + SEAT_OFFSET) * Math.cos(DEALER_RAD);
-const DEALER_Y = (RY + SEAT_OFFSET) * Math.sin(DEALER_RAD);
+// Responsive offsets based on table size
+const SEAT_OFFSET = TABLE_WIDTH * 0.12;
+const CARD_OFFSET = TABLE_WIDTH * 0.22;
+const BLIND_OFFSET = TABLE_WIDTH * 0.35;
 
 const getSeatPosition = (seatNumber: number) => {
   const safeSeatNum = (typeof seatNumber === 'number' && !isNaN(seatNumber)) ? seatNumber : 1;
-  const angleDeg = 180 + safeSeatNum * 36;
+  // Distribute 9 seats around 10 positions, leaving top center for dealer
+  const angleDeg = 270 + safeSeatNum * 36;
   const angleRad = (angleDeg * Math.PI) / 180;
   
-  const x = (RX + SEAT_OFFSET) * Math.cos(angleRad);
-  const y = (RY + SEAT_OFFSET) * Math.sin(angleRad);
+  const x = (TABLE_WIDTH / 2 + SEAT_OFFSET) * Math.cos(angleRad);
+  const y = (TABLE_HEIGHT / 2 + SEAT_OFFSET) * Math.sin(angleRad);
   
   return { x, y };
 };
 
 const getCardPosition = (seatNumber: number) => {
   const { x: seatX, y: seatY } = getSeatPosition(seatNumber);
-  
-  // Calculate distance from center
   const dist = Math.sqrt(seatX * seatX + seatY * seatY);
+  const factor = Math.max(0, (dist - CARD_OFFSET) / dist);
   
-  // Place cards at a fixed distance from the seat center (inwards)
-  // Seat radius is 30, so 55 gives a nice gap
-  // Reduce offset for Seat 5 to avoid overlap with board
-  const offset = seatNumber === 5 ? 35 : 55;
-  const factor = Math.max(0, (dist - offset) / dist);
-  
-  const x = seatX * factor;
-  const y = seatY * factor;
+  let x = seatX * factor;
+  let y = seatY * factor;
+
+  // Special adjustment for Seat 5 (right side) to avoid board overlap
+  if (seatNumber === 5) {
+    x = x + (TABLE_WIDTH * 0.1);
+  }
   
   return { x, y };
 };
 
 const getBlindPosition = (seatNumber: number) => {
   const { x: seatX, y: seatY } = getSeatPosition(seatNumber);
-  
-  // Calculate distance from center
   const dist = Math.sqrt(seatX * seatX + seatY * seatY);
+  const factor = Math.max(0, (dist - BLIND_OFFSET) / dist);
   
-  // Place blinds further in than cards (which are at 55)
-  const offset = 85;
-  const factor = Math.max(0, (dist - offset) / dist);
-  
-  const x = seatX * factor;
-  const y = seatY * factor;
-  
-  return { x, y };
+  return {
+    x: seatX * factor,
+    y: seatY * factor
+  };
 };
 
 interface SeatViewProps {
@@ -283,11 +272,11 @@ export function PokerTable({
         {/* Dealer */}
         <View style={[styles.dealer, {
           transform: [
-            { translateX: DEALER_X },
-            { translateY: DEALER_Y },
+            { translateX: 0 },
+            { translateY: -(TABLE_HEIGHT / 2 + SEAT_OFFSET - 8) },
           ]
         }]}>
-          <MaterialCommunityIcons name="account-tie" size={32} color={themeColors.text} />
+          <MaterialCommunityIcons name="account-tie" size={Math.max(24, TABLE_HEIGHT * 0.2)} color={themeColors.text} />
           <Text style={[styles.dealerText, { color: themeColors.subText }]}>Dealer</Text>
         </View>
         
