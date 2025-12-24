@@ -5,20 +5,20 @@ const PADDING = 10;
 const AVAILABLE_WIDTH = SCREEN_WIDTH - (PADDING * 2);
 
 // Horizontal Table Layout - Responsive scaling
-// We want the table + seats to fit. Seats are SEAT_SIZE and have SEAT_OFFSET.
-// Total width needed is roughly TABLE_WIDTH + (SEAT_SIZE + SEAT_OFFSET) * 2
-export const TABLE_WIDTH = Math.min(AVAILABLE_WIDTH * 0.65, 320);
-export const TABLE_HEIGHT = TABLE_WIDTH * 0.55;
-export const SEAT_SIZE = Math.min(AVAILABLE_WIDTH * 0.14, 52);
+// We want the table + seats to fit. Seats are SEAT_SIZE and touch the table.
+// Total width needed is TABLE_WIDTH + SEAT_SIZE * 2
+export const TABLE_WIDTH = Math.min(AVAILABLE_WIDTH * 0.75, 400);
+export const TABLE_HEIGHT = TABLE_WIDTH * 0.52;
+export const SEAT_SIZE = Math.min(AVAILABLE_WIDTH * 0.12, 48);
 
 export const styles = StyleSheet.create({
   tableContainer: {
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40, // Space for seats at top/bottom
+    paddingVertical: 45, // Space for seats at top/bottom
     paddingHorizontal: PADDING,
-    minHeight: TABLE_HEIGHT + 140, 
+    minHeight: TABLE_HEIGHT + 160, 
   },
   table: {
     width: TABLE_WIDTH,
@@ -31,7 +31,7 @@ export const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#27ae60',
     borderRadius: TABLE_HEIGHT / 2, 
-    borderWidth: Math.max(8, TABLE_WIDTH * 0.04),
+    borderWidth: Math.max(10, TABLE_WIDTH * 0.04),
     borderColor: '#3e2723', 
     justifyContent: 'center',
     alignItems: 'center',
@@ -242,13 +242,13 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     top: '50%',
     left: '50%',
-    marginTop: -TABLE_HEIGHT * 0.06,
-    marginLeft: -TABLE_WIDTH * 0.06,
-    width: TABLE_WIDTH * 0.12,
-    height: TABLE_HEIGHT * 0.12,
+    marginTop: -TABLE_HEIGHT * 0.08,
+    marginLeft: -TABLE_WIDTH * 0.08,
+    width: TABLE_WIDTH * 0.16,
+    height: TABLE_HEIGHT * 0.16,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 2,
+    zIndex: 10, // Ensure bets are above cards
   },
   blindBadge: {
     backgroundColor: 'rgba(0, 0, 0, 0.6)',

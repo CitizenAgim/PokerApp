@@ -531,21 +531,18 @@ export default function RecordHandScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={{ padding: 16 }}>
+          <ScrollView contentContainerStyle={{ padding: 12 }}>
             {isPickingBoard && (
-              <View style={{ marginBottom: 16, padding: 12, backgroundColor: themeColors.card, borderRadius: 8, borderWidth: 1, borderColor: themeColors.border }}>
-                <ThemedText style={{ fontSize: 14, color: themeColors.subText, textAlign: 'center' }}>
+              <View style={{ marginBottom: 12, padding: 8, backgroundColor: themeColors.card, borderRadius: 6, borderWidth: 1, borderColor: themeColors.border }}>
+                <ThemedText style={{ fontSize: 12, color: themeColors.subText, textAlign: 'center' }}>
                   Select 3 cards for Flop, 4 for Turn, or 5 for River.
                 </ThemedText>
               </View>
             )}
-            <View style={{ gap: 20 }}>
+            <View style={{ gap: 12 }}>
               {SUITS.map(suit => (
                 <View key={suit.id}>
-                  <ThemedText style={{ fontSize: 14, fontWeight: '600', marginBottom: 8, color: themeColors.subText, textTransform: 'uppercase' }}>
-                    {suit.id === 's' ? 'Spades' : suit.id === 'h' ? 'Hearts' : suit.id === 'd' ? 'Diamonds' : 'Clubs'}
-                  </ThemedText>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
                     {RANKS.map(rank => {
                       const cardId = `${rank}${suit.id}`;
                       
@@ -568,9 +565,9 @@ export default function RecordHandScreen() {
                           onPress={() => toggleCard(cardId)}
                           disabled={isUsedByOthers}
                           style={{
-                            width: 45,
-                            height: 60,
-                            borderRadius: 6,
+                            width: 38,
+                            height: 52,
+                            borderRadius: 4,
                             backgroundColor: isSelectedByMe ? '#2196f3' : isUsedByOthers ? '#eee' : themeColors.card,
                             borderWidth: 1,
                             borderColor: isSelectedByMe ? '#2196f3' : themeColors.border,
@@ -580,14 +577,14 @@ export default function RecordHandScreen() {
                           }}
                         >
                           <Text style={{ 
-                            fontSize: 16, 
+                            fontSize: 14, 
                             fontWeight: 'bold', 
                             color: isSelectedByMe ? '#fff' : isUsedByOthers ? '#999' : themeColors.text 
                           }}>
                             {rank}
                           </Text>
                           <Text style={{ 
-                            fontSize: 18, 
+                            fontSize: 16, 
                             color: isSelectedByMe ? '#fff' : isUsedByOthers ? '#999' : suit.color 
                           }}>
                             {suit.symbol}

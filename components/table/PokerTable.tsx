@@ -8,9 +8,9 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SEAT_SIZE, styles, TABLE_HEIGHT, TABLE_WIDTH } from './PokerTable.styles';
 
 // Responsive offsets based on table size
-const SEAT_OFFSET = TABLE_WIDTH * 0.12;
-const CARD_OFFSET = TABLE_WIDTH * 0.22;
-const BLIND_OFFSET = TABLE_WIDTH * 0.35;
+const SEAT_OFFSET = SEAT_SIZE / 2;
+const CARD_OFFSET = TABLE_WIDTH * 0.14;
+const BLIND_OFFSET = TABLE_WIDTH * 0.26;
 
 const getSeatPosition = (seatNumber: number) => {
   const safeSeatNum = (typeof seatNumber === 'number' && !isNaN(seatNumber)) ? seatNumber : 1;
@@ -29,13 +29,8 @@ const getCardPosition = (seatNumber: number) => {
   const dist = Math.sqrt(seatX * seatX + seatY * seatY);
   const factor = Math.max(0, (dist - CARD_OFFSET) / dist);
   
-  let x = seatX * factor;
-  let y = seatY * factor;
-
-  // Special adjustment for Seat 5 (right side) to avoid board overlap
-  if (seatNumber === 5) {
-    x = x + (TABLE_WIDTH * 0.1);
-  }
+  const x = seatX * factor;
+  const y = seatY * factor;
   
   return { x, y };
 };
