@@ -44,7 +44,7 @@ export default function RecordHandScreen() {
   const [communityCards, setCommunityCards] = useState<string[]>(['', '', '', '', '']);
   const [showCardPicker, setShowCardPicker] = useState(false);
   const [activeCardSeat, setActiveCardSeat] = useState<number | null>(null);
-  const [activeCommunityCardIndex, setActiveCommunityCardIndex] = useState<number | null>(null);
+  const [isPickingBoard, setIsPickingBoard] = useState(false);
 
   // Mississippi Modal State
   const [showMississippiModal, setShowMississippiModal] = useState(false);
@@ -122,14 +122,14 @@ export default function RecordHandScreen() {
   };
 
   const handleCardPress = (seatNumber: number) => {
-    setActiveCommunityCardIndex(null);
+    setIsPickingBoard(false);
     setActiveCardSeat(seatNumber);
     setShowCardPicker(true);
   };
 
-  const handleCommunityCardPress = (index: number) => {
+  const handleBoardPress = () => {
     setActiveCardSeat(null);
-    setActiveCommunityCardIndex(index);
+    setIsPickingBoard(true);
     setShowCardPicker(true);
   };
 
@@ -150,7 +150,7 @@ export default function RecordHandScreen() {
       const usedByOtherPlayers = Object.entries(handCards).flatMap(([seat, cards]) => 
         parseInt(seat) === activeCardSeat ? [] : cards
       );
-      const usedByCommunity = communityCards;
+      const usedByCommunity = communityCards.filter(c => c !== '');
 
       if (usedByOtherPlayers.includes(cardId) || usedByCommunity.includes(cardId)) {
         Alert.alert('Card Unavailable', 'This card is already in use.');
@@ -166,29 +166,48 @@ export default function RecordHandScreen() {
         ...prev,
         [activeCardSeat]: [...(prev[activeCardSeat] || []), cardId]
       }));
-    } else if (activeCommunityCardIndex !== null) {
-      const isAlreadySelectedByMe = communityCards[activeCommunityCardIndex] === cardId;
+    } else if (isPickingBoard) {
+      const isAlreadySelectedByMe = communityCards.includes(cardId);
 
       if (isAlreadySelectedByMe) {
-        const newCommunity = [...communityCards];
-        newCommunity[activeCommunityCardIndex] = '';
-        setCommunityCards(newCommunity);
+        setCommunityCards(prev => {
+          const next = prev.filter(c => c !== cardId);
+          while (next.length < 5) next.push('');
+          return next;
+        });
         return;
       }
 
-      // Check if card is used by someone else (player or community)
+      // Check if card is used by players
       const usedByPlayers = Object.values(handCards).flat();
-      const usedByOtherCommunity = communityCards.filter((_, i) => i !== activeCommunityCardIndex);
-
-      if (usedByPlayers.includes(cardId) || usedByOtherCommunity.includes(cardId)) {
-        Alert.alert('Card Unavailable', 'This card is already in use.');
+      if (usedByPlayers.includes(cardId)) {
+        Alert.alert('Card Unavailable', 'This card is already in use by a player.');
         return;
       }
 
-      const newCommunity = [...communityCards];
-      newCommunity[activeCommunityCardIndex] = cardId;
-      setCommunityCards(newCommunity);
+      const currentBoardCount = communityCards.filter(c => c !== '').length;
+      if (currentBoardCount >= 5) {
+        Alert.alert('Limit Reached', 'The board can only have 5 cards.');
+        return;
+      }
+
+      setCommunityCards(prev => {
+        const next = [...prev.filter(c => c !== ''), cardId];
+        while (next.length < 5) next.push('');
+        return next;
+      });
     }
+  };
+
+  const handleCloseCardPicker = () => {
+    if (isPickingBoard) {
+      const count = communityCards.filter(c => c !== '').length;
+      if (count > 0 && count < 3) {
+        Alert.alert('Incomplete Board', 'Please select at least 3 cards for the flop, or clear the board.');
+        return;
+      }
+    }
+    setShowCardPicker(false);
   };
 
   const handleMississippi = () => {
@@ -387,7 +406,7 @@ export default function RecordHandScreen() {
             handCards={handCards}
             onCardPress={handleCardPress}
             communityCards={communityCards}
-            onCommunityCardPress={handleCommunityCardPress}
+            onBoardPress={handleBoardPress}
           />
 
         {/* Controls */}
@@ -500,19 +519,26 @@ export default function RecordHandScreen() {
         visible={showCardPicker}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setShowCardPicker(false)}
+        onRequestClose={handleCloseCardPicker}
       >
         <View style={[styles.container, { backgroundColor: themeColors.background }]}>
           <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomWidth: 1, borderBottomColor: themeColors.border }]}>
             <ThemedText style={[styles.headerTitle, { color: themeColors.text }]}>
-              {activeCardSeat !== null ? `Select Cards (Seat ${activeCardSeat})` : `Select Community Card (${activeCommunityCardIndex === 0 || activeCommunityCardIndex === 1 || activeCommunityCardIndex === 2 ? 'Flop' : activeCommunityCardIndex === 3 ? 'Turn' : 'River'})`}
+              {activeCardSeat !== null ? `Select Cards (Seat ${activeCardSeat})` : 'Select Board Cards'}
             </ThemedText>
-            <TouchableOpacity onPress={() => setShowCardPicker(false)} style={styles.headerButton}>
+            <TouchableOpacity onPress={handleCloseCardPicker} style={styles.headerButton}>
               <ThemedText style={styles.headerButtonText}>Done</ThemedText>
             </TouchableOpacity>
           </View>
 
           <ScrollView contentContainerStyle={{ padding: 16 }}>
+            {isPickingBoard && (
+              <View style={{ marginBottom: 16, padding: 12, backgroundColor: themeColors.card, borderRadius: 8, borderWidth: 1, borderColor: themeColors.border }}>
+                <ThemedText style={{ fontSize: 14, color: themeColors.subText, textAlign: 'center' }}>
+                  Select 3 cards for Flop, 4 for Turn, or 5 for River.
+                </ThemedText>
+              </View>
+            )}
             <View style={{ gap: 20 }}>
               {SUITS.map(suit => (
                 <View key={suit.id}>
@@ -531,10 +557,9 @@ export default function RecordHandScreen() {
                         isUsedByOthers = Object.entries(handCards).some(([seat, cards]) => 
                           parseInt(seat) !== activeCardSeat && cards.includes(cardId)
                         ) || communityCards.includes(cardId);
-                      } else if (activeCommunityCardIndex !== null) {
-                        isSelectedByMe = communityCards[activeCommunityCardIndex] === cardId;
-                        isUsedByOthers = Object.values(handCards).flat().includes(cardId) || 
-                          communityCards.some((c, i) => i !== activeCommunityCardIndex && c === cardId);
+                      } else if (isPickingBoard) {
+                        isSelectedByMe = communityCards.includes(cardId);
+                        isUsedByOthers = Object.values(handCards).flat().includes(cardId);
                       }
 
                       return (

@@ -183,7 +183,7 @@ interface PokerTableProps {
   handCards?: Record<number, string[]>; // Map of seatNumber to array of card IDs (e.g. ["As", "Kd"])
   onCardPress?: (seatNumber: number) => void;
   communityCards?: string[]; // Array of 5 card IDs
-  onCommunityCardPress?: (index: number) => void;
+  onBoardPress?: () => void;
 }
 
 export function PokerTable({ 
@@ -203,7 +203,7 @@ export function PokerTable({
   handCards = {},
   onCardPress,
   communityCards = [],
-  onCommunityCardPress,
+  onBoardPress,
 }: PokerTableProps) {
   
   // Calculate SB and BB positions
@@ -245,16 +245,18 @@ export function PokerTable({
         
         {/* Community Cards */}
         {showCards && (
-          <View style={styles.communityCardsContainer}>
+          <TouchableOpacity 
+            style={styles.communityCardsContainer}
+            onPress={onBoardPress}
+            disabled={!onBoardPress}
+          >
             {[0, 1, 2, 3, 4].map((index) => {
               const cardId = communityCards[index];
               if (!cardId) {
                 return (
-                  <TouchableOpacity 
+                  <View 
                     key={`community-${index}`}
                     style={styles.communityCard}
-                    onPress={() => onCommunityCardPress?.(index)}
-                    disabled={!onCommunityCardPress}
                   />
                 );
               }
@@ -265,18 +267,16 @@ export function PokerTable({
               const suitSymbol = suitId === 's' ? '♠' : suitId === 'h' ? '♥' : suitId === 'd' ? '♦' : '♣';
 
               return (
-                <TouchableOpacity 
+                <View 
                   key={`community-${index}`}
                   style={[styles.communityCard, styles.communityCardSelected]}
-                  onPress={() => onCommunityCardPress?.(index)}
-                  disabled={!onCommunityCardPress}
                 >
                   <Text style={[styles.communityCardText, { color: isRed ? '#e74c3c' : '#000' }]}>{rank}</Text>
                   <Text style={[styles.communityCardSuit, { color: isRed ? '#e74c3c' : '#000' }]}>{suitSymbol}</Text>
-                </TouchableOpacity>
+                </View>
               );
             })}
-          </View>
+          </TouchableOpacity>
         )}
 
         {/* Dealer */}
