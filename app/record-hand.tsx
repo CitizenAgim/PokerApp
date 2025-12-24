@@ -7,8 +7,16 @@ import { getThemeColors, styles } from '@/styles/record-hand.styles';
 import { Seat } from '@/types/poker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, FlatList, Image, Modal, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+const SUITS = [
+  { id: 's', symbol: '♠', color: '#000' },
+  { id: 'h', symbol: '♥', color: '#e74c3c' },
+  { id: 'd', symbol: '♦', color: '#e74c3c' },
+  { id: 'c', symbol: '♣', color: '#000' },
+];
 
 export default function RecordHandScreen() {
   const router = useRouter();
@@ -31,6 +39,11 @@ export default function RecordHandScreen() {
   const [straddleCount, setStraddleCount] = useState(0);
   const [isMississippiActive, setIsMississippiActive] = useState(false);
   
+  // Card State
+  const [handCards, setHandCards] = useState<Record<number, string[]>>({});
+  const [showCardPicker, setShowCardPicker] = useState(false);
+  const [activeCardSeat, setActiveCardSeat] = useState<number | null>(null);
+
   // Mississippi Modal State
   const [showMississippiModal, setShowMississippiModal] = useState(false);
   const [mississippiAmount, setMississippiAmount] = useState('');
@@ -104,6 +117,48 @@ export default function RecordHandScreen() {
     setSeats(newSeats);
     setShowPlayerPicker(false);
     setSelectedSeatIndex(null);
+  };
+
+  const handleCardPress = (seatNumber: number) => {
+    setActiveCardSeat(seatNumber);
+    setShowCardPicker(true);
+  };
+
+  const toggleCard = (cardId: string) => {
+    if (activeCardSeat === null) return;
+
+    const currentCards = handCards[activeCardSeat] || [];
+    const isAlreadySelectedByMe = currentCards.includes(cardId);
+    
+    if (isAlreadySelectedByMe) {
+      // Remove it
+      setHandCards(prev => ({
+        ...prev,
+        [activeCardSeat]: prev[activeCardSeat].filter(c => c !== cardId)
+      }));
+      return;
+    }
+
+    // Check if card is used by someone else
+    const allUsedCards = Object.entries(handCards).flatMap(([seat, cards]) => 
+      parseInt(seat) === activeCardSeat ? [] : cards
+    );
+
+    if (allUsedCards.includes(cardId)) {
+      Alert.alert('Card Unavailable', 'This card is already assigned to another player.');
+      return;
+    }
+
+    if (currentCards.length >= 2) {
+      Alert.alert('Limit Reached', 'Each player can only have 2 cards.');
+      return;
+    }
+
+    // Add it
+    setHandCards(prev => ({
+      ...prev,
+      [activeCardSeat]: [...(prev[activeCardSeat] || []), cardId]
+    }));
   };
 
   const handleMississippi = () => {
@@ -249,6 +304,7 @@ export default function RecordHandScreen() {
     setBets({});
     setStraddleCount(0);
     setIsMississippiActive(false);
+    setHandCards({});
   };
 
   const handleStartHand = () => {
@@ -297,6 +353,8 @@ export default function RecordHandScreen() {
           bigBlind={session?.bigBlind}
           bets={bets}
           showCards={true}
+          handCards={handCards}
+          onCardPress={handleCardPress}
         />
 
         {/* Controls */}
@@ -401,6 +459,79 @@ export default function RecordHandScreen() {
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+      </Modal>
+
+      {/* Card Picker Modal */}
+      <Modal
+        visible={showCardPicker}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowCardPicker(false)}
+      >
+        <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+          <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomWidth: 1, borderBottomColor: themeColors.border }]}>
+            <ThemedText style={[styles.headerTitle, { color: themeColors.text }]}>
+              Select Cards (Seat {activeCardSeat})
+            </ThemedText>
+            <TouchableOpacity onPress={() => setShowCardPicker(false)} style={styles.headerButton}>
+              <ThemedText style={styles.headerButtonText}>Done</ThemedText>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: 16 }}>
+            <View style={{ gap: 20 }}>
+              {SUITS.map(suit => (
+                <View key={suit.id}>
+                  <ThemedText style={{ fontSize: 14, fontWeight: '600', marginBottom: 8, color: themeColors.subText, textTransform: 'uppercase' }}>
+                    {suit.id === 's' ? 'Spades' : suit.id === 'h' ? 'Hearts' : suit.id === 'd' ? 'Diamonds' : 'Clubs'}
+                  </ThemedText>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {RANKS.map(rank => {
+                      const cardId = `${rank}${suit.id}`;
+                      const isSelectedByMe = (handCards[activeCardSeat!] || []).includes(cardId);
+                      const isUsedByOthers = Object.entries(handCards).some(([seat, cards]) => 
+                        parseInt(seat) !== activeCardSeat && cards.includes(cardId)
+                      );
+
+                      return (
+                        <TouchableOpacity
+                          key={cardId}
+                          onPress={() => toggleCard(cardId)}
+                          disabled={isUsedByOthers}
+                          style={{
+                            width: 45,
+                            height: 60,
+                            borderRadius: 6,
+                            backgroundColor: isSelectedByMe ? '#2196f3' : isUsedByOthers ? '#eee' : themeColors.card,
+                            borderWidth: 1,
+                            borderColor: isSelectedByMe ? '#2196f3' : themeColors.border,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            opacity: isUsedByOthers ? 0.3 : 1,
+                          }}
+                        >
+                          <Text style={{ 
+                            fontSize: 16, 
+                            fontWeight: 'bold', 
+                            color: isSelectedByMe ? '#fff' : isUsedByOthers ? '#999' : themeColors.text 
+                          }}>
+                            {rank}
+                          </Text>
+                          <Text style={{ 
+                            fontSize: 18, 
+                            color: isSelectedByMe ? '#fff' : isUsedByOthers ? '#999' : suit.color 
+                          }}>
+                            {suit.symbol}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
         </View>
       </Modal>
     </ThemedView>

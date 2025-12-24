@@ -181,6 +181,18 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#fff',
     backfaceVisibility: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardSelected: {
+    backgroundColor: '#fff',
+  },
+  cardText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  cardSuit: {
+    fontSize: 8,
   },
   cardSecond: {
     marginLeft: 2,

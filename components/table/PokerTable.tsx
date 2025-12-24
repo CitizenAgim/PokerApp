@@ -180,6 +180,8 @@ interface PokerTableProps {
   bigBlind?: number;
   bets?: Record<number, number>; // Map of seatNumber to bet amount
   showCards?: boolean;
+  handCards?: Record<number, string[]>; // Map of seatNumber to array of card IDs (e.g. ["As", "Kd"])
+  onCardPress?: (seatNumber: number) => void;
 }
 
 export function PokerTable({ 
@@ -196,6 +198,8 @@ export function PokerTable({
   bigBlind,
   bets = {},
   showCards = true,
+  handCards = {},
+  onCardPress,
 }: PokerTableProps) {
   
   // Calculate SB and BB positions
@@ -272,21 +276,44 @@ export function PokerTable({
           const isSB = seatNum === sbSeatNum;
           const isBB = seatNum === bbSeatNum;
           const betAmount = bets[seatNum];
+          const cards = handCards[seatNum] || [];
+
+          const renderCard = (cardId?: string, isSecond?: boolean) => {
+            if (!cardId) {
+              return <View style={[styles.card, isSecond && styles.cardSecond]} />;
+            }
+            
+            const rank = cardId.slice(0, -1);
+            const suitId = cardId.slice(-1);
+            const isRed = suitId === 'h' || suitId === 'd';
+            const suitSymbol = suitId === 's' ? '♠' : suitId === 'h' ? '♥' : suitId === 'd' ? '♦' : '♣';
+            
+            return (
+              <View style={[styles.card, styles.cardSelected, isSecond && styles.cardSecond]}>
+                <Text style={[styles.cardText, { color: isRed ? '#e74c3c' : '#000' }]}>{rank}</Text>
+                <Text style={[styles.cardSuit, { color: isRed ? '#e74c3c' : '#000' }]}>{suitSymbol}</Text>
+              </View>
+            );
+          };
 
           return (
             <React.Fragment key={seatNum}>
               {player && (
                 <>
                   {showCards && (
-                    <View style={[styles.cardContainer, {
-                      transform: [
-                        { translateX: cardX },
-                        { translateY: cardY },
-                      ]
-                    }]}>
-                      <View style={styles.card} />
-                      <View style={[styles.card, styles.cardSecond]} />
-                    </View>
+                    <TouchableOpacity 
+                      style={[styles.cardContainer, {
+                        transform: [
+                          { translateX: cardX },
+                          { translateY: cardY },
+                        ]
+                      }]}
+                      onPress={() => onCardPress?.(seatNum)}
+                      disabled={!onCardPress}
+                    >
+                      {renderCard(cards[0])}
+                      {renderCard(cards[1], true)}
+                    </TouchableOpacity>
                   )}
                   
                   {/* Blinds or Bets */}
