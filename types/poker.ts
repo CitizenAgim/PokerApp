@@ -43,7 +43,8 @@ export type Action =
   | 'call-raise'   // Calling a raise
   | '3bet'         // Re-raising an open
   | 'call-3bet'    // Calling a 3-bet
-  | '4bet';        // Re-raising a 3-bet
+  | '4bet'         // Re-raising a 3-bet
+  | 'squeeze';     // Re-raising after an open and one or more callers
 
 export interface RangeCategory {
   position: Position;
