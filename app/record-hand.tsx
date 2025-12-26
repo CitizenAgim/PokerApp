@@ -38,6 +38,10 @@ export default function RecordHandScreen() {
   const [bets, setBets] = useState<Record<number, number>>({});
   const [straddleCount, setStraddleCount] = useState(0);
   const [isMississippiActive, setIsMississippiActive] = useState(false);
+  const [pot, setPot] = useState(0);
+  const [street, setStreet] = useState<'preflop' | 'flop' | 'turn' | 'river'>('preflop');
+  const [minRaise, setMinRaise] = useState(0);
+  const [history, setHistory] = useState<any[]>([]);
   
   // Card State
   const [handCards, setHandCards] = useState<Record<number, string[]>>({});
@@ -79,6 +83,46 @@ export default function RecordHandScreen() {
       }
     }
   }, [sessionId, sessionTable]);
+
+  const saveState = () => {
+    const state = {
+      seats: JSON.parse(JSON.stringify(seats)),
+      bets: { ...bets },
+      pot,
+      currentActionSeat,
+      currentBet,
+      foldedSeats: new Set(foldedSeats),
+      handCards: JSON.parse(JSON.stringify(handCards)),
+      communityCards: [...communityCards],
+      street,
+      minRaise,
+      isHandStarted,
+      straddleCount,
+      isMississippiActive,
+    };
+    setHistory(prev => [...prev, state]);
+  };
+
+  const handleUndo = () => {
+    if (history.length === 0) return;
+    const prevState = history[history.length - 1];
+    setHistory(prev => prev.slice(0, -1));
+    
+    // Restore state
+    setSeats(prevState.seats);
+    setBets(prevState.bets);
+    setPot(prevState.pot);
+    setCurrentActionSeat(prevState.currentActionSeat);
+    setCurrentBet(prevState.currentBet);
+    setFoldedSeats(prevState.foldedSeats);
+    setHandCards(prevState.handCards);
+    setCommunityCards(prevState.communityCards);
+    setStreet(prevState.street);
+    setMinRaise(prevState.minRaise);
+    setIsHandStarted(prevState.isHandStarted);
+    setStraddleCount(prevState.straddleCount);
+    setIsMississippiActive(prevState.isMississippiActive);
+  };
 
   const handleSeatPress = (seatNumber: number) => {
     const index = seatNumber - 1;
@@ -451,6 +495,68 @@ export default function RecordHandScreen() {
     // Determine first to act (Preflop)
     let firstActorSeatNum: number;
     
+    // Calculate SB and BB positions
+    const occupiedSeats = activeSeats.sort((a, b) => {
+      const seatA = a.seatNumber ?? (a.index + 1);
+      const seatB = b.seatNumber ?? (b.index + 1);
+      return seatA - seatB;
+    });
+
+    let sbSeatNum = -1;
+    let bbSeatNum = -1;
+
+    if (occupiedSeats.length >= 2) {
+      // Find the first occupied seat that has seatNumber > buttonPosition
+      let nextIndex = occupiedSeats.findIndex(s => {
+        const sNum = s.seatNumber ?? (s.index + 1);
+        return sNum > buttonPosition;
+      });
+      
+      if (nextIndex === -1) {
+        // Wrap around to the first occupied seat
+        nextIndex = 0;
+      }
+      
+      const sbSeat = occupiedSeats[nextIndex];
+      sbSeatNum = sbSeat.seatNumber ?? (sbSeat.index + 1);
+      
+      // BB is the next one
+      let bbIndex = (nextIndex + 1) % occupiedSeats.length;
+      const bbSeat = occupiedSeats[bbIndex];
+      bbSeatNum = bbSeat.seatNumber ?? (bbSeat.index + 1);
+    }
+
+    // Set initial blinds in bets if not already set (e.g. by straddle)
+    const initialBets = { ...bets };
+    const sbAmount = session?.smallBlind || 0;
+    const bbAmount = session?.bigBlind || 0;
+    let newSeats = [...seats];
+
+    if (sbSeatNum !== -1 && !initialBets[sbSeatNum]) {
+      initialBets[sbSeatNum] = sbAmount;
+      // Deduct SB from stack
+      newSeats = newSeats.map(s => {
+          const sNum = s.seatNumber ?? (s.index + 1);
+          if (sNum === sbSeatNum && s.player && s.player.stack !== undefined) {
+              return { ...s, player: { ...s.player, stack: s.player.stack - sbAmount } };
+          }
+          return s;
+      });
+    }
+    if (bbSeatNum !== -1 && !initialBets[bbSeatNum]) {
+      initialBets[bbSeatNum] = bbAmount;
+      // Deduct BB from stack
+      newSeats = newSeats.map(s => {
+          const sNum = s.seatNumber ?? (s.index + 1);
+          if (sNum === bbSeatNum && s.player && s.player.stack !== undefined) {
+              return { ...s, player: { ...s.player, stack: s.player.stack - bbAmount } };
+          }
+          return s;
+      });
+    }
+    setSeats(newSeats);
+    setBets(initialBets);
+    
     if (activeSeats.length === 2) {
         // Heads up: Button acts first preflop
         firstActorSeatNum = buttonPosition;
@@ -473,12 +579,14 @@ export default function RecordHandScreen() {
     setCurrentActionSeat(firstActorSeatNum);
     
     // Initialize Current Bet based on existing bets (straddles/blinds)
-    const maxBet = Math.max(0, ...Object.values(bets));
+    const maxBet = Math.max(bbAmount, ...Object.values(initialBets));
     setCurrentBet(maxBet);
+    setMinRaise(bbAmount); // Initial min raise is BB
   };
 
   const handleFold = () => {
     if (currentActionSeat === null) return;
+    saveState();
     
     // Remove cards
     setHandCards(prev => {
@@ -499,14 +607,32 @@ export default function RecordHandScreen() {
     if (currentBet > myBet) {
         return; // Should be disabled
     }
+    saveState();
     moveToNextPlayer();
   };
 
   const handleCall = () => {
     if (currentActionSeat === null) return;
-    const amountToCall = currentBet;
+    saveState();
     
-    // Update stack logic would go here (deduct difference)
+    const currentPlayerBet = bets[currentActionSeat] || 0;
+    const amountToCall = currentBet;
+    const amountToDeduct = amountToCall - currentPlayerBet;
+
+    // Update stack
+    setSeats(prevSeats => prevSeats.map(s => {
+        const sNum = s.seatNumber ?? (s.index + 1);
+        if (sNum === currentActionSeat && s.player && s.player.stack !== undefined) {
+            return {
+                ...s,
+                player: {
+                    ...s.player,
+                    stack: s.player.stack - amountToDeduct
+                }
+            };
+        }
+        return s;
+    }));
     
     setBets(prev => ({
         ...prev,
@@ -524,17 +650,181 @@ export default function RecordHandScreen() {
   const confirmBet = () => {
     if (currentActionSeat === null) return;
     const amount = parseFloat(betAmount);
-    if (isNaN(amount) || amount < currentBet) {
-        Alert.alert('Invalid Bet', 'Bet must be at least the current bet.');
+    
+    // Validation
+    if (isNaN(amount)) {
+        Alert.alert('Invalid Amount', 'Please enter a valid number.');
         return;
     }
+
+    if (currentBet === 0) {
+        // Opening bet
+        if (amount < (session?.bigBlind || 0)) {
+             Alert.alert('Invalid Bet', 'Bet must be at least the Big Blind.');
+             return;
+        }
+    } else {
+        // Raise
+        if (amount < currentBet + minRaise) {
+             Alert.alert('Invalid Raise', `Raise must be at least ${currentBet + minRaise} (Min Raise: ${minRaise}).`);
+             return;
+        }
+    }
     
+    saveState();
+
+    // Calculate new min raise if it's a raise
+    if (amount > currentBet) {
+        const raiseDiff = amount - currentBet;
+        setMinRaise(raiseDiff);
+    }
+
+    const currentPlayerBet = bets[currentActionSeat] || 0;
+    const amountToDeduct = amount - currentPlayerBet;
+
+    // Update stack
+    setSeats(prevSeats => prevSeats.map(s => {
+        const sNum = s.seatNumber ?? (s.index + 1);
+        if (sNum === currentActionSeat && s.player && s.player.stack !== undefined) {
+            return {
+                ...s,
+                player: {
+                    ...s.player,
+                    stack: s.player.stack - amountToDeduct
+                }
+            };
+        }
+        return s;
+    }));
+
     setBets(prev => ({
         ...prev,
         [currentActionSeat]: amount
     }));
     setCurrentBet(amount);
     setShowBetModal(false);
+    moveToNextPlayer();
+  };
+
+  const handlePot = () => {
+    if (currentActionSeat === null) return;
+    
+    // Calculate pot size bet
+    // Pot Base = Pot from previous streets + Sum of all bets on table
+    const potBase = pot + Object.values(bets).reduce((a, b) => a + b, 0);
+    
+    const myBet = bets[currentActionSeat] || 0;
+    const amountToCall = currentBet - myBet;
+    
+    // In NLH, "Pot" usually means: Call current bet, then raise by the size of the pot.
+    // Pot after call = PotBase + AmountToCall
+    // Raise Amount = Pot after call
+    // Total Bet = CurrentBet + RaiseAmount
+    
+    // If no one has bet (currentBet == 0), then Pot Bet = PotBase
+    
+    let totalBet = 0;
+    if (currentBet === 0) {
+        totalBet = potBase;
+        // If pot is 0 (start of hand/street), maybe bet BB? But usually pot is not 0.
+        if (totalBet === 0) totalBet = session?.bigBlind || 0;
+    } else {
+        const raiseAmount = potBase + amountToCall;
+        totalBet = currentBet + raiseAmount;
+    }
+    
+    // Check stack
+    const player = seats.find(s => (s.seatNumber ?? (s.index + 1)) === currentActionSeat)?.player;
+    const stack = player?.stack || 0;
+    const maxBet = myBet + stack;
+    
+    const finalBet = Math.min(totalBet, maxBet);
+    
+    // Confirm with user? Or just do it? "Pot" button usually just does it or fills the input.
+    // Let's execute it for speed, or maybe fill the modal?
+    // User asked for "buttons... sufficient description". Usually instant or confirmation.
+    // Let's execute it but validate min raise (Pot should always be valid unless stack is short)
+    
+    saveState();
+    
+    if (finalBet > currentBet) {
+        const raiseDiff = finalBet - currentBet;
+        // Only update minRaise if it's a full raise (not all-in short)
+        // But for simplicity let's update it if it's larger than previous minRaise?
+        // Rules say: if all-in is less than min-raise, it doesn't reopen betting.
+        // We'll simplify for now.
+        if (raiseDiff >= minRaise) {
+             setMinRaise(raiseDiff);
+        }
+    }
+    
+    const currentPlayerBet = bets[currentActionSeat] || 0;
+    const amountToDeduct = finalBet - currentPlayerBet;
+
+    // Update stack
+    setSeats(prevSeats => prevSeats.map(s => {
+        const sNum = s.seatNumber ?? (s.index + 1);
+        if (sNum === currentActionSeat && s.player && s.player.stack !== undefined) {
+            return {
+                ...s,
+                player: {
+                    ...s.player,
+                    stack: s.player.stack - amountToDeduct
+                }
+            };
+        }
+        return s;
+    }));
+
+    setBets(prev => ({
+        ...prev,
+        [currentActionSeat]: finalBet
+    }));
+    if (finalBet > currentBet) setCurrentBet(finalBet);
+    
+    moveToNextPlayer();
+  };
+
+  const handleAllIn = () => {
+    if (currentActionSeat === null) return;
+    
+    const player = seats.find(s => (s.seatNumber ?? (s.index + 1)) === currentActionSeat)?.player;
+    if (!player) return;
+    
+    const myBet = bets[currentActionSeat] || 0;
+    const stack = player.stack || 0;
+    const totalBet = myBet + stack;
+    
+    saveState();
+    
+    if (totalBet > currentBet) {
+        const raiseDiff = totalBet - currentBet;
+        if (raiseDiff >= minRaise) {
+             setMinRaise(raiseDiff);
+        }
+    }
+    
+    // Update stack (to 0)
+    setSeats(prevSeats => prevSeats.map(s => {
+        const sNum = s.seatNumber ?? (s.index + 1);
+        if (sNum === currentActionSeat && s.player) {
+            return {
+                ...s,
+                player: {
+                    ...s.player,
+                    stack: 0
+                }
+            };
+        }
+        return s;
+    }));
+
+    setBets(prev => ({
+        ...prev,
+        [currentActionSeat]: totalBet
+    }));
+    if (totalBet > currentBet) setCurrentBet(totalBet);
+    
     moveToNextPlayer();
   };
 
@@ -645,25 +935,41 @@ export default function RecordHandScreen() {
                 <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>Call</ThemedText>
               </TouchableOpacity>
               
-              <TouchableOpacity 
-                style={[styles.actionButton, { backgroundColor: '#2196f3', minWidth: 80 }]} 
-                onPress={handleBet}
-              >
-                <ThemedText style={[styles.actionButtonText, { color: '#fff' }]}>Bet</ThemedText>
-              </TouchableOpacity>
+              {currentBet === 0 ? (
+                <TouchableOpacity 
+                  style={[styles.actionButton, { backgroundColor: '#2196f3', minWidth: 80 }]} 
+                  onPress={handleBet}
+                >
+                  <ThemedText style={[styles.actionButtonText, { color: '#fff' }]}>Bet</ThemedText>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity 
+                  style={[styles.actionButton, { backgroundColor: '#2196f3', minWidth: 80 }]} 
+                  onPress={handleBet}
+                >
+                  <ThemedText style={[styles.actionButtonText, { color: '#fff' }]}>Raise</ThemedText>
+                </TouchableOpacity>
+              )}
 
               {/* Placeholders for other buttons */}
-              <TouchableOpacity style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, minWidth: 80 }]}>
-                <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>Raise</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, minWidth: 80 }]}>
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, minWidth: 80 }]}
+                onPress={handlePot}
+              >
                 <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>Pot</ThemedText>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, minWidth: 80 }]}>
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, minWidth: 80 }]}
+                onPress={handleAllIn}
+              >
                 <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>All-in</ThemedText>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, minWidth: 80 }]}>
-                <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>←</ThemedText>
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, minWidth: 80 }]}
+                onPress={handleUndo}
+                disabled={history.length === 0}
+              >
+                <ThemedText style={[styles.actionButtonText, { color: history.length === 0 ? '#ccc' : themeColors.text }]}>←</ThemedText>
               </TouchableOpacity>
             </View>
           )}
@@ -795,7 +1101,9 @@ export default function RecordHandScreen() {
       >
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
           <View style={{ backgroundColor: themeColors.card, borderRadius: 12, padding: 20, width: '100%', maxWidth: 400 }}>
-            <ThemedText style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16, color: themeColors.text }}>Bet Amount</ThemedText>
+            <ThemedText style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16, color: themeColors.text }}>
+              {currentBet === 0 ? 'Bet Amount' : 'Raise Amount'}
+            </ThemedText>
             
             <TextInput
               style={{ 
@@ -808,7 +1116,7 @@ export default function RecordHandScreen() {
                 marginBottom: 20,
                 backgroundColor: themeColors.inputBg
               }}
-              placeholder="Enter bet amount"
+              placeholder={currentBet === 0 ? "Enter bet amount" : "Enter raise amount"}
               placeholderTextColor={themeColors.subText}
               keyboardType="numeric"
               value={betAmount}
