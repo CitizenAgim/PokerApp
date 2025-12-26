@@ -533,23 +533,31 @@ export default function RecordHandScreen() {
     let newSeats = [...seats];
 
     if (sbSeatNum !== -1 && !initialBets[sbSeatNum]) {
-      initialBets[sbSeatNum] = sbAmount;
+      const sbSeat = newSeats.find(s => (s.seatNumber ?? (s.index + 1)) === sbSeatNum);
+      const stack = sbSeat?.player?.stack || 0;
+      const actualSb = Math.min(sbAmount, stack);
+
+      initialBets[sbSeatNum] = actualSb;
       // Deduct SB from stack
       newSeats = newSeats.map(s => {
           const sNum = s.seatNumber ?? (s.index + 1);
           if (sNum === sbSeatNum && s.player && s.player.stack !== undefined) {
-              return { ...s, player: { ...s.player, stack: s.player.stack - sbAmount } };
+              return { ...s, player: { ...s.player, stack: s.player.stack - actualSb } };
           }
           return s;
       });
     }
     if (bbSeatNum !== -1 && !initialBets[bbSeatNum]) {
-      initialBets[bbSeatNum] = bbAmount;
+      const bbSeat = newSeats.find(s => (s.seatNumber ?? (s.index + 1)) === bbSeatNum);
+      const stack = bbSeat?.player?.stack || 0;
+      const actualBb = Math.min(bbAmount, stack);
+
+      initialBets[bbSeatNum] = actualBb;
       // Deduct BB from stack
       newSeats = newSeats.map(s => {
           const sNum = s.seatNumber ?? (s.index + 1);
           if (sNum === bbSeatNum && s.player && s.player.stack !== undefined) {
-              return { ...s, player: { ...s.player, stack: s.player.stack - bbAmount } };
+              return { ...s, player: { ...s.player, stack: s.player.stack - actualBb } };
           }
           return s;
       });
@@ -613,11 +621,19 @@ export default function RecordHandScreen() {
 
   const handleCall = () => {
     if (currentActionSeat === null) return;
+    
+    const seat = seats.find(s => (s.seatNumber ?? (s.index + 1)) === currentActionSeat);
+    if (!seat || !seat.player) return;
+
     saveState();
     
     const currentPlayerBet = bets[currentActionSeat] || 0;
     const amountToCall = currentBet;
-    const amountToDeduct = amountToCall - currentPlayerBet;
+    const amountNeeded = amountToCall - currentPlayerBet;
+    
+    const stack = seat.player.stack || 0;
+    const actualDeduction = Math.min(amountNeeded, stack);
+    const finalBet = currentPlayerBet + actualDeduction;
 
     // Update stack
     setSeats(prevSeats => prevSeats.map(s => {
@@ -627,7 +643,7 @@ export default function RecordHandScreen() {
                 ...s,
                 player: {
                     ...s.player,
-                    stack: s.player.stack - amountToDeduct
+                    stack: s.player.stack - actualDeduction
                 }
             };
         }
@@ -636,7 +652,7 @@ export default function RecordHandScreen() {
     
     setBets(prev => ({
         ...prev,
-        [currentActionSeat]: amountToCall
+        [currentActionSeat]: finalBet
     }));
     
     moveToNextPlayer();
@@ -654,6 +670,19 @@ export default function RecordHandScreen() {
     // Validation
     if (isNaN(amount)) {
         Alert.alert('Invalid Amount', 'Please enter a valid number.');
+        return;
+    }
+
+    // Check stack
+    const seat = seats.find(s => (s.seatNumber ?? (s.index + 1)) === currentActionSeat);
+    if (!seat || !seat.player) return;
+    
+    const currentPlayerBet = bets[currentActionSeat] || 0;
+    const stack = seat.player.stack || 0;
+    const maxTotalBet = currentPlayerBet + stack;
+
+    if (amount > maxTotalBet) {
+        Alert.alert('Insufficient Stack', `You only have enough to bet/raise up to ${maxTotalBet}.`);
         return;
     }
 
@@ -679,7 +708,6 @@ export default function RecordHandScreen() {
         setMinRaise(raiseDiff);
     }
 
-    const currentPlayerBet = bets[currentActionSeat] || 0;
     const amountToDeduct = amount - currentPlayerBet;
 
     // Update stack
