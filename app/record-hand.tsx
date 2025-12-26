@@ -50,6 +50,16 @@ export default function RecordHandScreen() {
   const [showMississippiModal, setShowMississippiModal] = useState(false);
   const [mississippiAmount, setMississippiAmount] = useState('');
 
+  // Hand Action State
+  const [isHandStarted, setIsHandStarted] = useState(false);
+  const [currentActionSeat, setCurrentActionSeat] = useState<number | null>(null);
+  const [currentBet, setCurrentBet] = useState(0);
+  const [foldedSeats, setFoldedSeats] = useState<Set<number>>(new Set());
+  
+  // Bet Modal State
+  const [showBetModal, setShowBetModal] = useState(false);
+  const [betAmount, setBetAmount] = useState('');
+
   // Stack Edit Modal State
   const [showStackModal, setShowStackModal] = useState(false);
   const [stackAmount, setStackAmount] = useState('');
@@ -399,11 +409,133 @@ export default function RecordHandScreen() {
     setIsMississippiActive(false);
     setHandCards({});
     setCommunityCards(['', '', '', '', '']);
+    setIsHandStarted(false);
+    setCurrentActionSeat(null);
+    setCurrentBet(0);
+    setFoldedSeats(new Set());
+  };
+
+  const getNextSeat = (currentSeatNum: number, activeSeats: Seat[]) => {
+    let next = currentSeatNum;
+    let loopCount = 0;
+    do {
+        next = (next % 9) + 1;
+        const isActive = activeSeats.some(s => (s.seatNumber ?? (s.index + 1)) === next);
+        const isFolded = foldedSeats.has(next);
+        if (isActive && !isFolded) return next;
+        loopCount++;
+    } while (next !== currentSeatNum && loopCount < 10);
+    return null;
+  };
+
+  const moveToNextPlayer = () => {
+    if (currentActionSeat === null) return;
+    const activeSeats = seats.filter(s => s.player || s.playerId);
+    const nextSeat = getNextSeat(currentActionSeat, activeSeats);
+    if (nextSeat) {
+      setCurrentActionSeat(nextSeat);
+    } else {
+      Alert.alert('Round End', 'No more players to act.');
+    }
   };
 
   const handleStartHand = () => {
-    // Placeholder
-    Alert.alert('Info', 'Start Hand clicked (Not implemented yet)');
+    const activeSeats = seats.filter(s => s.player || s.playerId);
+    if (activeSeats.length < 2) {
+      Alert.alert('Error', 'Need at least 2 players to start.');
+      return;
+    }
+    
+    setIsHandStarted(true);
+    
+    // Determine first to act (Preflop)
+    let firstActorSeatNum: number;
+    
+    if (activeSeats.length === 2) {
+        // Heads up: Button acts first preflop
+        firstActorSeatNum = buttonPosition;
+    } else {
+        // Find seat with distance 3 (UTG) or next available
+        let curr = buttonPosition;
+        // 1. SB
+        let next = getNextSeat(curr, activeSeats);
+        if (next) curr = next;
+        // 2. BB
+        next = getNextSeat(curr, activeSeats);
+        if (next) curr = next;
+        // 3. UTG (First Actor)
+        next = getNextSeat(curr, activeSeats);
+        if (next) curr = next;
+        
+        firstActorSeatNum = curr;
+    }
+    
+    setCurrentActionSeat(firstActorSeatNum);
+    
+    // Initialize Current Bet based on existing bets (straddles/blinds)
+    const maxBet = Math.max(0, ...Object.values(bets));
+    setCurrentBet(maxBet);
+  };
+
+  const handleFold = () => {
+    if (currentActionSeat === null) return;
+    
+    // Remove cards
+    setHandCards(prev => {
+        const next = { ...prev };
+        delete next[currentActionSeat];
+        return next;
+    });
+    
+    // Add to folded
+    setFoldedSeats(prev => new Set(prev).add(currentActionSeat));
+    
+    moveToNextPlayer();
+  };
+
+  const handleCheck = () => {
+    if (currentActionSeat === null) return;
+    const myBet = bets[currentActionSeat] || 0;
+    if (currentBet > myBet) {
+        return; // Should be disabled
+    }
+    moveToNextPlayer();
+  };
+
+  const handleCall = () => {
+    if (currentActionSeat === null) return;
+    const amountToCall = currentBet;
+    
+    // Update stack logic would go here (deduct difference)
+    
+    setBets(prev => ({
+        ...prev,
+        [currentActionSeat]: amountToCall
+    }));
+    
+    moveToNextPlayer();
+  };
+
+  const handleBet = () => {
+    setBetAmount('');
+    setShowBetModal(true);
+  };
+
+  const confirmBet = () => {
+    if (currentActionSeat === null) return;
+    const amount = parseFloat(betAmount);
+    if (isNaN(amount) || amount < currentBet) {
+        Alert.alert('Invalid Bet', 'Bet must be at least the current bet.');
+        return;
+    }
+    
+    setBets(prev => ({
+        ...prev,
+        [currentActionSeat]: amount
+    }));
+    setCurrentBet(amount);
+    setShowBetModal(false);
+    moveToNextPlayer();
   };
 
   const handleSave = () => {
@@ -439,6 +571,7 @@ export default function RecordHandScreen() {
             players={allPlayers}
             buttonPosition={buttonPosition}
             heroSeat={heroSeat}
+            activeSeat={currentActionSeat}
             onSeatPress={handleSeatPress}
             themeColors={themeColors}
             centerText="Tap seat to assign/edit"
@@ -451,36 +584,89 @@ export default function RecordHandScreen() {
             onCardPress={handleCardPress}
             communityCards={communityCards}
             onBoardPress={handleBoardPress}
+            foldedSeats={foldedSeats}
           />
 
         {/* Controls */}
         <View style={styles.controls}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
-             <TouchableOpacity 
-                style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, flex: 1 }]} 
-                onPress={handleMississippi}
-             >
-                <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>Mississippi</ThemedText>
-             </TouchableOpacity>
-             <TouchableOpacity 
-                style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, flex: 1 }]} 
-                onPress={handleStraddle}
-             >
-                <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>Straddle</ThemedText>
-             </TouchableOpacity>
-             <TouchableOpacity 
-                style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, flex: 1 }]} 
-                onPress={handleReset}
-             >
-                <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>Reset</ThemedText>
-             </TouchableOpacity>
-          </View>
-          <TouchableOpacity 
-             style={[styles.actionButton, { backgroundColor: '#2196f3', width: '100%' }]} 
-             onPress={handleStartHand}
-          >
-             <ThemedText style={[styles.actionButtonText, { color: '#fff' }]}>Start Hand</ThemedText>
-          </TouchableOpacity>
+          {!isHandStarted ? (
+            <>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
+                <TouchableOpacity 
+                    style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, flex: 1 }]} 
+                    onPress={handleMississippi}
+                >
+                    <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>Mississippi</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                    style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, flex: 1 }]} 
+                    onPress={handleStraddle}
+                >
+                    <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>Straddle</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                    style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, flex: 1 }]} 
+                    onPress={handleReset}
+                >
+                    <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>Reset</ThemedText>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: '#2196f3', width: '100%' }]} 
+                onPress={handleStartHand}
+              >
+                <ThemedText style={[styles.actionButtonText, { color: '#fff' }]}>Start Hand</ThemedText>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: '#e74c3c', minWidth: 80 }]} 
+                onPress={handleFold}
+              >
+                <ThemedText style={[styles.actionButtonText, { color: '#fff' }]}>Fold</ThemedText>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.actionButton, 
+                  { backgroundColor: (currentActionSeat !== null && (bets[currentActionSeat] || 0) < currentBet) ? '#ccc' : themeColors.actionButtonBg, minWidth: 80 }
+                ]} 
+                onPress={handleCheck}
+                disabled={currentActionSeat !== null && (bets[currentActionSeat] || 0) < currentBet}
+              >
+                <ThemedText style={[styles.actionButtonText, { color: (currentActionSeat !== null && (bets[currentActionSeat] || 0) < currentBet) ? '#666' : themeColors.text }]}>Check</ThemedText>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, minWidth: 80 }]} 
+                onPress={handleCall}
+              >
+                <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>Call</ThemedText>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: '#2196f3', minWidth: 80 }]} 
+                onPress={handleBet}
+              >
+                <ThemedText style={[styles.actionButtonText, { color: '#fff' }]}>Bet</ThemedText>
+              </TouchableOpacity>
+
+              {/* Placeholders for other buttons */}
+              <TouchableOpacity style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, minWidth: 80 }]}>
+                <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>Raise</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, minWidth: 80 }]}>
+                <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>Pot</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, minWidth: 80 }]}>
+                <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>All-in</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, minWidth: 80 }]}>
+                <ThemedText style={[styles.actionButtonText, { color: themeColors.text }]}>←</ThemedText>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -594,6 +780,48 @@ export default function RecordHandScreen() {
               </TouchableOpacity>
               <TouchableOpacity onPress={confirmStackUpdate} style={{ padding: 10, backgroundColor: '#2196f3', borderRadius: 8 }}>
                 <ThemedText style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Update</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Bet Amount Modal */}
+      <Modal
+        visible={showBetModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowBetModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: themeColors.card, borderRadius: 12, padding: 20, width: '100%', maxWidth: 400 }}>
+            <ThemedText style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16, color: themeColors.text }}>Bet Amount</ThemedText>
+            
+            <TextInput
+              style={{ 
+                borderWidth: 1, 
+                borderColor: themeColors.border, 
+                borderRadius: 8, 
+                padding: 12, 
+                fontSize: 16, 
+                color: themeColors.text,
+                marginBottom: 20,
+                backgroundColor: themeColors.inputBg
+              }}
+              placeholder="Enter bet amount"
+              placeholderTextColor={themeColors.subText}
+              keyboardType="numeric"
+              value={betAmount}
+              onChangeText={setBetAmount}
+              autoFocus
+            />
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+              <TouchableOpacity onPress={() => setShowBetModal(false)} style={{ padding: 10 }}>
+                <ThemedText style={{ color: themeColors.subText, fontSize: 16 }}>Cancel</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={confirmBet} style={{ padding: 10, backgroundColor: '#2196f3', borderRadius: 8 }}>
+                <ThemedText style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Confirm</ThemedText>
               </TouchableOpacity>
             </View>
           </View>

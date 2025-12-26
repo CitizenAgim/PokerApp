@@ -59,6 +59,7 @@ interface SeatViewProps {
   player?: TablePlayer | null;
   isButton: boolean;
   isHero: boolean;
+  isActive: boolean;
   onPress: () => void;
   buttonPosition: number;
   themeColors: any;
@@ -66,7 +67,7 @@ interface SeatViewProps {
   currency?: string;
 }
 
-function SeatView({ seat, player, isButton, isHero, onPress, buttonPosition, themeColors, isNinjaMode, currency }: SeatViewProps) {
+function SeatView({ seat, player, isButton, isHero, isActive, onPress, buttonPosition, themeColors, isNinjaMode, currency }: SeatViewProps) {
   const seatNum = seat.seatNumber ?? (typeof seat.index === 'number' ? seat.index + 1 : 1);
   const positionName = getPositionName(seatNum, buttonPosition);
   const currencySymbol = getCurrencySymbol(currency);
@@ -89,7 +90,10 @@ function SeatView({ seat, player, isButton, isHero, onPress, buttonPosition, the
     borderColor = themeColors.seatHeroBorder;
   }
 
-  if (player?.color) {
+  if (isActive) {
+    borderColor = '#f1c40f'; // Gold highlight for active player
+    borderWidth = 4;
+  } else if (player?.color) {
     borderColor = player.color;
     borderWidth = 4;
   }
@@ -164,6 +168,7 @@ interface PokerTableProps {
   players?: Player[]; // Optional: if provided, will be used to lookup players by ID
   buttonPosition: number;
   heroSeat?: number;
+  activeSeat?: number | null;
   onSeatPress: (seatNumber: number) => void;
   themeColors: any;
   isNinjaMode?: boolean;
@@ -177,6 +182,7 @@ interface PokerTableProps {
   onCardPress?: (seatNumber: number) => void;
   communityCards?: string[]; // Array of 5 card IDs
   onBoardPress?: () => void;
+  foldedSeats?: Set<number>;
 }
 
 export function PokerTable({ 
@@ -184,6 +190,7 @@ export function PokerTable({
   players, 
   buttonPosition, 
   heroSeat, 
+  activeSeat,
   onSeatPress, 
   themeColors, 
   isNinjaMode = false,
@@ -197,6 +204,7 @@ export function PokerTable({
   onCardPress,
   communityCards = [],
   onBoardPress,
+  foldedSeats,
 }: PokerTableProps) {
   
   // Calculate SB and BB positions
@@ -310,6 +318,7 @@ export function PokerTable({
           const isBB = seatNum === bbSeatNum;
           const betAmount = bets[seatNum];
           const cards = handCards[seatNum] || [];
+          const isFolded = foldedSeats?.has(seatNum);
 
           const renderCard = (cardId?: string, isSecond?: boolean) => {
             if (!cardId) {
@@ -333,7 +342,7 @@ export function PokerTable({
             <React.Fragment key={seatNum}>
               {player && (
                 <>
-                  {showCards && (
+                  {showCards && !isFolded && (
                     <TouchableOpacity 
                       style={[styles.cardContainer, {
                         transform: [
@@ -378,6 +387,7 @@ export function PokerTable({
                 player={player}
                 isButton={seatNum === buttonPosition}
                 isHero={seatNum === heroSeat}
+                isActive={seatNum === activeSeat}
                 onPress={() => onSeatPress(seatNum)}
                 buttonPosition={buttonPosition}
                 themeColors={themeColors}
