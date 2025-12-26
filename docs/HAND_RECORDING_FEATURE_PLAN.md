@@ -115,4 +115,6 @@ The following features are planned or partially implemented but require completi
 
 4.  **Database Persistence**:
     - **Log Only**: The recorded hand serves as a historical log.
-    - **Implementation**: Serialize the `history` and `HandRecord` and save to Firebase/Local Storage.
+    - **Implementation**: Serialize the `history` and `HandRecord` and save to Firebase.
+    - **Privacy**: Hands must be saved under a user-specific path (e.g., `users/{userId}/hands`) to ensure only the creator can access them.
+    - **Future**: Sharing features will be implemented later.
