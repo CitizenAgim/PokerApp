@@ -1,5 +1,5 @@
-import { PokerTable } from '@/components/table/PokerTable';
 import { HandHistoryItem } from '@/components/HandHistoryItem';
+import { PokerTable } from '@/components/table/PokerTable';
 import { useCurrentSession, usePlayers, useSession, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getHands, HandRecord } from '@/services/firebase/hands';
@@ -9,8 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,

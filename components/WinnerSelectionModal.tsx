@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, View, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { ThemedText } from './themed-text';
 import { Seat } from '@/types/poker';
 import { SidePot } from '@/utils/hand-recording/types';
+import React, { useEffect, useState } from 'react';
+import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ThemedText } from './themed-text';
 
 interface WinnerSelectionModalProps {
   visible: boolean;
