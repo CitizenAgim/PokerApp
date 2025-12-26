@@ -1,17 +1,20 @@
 import { PokerTable } from '@/components/table/PokerTable';
+import { HandHistoryItem } from '@/components/HandHistoryItem';
 import { useCurrentSession, usePlayers, useSession, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { getHands, HandRecord } from '@/services/firebase/hands';
 import { getThemeColors, styles } from '@/styles/sessions/[id].styles';
 import { resizeImage } from '@/utils/image';
 import { Ionicons } from '@expo/vector-icons';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    FlatList,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -90,6 +93,40 @@ export default function SessionDetailScreen() {
   const [editCashOut, setEditCashOut] = useState('');
   const [editStartTime, setEditStartTime] = useState(new Date());
   const [editEndTime, setEditEndTime] = useState(new Date());
+
+  // Hand History State
+  const [hands, setHands] = useState<HandRecord[]>([]);
+  const [loadingHands, setLoadingHands] = useState(false);
+
+  // Fetch hands when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      const fetchHands = async () => {
+        if (!id) return;
+        try {
+          setLoadingHands(true);
+          const fetchedHands = await getHands(id);
+          if (isActive) {
+            setHands(fetchedHands);
+          }
+        } catch (error) {
+          console.error('Error fetching hands:', error);
+        } finally {
+          if (isActive) {
+            setLoadingHands(false);
+          }
+        }
+      };
+
+      fetchHands();
+
+      return () => {
+        isActive = false;
+      };
+    }, [id])
+  );
 
   // Result View State
   const [activeTab, setActiveTab] = useState<'overview' | 'graph'>('overview');
@@ -683,74 +720,101 @@ export default function SessionDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      {/* Session Info Header */}
-      <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
-        <View style={styles.headerInfo}>
-          <Text style={[styles.sessionName, { color: themeColors.text }]}>{session.name}</Text>
-          <View style={styles.headerMeta}>
-            {session.location && (
-              <View style={styles.metaItem}>
-                <Ionicons name="location" size={14} color={themeColors.icon} />
-                <Text style={[styles.metaText, { color: themeColors.subText }]}>{session.location}</Text>
-              </View>
-            )}
-            {session.stakes && (
-              <View style={styles.metaItem}>
-                <Ionicons name="cash" size={14} color={themeColors.icon} />
-                <Text style={[styles.metaText, { color: themeColors.subText }]}>{session.stakes}</Text>
-              </View>
-            )}
-            <View style={styles.metaItem}>
-              <Ionicons name="wallet" size={14} color={themeColors.icon} />
-              <Text style={[styles.metaText, { color: themeColors.subText }]}>Buy-in: {session.buyIn || 0}</Text>
-            </View>
+      <FlatList
+        data={hands}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          <View style={{ paddingHorizontal: 16 }}>
+            <HandHistoryItem 
+              hand={item} 
+              onPress={(hand) => {
+                // TODO: Navigate to hand detail
+                console.log('Hand pressed:', hand.id);
+              }} 
+            />
           </View>
-        </View>
-        <View style={styles.headerStats}>
-          <Text style={styles.statsNumber}>{occupiedSeats}/9</Text>
-          <Text style={[styles.statsLabel, { color: themeColors.subText }]}>Players</Text>
-        </View>
-      </View>
+        )}
+        ListHeaderComponent={
+          <>
+            {/* Session Info Header */}
+            <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
+              <View style={styles.headerInfo}>
+                <Text style={[styles.sessionName, { color: themeColors.text }]}>{session.name}</Text>
+                <View style={styles.headerMeta}>
+                  {session.location && (
+                    <View style={styles.metaItem}>
+                      <Ionicons name="location" size={14} color={themeColors.icon} />
+                      <Text style={[styles.metaText, { color: themeColors.subText }]}>{session.location}</Text>
+                    </View>
+                  )}
+                  {session.stakes && (
+                    <View style={styles.metaItem}>
+                      <Ionicons name="cash" size={14} color={themeColors.icon} />
+                      <Text style={[styles.metaText, { color: themeColors.subText }]}>{session.stakes}</Text>
+                    </View>
+                  )}
+                  <View style={styles.metaItem}>
+                    <Ionicons name="wallet" size={14} color={themeColors.icon} />
+                    <Text style={[styles.metaText, { color: themeColors.subText }]}>Buy-in: {session.buyIn || 0}</Text>
+                  </View>
+                </View>
+              </View>
+              <View style={styles.headerStats}>
+                <Text style={styles.statsNumber}>{occupiedSeats}/9</Text>
+                <Text style={[styles.statsLabel, { color: themeColors.subText }]}>Players</Text>
+              </View>
+            </View>
 
-      {/* Table View */}
-      <PokerTable
-        seats={table.seats}
-        players={players}
-        buttonPosition={table.buttonPosition}
-        heroSeat={table.heroSeatIndex}
-        onSeatPress={handleSeatPress}
-        themeColors={themeColors}
-        isNinjaMode={ninjaMode}
-        currency={session.currency}
-        showCards={false}
+            {/* Table View */}
+            <PokerTable
+              seats={table.seats}
+              players={players}
+              buttonPosition={table.buttonPosition}
+              heroSeat={table.heroSeatIndex}
+              onSeatPress={handleSeatPress}
+              themeColors={themeColors}
+              isNinjaMode={ninjaMode}
+              currency={session.currency}
+              showCards={false}
+            />
+
+            {/* Quick Actions */}
+            <View style={[styles.actions, { backgroundColor: themeColors.card, borderTopColor: themeColors.border }]}>
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg }]}
+                onPress={() => router.push({ pathname: '/record-hand', params: { sessionId: id } })}
+              >
+                <Ionicons name="create-outline" size={20} color="#0a7ea4" />
+                <Text style={styles.actionText}>Record Hand</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: isDark ? '#1b3a24' : '#e8f5e9' }]}
+                onPress={openEditBuyInModal}
+              >
+                <Ionicons name="cash-outline" size={20} color="#2e7d32" />
+                <Text style={[styles.actionText, { color: '#2e7d32' }]}>Edit Buy-in</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.actionButtonDanger, { backgroundColor: themeColors.actionButtonDangerBg }]}
+                onPress={handleEndSession}
+              >
+                <Ionicons name="stop-circle" size={20} color="#e74c3c" />
+                <Text style={[styles.actionText, styles.actionTextDanger]}>End Session</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* History Title */}
+            {hands.length > 0 && (
+              <View style={{ padding: 16, paddingBottom: 8 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: themeColors.text }}>Hand History</Text>
+              </View>
+            )}
+          </>
+        }
+        contentContainerStyle={{ paddingBottom: 20 }}
       />
-
-      {/* Quick Actions */}
-      <View style={[styles.actions, { backgroundColor: themeColors.card, borderTopColor: themeColors.border }]}>
-        <TouchableOpacity 
-          style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg }]}
-          onPress={() => router.push({ pathname: '/record-hand', params: { sessionId: id } })}
-        >
-          <Ionicons name="create-outline" size={20} color="#0a7ea4" />
-          <Text style={styles.actionText}>Record Hand</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.actionButton, { backgroundColor: isDark ? '#1b3a24' : '#e8f5e9' }]}
-          onPress={openEditBuyInModal}
-        >
-          <Ionicons name="cash-outline" size={20} color="#2e7d32" />
-          <Text style={[styles.actionText, { color: '#2e7d32' }]}>Edit Buy-in</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.actionButtonDanger, { backgroundColor: themeColors.actionButtonDangerBg }]}
-          onPress={handleEndSession}
-        >
-          <Ionicons name="stop-circle" size={20} color="#e74c3c" />
-          <Text style={[styles.actionText, styles.actionTextDanger]}>End Session</Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Player Picker Modal */}
       <Modal

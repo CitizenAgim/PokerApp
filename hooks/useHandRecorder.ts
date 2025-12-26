@@ -3,6 +3,7 @@ import {
     bet,
     call,
     check,
+    distributePot,
     fold,
     HandState,
     initialState,
@@ -56,6 +57,11 @@ export const useHandRecorder = (initialSeats: Seat[], initialButtonPosition: num
   const handleBet = useCallback((amount: number) => {
     saveState();
     setState(prev => bet(prev, amount));
+  }, [saveState]);
+
+  const handleDistributePot = useCallback((results: { potIndex: number, winnerSeats: number[] }[]) => {
+    saveState();
+    setState(prev => distributePot(prev, results));
   }, [saveState]);
 
   // Expose state setters for UI-specific things (like card picking) that might not be in pure logic yet
@@ -121,6 +127,7 @@ export const useHandRecorder = (initialSeats: Seat[], initialButtonPosition: num
     handleCall,
     handleBet,
     handleUndo,
+    handleDistributePot,
     
     // Setters (for setup/UI)
     setSeats,

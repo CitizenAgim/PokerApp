@@ -434,6 +434,39 @@ export const advanceStreet = (state: HandState): HandState => {
   return newState;
 };
 
+export const distributePot = (state: HandState, potResults: { potIndex: number, winnerSeats: number[] }[]): HandState => {
+  const newState = { ...state };
+  const newSeats = [...state.seats];
+  
+  potResults.forEach(result => {
+      const pot = newState.sidePots[result.potIndex];
+      if (!pot) return;
+      
+      const winAmount = Math.floor(pot.amount / result.winnerSeats.length);
+      // Handle remainder? For now, ignore cents/remainder or give to first.
+      // Let's just split evenly.
+      
+      result.winnerSeats.forEach(seatNum => {
+          const seatIndex = newSeats.findIndex(s => (s.seatNumber ?? (s.index + 1)) === seatNum);
+          if (seatIndex !== -1 && newSeats[seatIndex].player) {
+              const player = newSeats[seatIndex].player!;
+              newSeats[seatIndex] = {
+                  ...newSeats[seatIndex],
+                  player: {
+                      ...player,
+                      stack: (player.stack || 0) + winAmount
+                  }
+              };
+          }
+      });
+  });
+  
+  newState.seats = newSeats;
+  newState.winners = [...new Set(potResults.flatMap(r => r.winnerSeats))];
+  
+  return newState;
+};
+
 const withRoundCheck = (state: HandState): HandState => {
   if (checkRoundComplete(state)) {
     return advanceStreet(state);

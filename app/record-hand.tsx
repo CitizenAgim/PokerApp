@@ -1,3 +1,4 @@
+import { WinnerSelectionModal } from '@/components/WinnerSelectionModal';
 import { PokerTable } from '@/components/table/PokerTable';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -63,7 +64,8 @@ export default function RecordHandScreen() {
     isHandComplete,
     winners,
     actions,
-    sidePots
+    sidePots,
+    handleDistributePot
   } = useHandRecorder(
     Array(9).fill(null).map((_, i) => ({ index: i, seatNumber: i + 1 })),
     1,
@@ -93,6 +95,7 @@ export default function RecordHandScreen() {
   // UI State
   const [showPlayerPicker, setShowPlayerPicker] = useState(false);
   const [selectedSeatIndex, setSelectedSeatIndex] = useState<number | null>(null);
+  const [showWinnerModal, setShowWinnerModal] = useState(false);
 
   // Sync with Session
   useEffect(() => {
@@ -538,17 +541,21 @@ export default function RecordHandScreen() {
           ]
         );
       } else {
-        Alert.alert(
-          'Showdown',
-          'Please select the winner(s). (Feature pending)',
-          [
-            { text: 'Save Anyway', onPress: handleSave },
-            { text: 'Cancel', style: 'cancel' }
-          ]
-        );
+        // Showdown - need to select winners
+        setShowWinnerModal(true);
       }
     }
   }, [isHandComplete]);
+
+  const handleConfirmWinners = (results: { potIndex: number, winnerSeats: number[] }[]) => {
+      handleDistributePot(results);
+      setShowWinnerModal(false);
+      // After distributing, winners are set in state, so the useEffect above might trigger again?
+      // No, because isHandComplete didn't change (it was already true).
+      // But winners changed from [] to [something].
+      // So the useEffect WILL trigger again and show the "Hand Complete" alert.
+      // That's actually perfect flow.
+  };
 
   const handleSave = async () => {
     if (!sessionId) return;
@@ -975,6 +982,16 @@ export default function RecordHandScreen() {
           </ScrollView>
         </View>
       </Modal>
+
+      {/* Winner Selection Modal */}
+      <WinnerSelectionModal
+        visible={showWinnerModal}
+        onClose={() => setShowWinnerModal(false)}
+        onConfirm={handleConfirmWinners}
+        seats={seats}
+        sidePots={sidePots}
+        themeColors={themeColors}
+      />
     </ThemedView>
   );
 }
