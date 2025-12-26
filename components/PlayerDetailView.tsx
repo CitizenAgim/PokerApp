@@ -38,6 +38,7 @@ const ACTIONS: { id: Action; label: string }[] = [
   { id: 'call-3bet', label: 'Call 3-Bet' },
   { id: '4bet', label: '4-Bet' },
   { id: 'squeeze', label: 'Squeeze' },
+  { id: 'limp-reraise', label: 'Limp/Reraise' },
 ];
 
 export default function PlayerDetailView() {

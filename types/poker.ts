@@ -44,7 +44,8 @@ export type Action =
   | '3bet'         // Re-raising an open
   | 'call-3bet'    // Calling a 3-bet
   | '4bet'         // Re-raising a 3-bet
-  | 'squeeze';     // Re-raising after an open and one or more callers
+  | 'squeeze'      // Re-raising after an open and one or more callers
+  | 'limp-reraise'; // Limping then re-raising after a raise
 
 export interface RangeCategory {
   position: Position;
