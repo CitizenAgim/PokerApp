@@ -7,10 +7,10 @@ import {
     getDocs,
     orderBy,
     query,
+    QueryConstraint,
     serverTimestamp,
     setDoc,
-    where,
-    QueryConstraint
+    where
 } from 'firebase/firestore';
 
 const COLLECTION_NAME = 'hands';

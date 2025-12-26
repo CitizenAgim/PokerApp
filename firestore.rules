@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper to check if user is logged in
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // USERS: Keep this strict
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // DATA COLLECTIONS: Allow any logged-in user to read/write
+    
+    match /players/{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    match /playerRanges/{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /sessions/{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Fix for "Missing Permissions" on hands
+    match /hands/{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Included based on your indexes
+    match /friendRequests/{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}
