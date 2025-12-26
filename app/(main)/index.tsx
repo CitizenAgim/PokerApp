@@ -126,6 +126,20 @@ export default function HomeScreen() {
           </View>
           <Ionicons name="chevron-forward" size={24} color={themeColors.chevron} />
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.actionCard, { backgroundColor: themeColors.card }]}
+          onPress={() => router.push('/saved-hands')}
+        >
+          <View style={[styles.actionIcon, { backgroundColor: '#f39c12' }]}>
+            <Ionicons name="albums" size={32} color="#fff" />
+          </View>
+          <View style={styles.actionContent}>
+            <Text style={[styles.actionTitle, { color: themeColors.text }]}>Saved Hands</Text>
+            <Text style={[styles.actionDesc, { color: themeColors.subText }]}>View hand history</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={24} color={themeColors.chevron} />
+        </TouchableOpacity>
       </View>
 
       {/* Active Session */}
