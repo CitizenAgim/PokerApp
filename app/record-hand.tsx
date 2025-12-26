@@ -2,7 +2,7 @@ import { WinnerSelectionModal } from '@/components/WinnerSelectionModal';
 import { PokerTable } from '@/components/table/PokerTable';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { usePlayers, useSession } from '@/hooks';
+import { useCurrentSession, usePlayers, useSession } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHandRecorder } from '@/hooks/useHandRecorder';
 import { saveHand } from '@/services/firebase/hands';
@@ -11,6 +11,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, FlatList, Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const SUITS = [
@@ -30,6 +31,7 @@ export default function RecordHandScreen() {
 
   const { session, table: sessionTable, updateSeatStack } = useSession(sessionId || '');
   const { players: allPlayers } = usePlayers();
+  const { user } = useCurrentUser();
 
   // Initialize Hook
   const {
@@ -558,7 +560,10 @@ export default function RecordHandScreen() {
   };
 
   const handleSave = async () => {
-    if (!sessionId) return;
+    if (!sessionId || !user) {
+        Alert.alert('Error', 'Missing session or user information.');
+        return;
+    }
     try {
         const handStateToSave: any = {
             seats,
@@ -586,7 +591,7 @@ export default function RecordHandScreen() {
             winners
         };
         
-        await saveHand(sessionId, handStateToSave);
+        await saveHand(sessionId, user.uid, handStateToSave);
         Alert.alert('Success', 'Hand saved!');
         router.back();
     } catch (e) {

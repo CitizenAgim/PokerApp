@@ -18,6 +18,7 @@ const handsCollection = collection(db, COLLECTION_NAME);
 export interface HandRecord {
   id: string;
   sessionId: string;
+  userId: string;
   timestamp: number;
   street: Street;
   pot: number;
@@ -28,13 +29,22 @@ export interface HandRecord {
   winners?: number[]; // Seat numbers of winners
 }
 
-export async function getHands(sessionId: string): Promise<HandRecord[]> {
+export async function getHands(sessionId: string, userId?: string): Promise<HandRecord[]> {
   try {
-    const q = query(
+    let q = query(
       handsCollection,
       where('sessionId', '==', sessionId),
       orderBy('timestamp', 'desc')
     );
+
+    if (userId) {
+      q = query(
+        handsCollection,
+        where('sessionId', '==', sessionId),
+        where('userId', '==', userId),
+        orderBy('timestamp', 'desc')
+      );
+    }
     
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => {
@@ -42,6 +52,7 @@ export async function getHands(sessionId: string): Promise<HandRecord[]> {
       return {
         id: doc.id,
         sessionId: data.sessionId,
+        userId: data.userId,
         timestamp: data.timestamp?.toMillis() || Date.now(),
         street: data.street,
         pot: data.pot,
@@ -58,13 +69,14 @@ export async function getHands(sessionId: string): Promise<HandRecord[]> {
   }
 }
 
-export async function saveHand(sessionId: string, state: HandState): Promise<string> {
+export async function saveHand(sessionId: string, userId: string, state: HandState): Promise<string> {
   try {
     const handRef = doc(handsCollection);
     const id = handRef.id;
     
     const handData: any = {
       sessionId,
+      userId,
       timestamp: serverTimestamp(),
       street: state.street,
       pot: state.pot,
@@ -73,6 +85,10 @@ export async function saveHand(sessionId: string, state: HandState): Promise<str
       seats: state.seats,
       communityCards: state.communityCards,
     };
+    
+    if (state.winners) {
+      handData.winners = state.winners;
+    }
     
     await setDoc(handRef, handData);
     return id;

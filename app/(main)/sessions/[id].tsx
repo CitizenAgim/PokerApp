@@ -1,6 +1,6 @@
 import { HandHistoryItem } from '@/components/HandHistoryItem';
 import { PokerTable } from '@/components/table/PokerTable';
-import { useCurrentSession, usePlayers, useSession, useSettings } from '@/hooks';
+import { useCurrentSession, useCurrentUser, usePlayers, useSession, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getHands, HandRecord } from '@/services/firebase/hands';
 import { getThemeColors, styles } from '@/styles/sessions/[id].styles';
@@ -42,6 +42,7 @@ export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { session, table, loading, updateButtonPosition, assignPlayerToSeat, updateSeatStack, endSession, updateSessionDetails, updateHeroSeat } = useSession(id);
+  const { user, loading: userLoading } = useCurrentUser();
   const { clearSession } = useCurrentSession();
   const { players, createPlayer, updatePlayer } = usePlayers();
   const { ninjaMode } = useSettings();
@@ -104,10 +105,10 @@ export default function SessionDetailScreen() {
       let isActive = true;
 
       const fetchHands = async () => {
-        if (!id) return;
+        if (!id || userLoading) return;
         try {
           setLoadingHands(true);
-          const fetchedHands = await getHands(id);
+          const fetchedHands = await getHands(id, user?.uid);
           if (isActive) {
             setHands(fetchedHands);
           }
@@ -125,7 +126,7 @@ export default function SessionDetailScreen() {
       return () => {
         isActive = false;
       };
-    }, [id])
+    }, [id, user?.uid, userLoading])
   );
 
   // Result View State
