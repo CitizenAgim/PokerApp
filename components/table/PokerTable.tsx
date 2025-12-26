@@ -183,6 +183,7 @@ interface PokerTableProps {
   communityCards?: string[]; // Array of 5 card IDs
   onBoardPress?: () => void;
   foldedSeats?: Set<number>;
+  pot?: number;
 }
 
 export function PokerTable({ 
@@ -205,6 +206,7 @@ export function PokerTable({
   communityCards = [],
   onBoardPress,
   foldedSeats,
+  pot = 0,
 }: PokerTableProps) {
   
   // Calculate SB and BB positions
@@ -238,11 +240,25 @@ export function PokerTable({
     bbSeatNum = bbSeat.seatNumber ?? (typeof bbSeat.index === 'number' ? bbSeat.index + 1 : 0);
   }
 
+  // Calculate total pot (main pot + current bets)
+  const currentBetsTotal = Object.values(bets).reduce((sum, bet) => sum + (bet || 0), 0);
+  const displayPot = pot + currentBetsTotal;
+
   return (
     <View style={styles.tableContainer}>
       <View style={styles.table}>
         {/* Table felt */}
         <View style={styles.tableFelt} />
+        
+        {/* Pot Display */}
+        {displayPot > 0 && (
+          <View style={styles.potContainer}>
+            <View style={styles.potBadge}>
+              <Text style={styles.potLabel}>Pot:</Text>
+              <Text style={styles.potText}>{displayPot}</Text>
+            </View>
+          </View>
+        )}
         
         {/* Community Cards */}
         {showCards && (

@@ -238,6 +238,39 @@ export const styles = StyleSheet.create({
   communityCardSuit: {
     fontSize: Math.max(7, TABLE_WIDTH * 0.03),
   },
+  potContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginTop: -TABLE_HEIGHT * 0.22, // Position above community cards
+    marginLeft: -TABLE_WIDTH * 0.15,
+    width: TABLE_WIDTH * 0.3,
+    height: TABLE_HEIGHT * 0.1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  potBadge: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: '#ffd700',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  potLabel: {
+    color: '#ffd700',
+    fontSize: Math.max(8, TABLE_WIDTH * 0.03),
+    fontWeight: '700',
+  },
+  potText: {
+    color: '#fff',
+    fontSize: Math.max(9, TABLE_WIDTH * 0.035),
+    fontWeight: '700',
+  },
   blindContainer: {
     position: 'absolute',
     top: '50%',

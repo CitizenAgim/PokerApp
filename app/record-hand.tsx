@@ -641,6 +641,7 @@ export default function RecordHandScreen() {
             communityCards={communityCards}
             onBoardPress={handleBoardPress}
             foldedSeats={foldedSeats}
+            pot={pot}
           />
 
         {/* Controls */}
@@ -704,14 +705,20 @@ export default function RecordHandScreen() {
               {currentBet === 0 ? (
                 <TouchableOpacity 
                   style={[styles.actionButton, { backgroundColor: '#2196f3', minWidth: 80 }]} 
-                  onPress={handleBet}
+                  onPress={() => {
+                    setBetAmount('');
+                    setShowBetModal(true);
+                  }}
                 >
                   <ThemedText style={[styles.actionButtonText, { color: '#fff' }]}>Bet</ThemedText>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity 
                   style={[styles.actionButton, { backgroundColor: '#2196f3', minWidth: 80 }]} 
-                  onPress={handleBet}
+                  onPress={() => {
+                    setBetAmount('');
+                    setShowBetModal(true);
+                  }}
                 >
                   <ThemedText style={[styles.actionButtonText, { color: '#fff' }]}>Raise</ThemedText>
                 </TouchableOpacity>

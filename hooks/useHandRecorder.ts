@@ -9,7 +9,7 @@ import {
     initialState,
     startHand
 } from '@/utils/hand-recording/logic';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export const useHandRecorder = (initialSeats: Seat[], initialButtonPosition: number = 1, bigBlind: number = 0, smallBlind: number = 0) => {
   // State
@@ -20,6 +20,15 @@ export const useHandRecorder = (initialSeats: Seat[], initialButtonPosition: num
     bigBlind,
     smallBlind,
   });
+
+  // Update blinds if they change (e.g. loaded from session)
+  useEffect(() => {
+    setState(prev => ({
+      ...prev,
+      bigBlind,
+      smallBlind
+    }));
+  }, [bigBlind, smallBlind]);
 
   const [history, setHistory] = useState<HandState[]>([]);
 
