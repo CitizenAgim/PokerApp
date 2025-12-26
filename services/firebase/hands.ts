@@ -1,12 +1,11 @@
 import { db } from '@/config/firebase';
-import { HandState, HandAction, Street, SidePot } from '@/utils/hand-recording/types';
 import { Seat } from '@/types/poker';
+import { HandAction, HandState, SidePot, Street } from '@/utils/hand-recording/types';
 import {
     collection,
     doc,
     serverTimestamp,
-    setDoc,
-    Timestamp
+    setDoc
 } from 'firebase/firestore';
 
 const COLLECTION_NAME = 'hands';

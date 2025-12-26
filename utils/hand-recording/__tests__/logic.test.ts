@@ -1,6 +1,6 @@
-import { initialState, startHand, bet, call, fold, check } from '../logic';
-import { HandState } from '../types';
 import { Seat } from '@/types/poker';
+import { bet, call, check, fold, initialState, startHand } from '../logic';
+import { HandState } from '../types';
 
 const createMockSeats = (count: number): Seat[] => 
   Array(count).fill(null).map((_, i) => ({

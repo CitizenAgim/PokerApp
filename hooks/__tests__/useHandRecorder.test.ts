@@ -1,6 +1,6 @@
-import { renderHook, act } from '@testing-library/react-native';
-import { useHandRecorder } from '../useHandRecorder';
 import { Seat } from '@/types/poker';
+import { renderHook } from '@testing-library/react-native';
+import { useHandRecorder } from '../useHandRecorder';
 
 // Mock Seat Data
 const mockSeats: Seat[] = Array(9).fill(null).map((_, i) => ({

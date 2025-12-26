@@ -1,5 +1,6 @@
-import { HandState, Street } from './types';
 import { Seat } from '@/types/poker';
+import { HandState } from './types';
+export { HandState };
 
 export const initialState: HandState = {
   seats: [],

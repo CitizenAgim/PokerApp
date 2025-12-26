@@ -1,14 +1,14 @@
 import { Seat } from '@/types/poker';
-import { useState, useCallback } from 'react';
-import { 
-  HandState, 
-  initialState, 
-  startHand, 
-  fold, 
-  check, 
-  call, 
-  bet 
+import {
+    bet,
+    call,
+    check,
+    fold,
+    HandState,
+    initialState,
+    startHand
 } from '@/utils/hand-recording/logic';
+import { useCallback, useState } from 'react';
 
 export const useHandRecorder = (initialSeats: Seat[], initialButtonPosition: number = 1, bigBlind: number = 0, smallBlind: number = 0) => {
   // State
