@@ -106,9 +106,17 @@ export default function SessionDetailScreen() {
 
       const fetchHands = async () => {
         if (!id || userLoading) return;
+        
+        if (!user) {
+          console.log('User not authenticated, skipping hand fetch');
+          return;
+        }
+
+        console.log('[SessionDetail] Fetching hands for user:', user.id, 'session:', id);
+
         try {
           setLoadingHands(true);
-          const fetchedHands = await getHands(id, user?.uid);
+          const fetchedHands = await getHands(id, user.id);
           if (isActive) {
             setHands(fetchedHands);
           }
@@ -126,7 +134,7 @@ export default function SessionDetailScreen() {
       return () => {
         isActive = false;
       };
-    }, [id, user?.uid, userLoading])
+    }, [id, user?.id, userLoading])
   );
 
   // Result View State

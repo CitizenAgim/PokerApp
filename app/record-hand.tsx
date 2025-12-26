@@ -2,8 +2,9 @@ import { WinnerSelectionModal } from '@/components/WinnerSelectionModal';
 import { PokerTable } from '@/components/table/PokerTable';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { useCurrentSession, usePlayers, useSession } from '@/hooks';
+import { usePlayers, useSession } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useHandRecorder } from '@/hooks/useHandRecorder';
 import { saveHand } from '@/services/firebase/hands';
 import { getThemeColors, styles } from '@/styles/record-hand.styles';
@@ -11,7 +12,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, FlatList, Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const SUITS = [
@@ -591,7 +591,7 @@ export default function RecordHandScreen() {
             winners
         };
         
-        await saveHand(sessionId, user.uid, handStateToSave);
+        await saveHand(sessionId, user.id, handStateToSave);
         Alert.alert('Success', 'Hand saved!');
         router.back();
     } catch (e) {

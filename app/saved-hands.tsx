@@ -87,13 +87,12 @@ export default function SavedHandsScreen() {
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: themeColors.background, paddingTop: insets.top }]}>
-      {/* Header */}
       <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={themeColors.text} />
         </TouchableOpacity>
         <ThemedText style={[styles.headerTitle, { color: themeColors.text }]}>Saved Hands</ThemedText>
-        <View style={{ width: 24 }} /> {/* Spacer for alignment */}
+        <View style={{ width: 24 }} />
       </View>
 
       <FlatList

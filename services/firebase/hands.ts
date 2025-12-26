@@ -9,7 +9,8 @@ import {
     query,
     serverTimestamp,
     setDoc,
-    where
+    where,
+    QueryConstraint
 } from 'firebase/firestore';
 
 const COLLECTION_NAME = 'hands';
@@ -31,20 +32,25 @@ export interface HandRecord {
 
 export async function getHands(sessionId: string, userId?: string): Promise<HandRecord[]> {
   try {
-    let q = query(
-      handsCollection,
-      where('sessionId', '==', sessionId),
-      orderBy('timestamp', 'desc')
-    );
+    console.log(`[getHands] Fetching hands for session: ${sessionId}, user: ${userId}`);
+    
+    if (!userId) {
+      console.warn('getHands called without userId. This may fail if security rules require authentication.');
+    }
+
+    // Base constraints
+    const constraints: QueryConstraint[] = [
+      where('sessionId', '==', sessionId)
+    ];
 
     if (userId) {
-      q = query(
-        handsCollection,
-        where('sessionId', '==', sessionId),
-        where('userId', '==', userId),
-        orderBy('timestamp', 'desc')
-      );
+      constraints.push(where('userId', '==', userId));
     }
+
+    // Add ordering
+    constraints.push(orderBy('timestamp', 'desc'));
+
+    const q = query(handsCollection, ...constraints);
     
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => {
