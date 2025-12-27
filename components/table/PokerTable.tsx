@@ -184,6 +184,7 @@ interface PokerTableProps {
   onBoardPress?: () => void;
   foldedSeats?: Set<number>;
   pot?: number;
+  street?: string;
 }
 
 export function PokerTable({ 
@@ -207,6 +208,7 @@ export function PokerTable({
   onBoardPress,
   foldedSeats,
   pot = 0,
+  street = 'preflop',
 }: PokerTableProps) {
   
   // Calculate SB and BB positions
@@ -375,7 +377,7 @@ export function PokerTable({
                   )}
                   
                   {/* Blinds or Bets */}
-                  {(betAmount !== undefined || ((isSB || isBB) && (smallBlind || bigBlind))) && (
+                  {(betAmount !== undefined || ((isSB || isBB) && (smallBlind || bigBlind) && street === 'preflop')) && (
                     <View style={[styles.blindContainer, {
                       transform: [
                         { translateX: blindX },

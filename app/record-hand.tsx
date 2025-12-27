@@ -40,6 +40,7 @@ export default function RecordHandScreen() {
     buttonPosition,
     setButtonPosition,
     bets,
+    setBets,
     pot,
     street,
     minRaise,
@@ -642,6 +643,7 @@ export default function RecordHandScreen() {
             onBoardPress={handleBoardPress}
             foldedSeats={foldedSeats}
             pot={pot}
+            street={street}
           />
 
         {/* Controls */}

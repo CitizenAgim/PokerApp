@@ -132,6 +132,10 @@ export const startHand = (state: HandState): HandState => {
   let firstActorSeatNum: number;
   if (activeSeats.length === 2) {
       firstActorSeatNum = state.buttonPosition;
+  } else if (state.isMississippiActive) {
+      // Mississippi: Action starts left of button (SB)
+      const next = getNextSeat(state.buttonPosition, activeSeats, newState.foldedSeats);
+      firstActorSeatNum = next ?? state.buttonPosition;
   } else {
       let curr = state.buttonPosition;
       let next = getNextSeat(curr, activeSeats, newState.foldedSeats);
@@ -140,6 +144,13 @@ export const startHand = (state: HandState): HandState => {
       if (next) curr = next; // BB
       next = getNextSeat(curr, activeSeats, newState.foldedSeats);
       if (next) curr = next; // UTG
+      
+      // Handle standard straddles if any (UTG, UTG+1...)
+      for (let i = 0; i < state.straddleCount; i++) {
+          next = getNextSeat(curr, activeSeats, newState.foldedSeats);
+          if (next) curr = next;
+      }
+
       firstActorSeatNum = curr;
   }
   
