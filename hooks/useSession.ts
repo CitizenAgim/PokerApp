@@ -177,6 +177,7 @@ interface UseSessionResult {
   getPositionForSeat: (seatNumber: number) => Position | null;
   updateSessionDetails: (updates: { buyIn?: number; cashOut?: number; startTime?: number; endTime?: number }) => Promise<void>;
   updateHeroSeat: (seatIndex: number | undefined) => Promise<void>;
+  clearTable: () => Promise<void>;
 }
 
 export function useSession(sessionId: string): UseSessionResult {
@@ -440,6 +441,31 @@ export function useSession(sessionId: string): UseSessionResult {
     }
   }, [session, sessionId]);
 
+  const clearTable = useCallback(async (): Promise<void> => {
+    if (!table) return;
+
+    const updatedSeats = table.seats.map(seat => ({
+      ...seat,
+      playerId: undefined,
+      player: undefined,
+    }));
+
+    const updatedTable: Table = {
+      ...table,
+      seats: updatedSeats,
+      heroSeatIndex: undefined,
+    };
+
+    setTable(updatedTable);
+
+    if (session) {
+      await localStorage.setCurrentSession({ session, table: updatedTable });
+      const updatedSession = { ...session, table: updatedTable };
+      await localStorage.saveSession(updatedSession);
+      setSession(updatedSession);
+    }
+  }, [table, session, sessionId]);
+
   useEffect(() => {
     loadSession();
   }, [loadSession]);
@@ -457,6 +483,7 @@ export function useSession(sessionId: string): UseSessionResult {
     getPositionForSeat,
     updateSessionDetails,
     updateHeroSeat,
+    clearTable,
   };
 }
 

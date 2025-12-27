@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { HandHistoryItem } from '@/components/HandHistoryItem';
 import { PokerTable } from '@/components/table/PokerTable';
 import { useCurrentSession, useCurrentUser, usePlayers, useSession, useSettings } from '@/hooks';
@@ -41,7 +42,7 @@ const PLAYER_COLORS = [
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { session, table, loading, updateButtonPosition, assignPlayerToSeat, updateSeatStack, endSession, updateSessionDetails, updateHeroSeat } = useSession(id);
+  const { session, table, loading, updateButtonPosition, assignPlayerToSeat, updateSeatStack, endSession, updateSessionDetails, updateHeroSeat, clearTable } = useSession(id);
   const { user, loading: userLoading } = useCurrentUser();
   const { clearSession } = useCurrentSession();
   const { players, createPlayer, updatePlayer } = usePlayers();
@@ -94,6 +95,9 @@ export default function SessionDetailScreen() {
   const [editCashOut, setEditCashOut] = useState('');
   const [editStartTime, setEditStartTime] = useState(new Date());
   const [editEndTime, setEditEndTime] = useState(new Date());
+
+  // New Table Confirmation State
+  const [showNewTableConfirm, setShowNewTableConfirm] = useState(false);
 
   // Hand History State
   const [hands, setHands] = useState<HandRecord[]>([]);
@@ -437,6 +441,19 @@ export default function SessionDetailScreen() {
     }
   };
 
+  const handleNewTable = () => {
+    setShowNewTableConfirm(true);
+  };
+
+  const confirmNewTable = async () => {
+    try {
+      await clearTable();
+      setShowNewTableConfirm(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to clear table');
+    }
+  };
+
   const handleEndSession = () => {
     if (session) {
       setStartTime(new Date(session.startTime));
@@ -768,9 +785,17 @@ export default function SessionDetailScreen() {
                   </View>
                 </View>
               </View>
-              <View style={styles.headerStats}>
-                <Text style={styles.statsNumber}>{occupiedSeats}/9</Text>
-                <Text style={[styles.statsLabel, { color: themeColors.subText }]}>Players</Text>
+              <View style={[styles.headerStats, { flexDirection: 'row', alignItems: 'center' }]}>
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={styles.statsNumber}>{occupiedSeats}/9</Text>
+                  <Text style={[styles.statsLabel, { color: themeColors.subText }]}>Players</Text>
+                </View>
+                <TouchableOpacity 
+                  onPress={handleNewTable}
+                  style={{ marginLeft: 16, padding: 4 }}
+                >
+                  <Ionicons name="refresh-circle-outline" size={28} color={themeColors.text} />
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -1315,6 +1340,15 @@ export default function SessionDetailScreen() {
           </View>
         </View>
       </Modal>
+      <ConfirmDialog
+        visible={showNewTableConfirm}
+        title="New Table"
+        message="Are you sure you want to reset the table? This will clear all players and stacks."
+        confirmText="Reset Table"
+        confirmDestructive
+        onConfirm={confirmNewTable}
+        onCancel={() => setShowNewTableConfirm(false)}
+      />
     </View>
   );
 }
