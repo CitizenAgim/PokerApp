@@ -929,7 +929,44 @@ export default function RecordHandScreen() {
           </View>
 
           <ScrollView contentContainerStyle={{ padding: 12 }}>
-            {isPickingBoard && (
+            {/* Selected Cards Preview */}
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 20, gap: 8 }}>
+              {(activeCardSeat !== null ? [0, 1] : [0, 1, 2, 3, 4]).map(i => {
+                const cardId = activeCardSeat !== null 
+                  ? (handCards[activeCardSeat] || [])[i]
+                  : communityCards[i];
+                
+                if (!cardId || cardId === '') {
+                  return (
+                    <View key={i} style={{
+                      width: 40, height: 56, borderRadius: 4,
+                      backgroundColor: themeColors.card, borderWidth: 1, borderColor: themeColors.border,
+                      borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center'
+                    }}>
+                      <Text style={{ color: themeColors.subText, fontSize: 10 }}>{activeCardSeat !== null ? 'Card' : 'Board'}</Text>
+                    </View>
+                  );
+                }
+
+                const rank = cardId.slice(0, -1);
+                const suitId = cardId.slice(-1);
+                const suit = SUITS.find(s => s.id === suitId);
+                
+                return (
+                  <TouchableOpacity key={i} onPress={() => toggleCard(cardId)} style={{
+                    width: 40, height: 56, borderRadius: 4,
+                    backgroundColor: '#fff', borderWidth: 1, borderColor: '#ccc',
+                    justifyContent: 'center', alignItems: 'center',
+                    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2, elevation: 2
+                  }}>
+                    <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#000' }}>{rank}</Text>
+                    <Text style={{ fontSize: 16, color: suit?.color }}>{suit?.symbol}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {isPickingBoardUI && (
               <View style={{ marginBottom: 12, padding: 8, backgroundColor: themeColors.card, borderRadius: 6, borderWidth: 1, borderColor: themeColors.border }}>
                 <ThemedText style={{ fontSize: 12, color: themeColors.subText, textAlign: 'center' }}>
                   Select 3 cards for Flop, 4 for Turn, or 5 for River.
@@ -951,7 +988,7 @@ export default function RecordHandScreen() {
                         isUsedByOthers = Object.entries(handCards).some(([seat, cards]) => 
                           parseInt(seat) !== activeCardSeat && cards.includes(cardId)
                         ) || communityCards.includes(cardId);
-                      } else if (isPickingBoard) {
+                      } else if (isPickingBoardUI) {
                         isSelectedByMe = communityCards.includes(cardId);
                         isUsedByOthers = Object.values(handCards).flat().includes(cardId);
                       }

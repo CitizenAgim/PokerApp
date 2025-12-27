@@ -1,6 +1,6 @@
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { HandHistoryItem } from '@/components/HandHistoryItem';
 import { PokerTable } from '@/components/table/PokerTable';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useCurrentSession, useCurrentUser, usePlayers, useSession, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getHands, HandRecord } from '@/services/firebase/hands';
@@ -13,17 +13,17 @@ import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 // Force refresh
