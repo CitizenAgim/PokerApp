@@ -38,16 +38,16 @@ jest.mock('firebase/firestore', () => {
 
 // Get references to mocks after they're set up
 import {
-  getDocs,
-  getDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  collection,
-  query,
-  where,
-  orderBy,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    orderBy,
+    query,
+    setDoc,
+    updateDoc,
+    where,
 } from 'firebase/firestore';
 
 const mockGetDocs = getDocs as jest.Mock;
