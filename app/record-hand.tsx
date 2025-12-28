@@ -547,7 +547,7 @@ export default function RecordHandScreen() {
         setShowWinnerModal(true);
       }
     }
-  }, [isHandComplete]);
+  }, [isHandComplete, winners]);
 
   const handleConfirmWinners = (results: { potIndex: number, winnerSeats: number[] }[]) => {
       handleDistributePot(results);
@@ -1039,6 +1039,7 @@ export default function RecordHandScreen() {
         onClose={() => setShowWinnerModal(false)}
         onConfirm={handleConfirmWinners}
         seats={seats}
+        players={allPlayers}
         sidePots={sidePots}
         themeColors={themeColors}
       />

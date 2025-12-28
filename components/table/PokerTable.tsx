@@ -188,6 +188,7 @@ export function PokerTable({
   showCards = true,
   handCards = {},
   onCardPress,
+  onBoardPress,
   communityCards = [],
   foldedSeats,
   pot = 0,

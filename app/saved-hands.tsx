@@ -61,28 +61,34 @@ export default function SavedHandsScreen() {
     if (!hand.winners || hand.winners.length === 0) return 'Unknown';
     if (hand.winners.length > 1) return 'Split Pot';
     
-    const winnerSeatIndex = hand.winners[0];
-    // Find seat with this index (seatNumber might be 1-based, index 0-based)
-    // In HandRecord, winners are seat numbers (1-9) usually.
-    // Let's check how winners are stored. In HandState, winners are seat numbers.
+    const winnerSeatNum = hand.winners[0];
     
-    const seat = hand.seats.find(s => s.seatNumber === winnerSeatIndex);
-    return seat?.player?.name || `Seat ${winnerSeatIndex}`;
+    // Try to find seat by seatNumber, or by index
+    const seat = hand.seats.find(s => 
+      (s.seatNumber === winnerSeatNum) || 
+      (s.index !== undefined && s.index + 1 === winnerSeatNum)
+    );
+    
+    if (seat?.player?.name) return seat.player.name;
+    
+    // Fallback if name is missing but we have ID
+    if (seat?.playerId) return `Player ${seat.playerId.slice(0, 4)}...`;
+    
+    return `Seat ${winnerSeatNum}`;
   };
 
   const getHeroCards = (hand: HandRecord) => {
-    // Try to find hero's cards
-    // We need to know which seat was Hero.
-    // If we don't have heroSeatIndex stored, we can try to match by userId if available in seats
-    // But seats only have playerId.
-    
     if (!hand.handCards) return 'Unknown';
     
     // Find seat with current user's ID
     const heroSeat = hand.seats.find(s => s.playerId === user?.id);
-    if (heroSeat && heroSeat.seatNumber) {
-      const cards = hand.handCards[heroSeat.seatNumber];
-      if (cards && cards.length > 0) return cards.join(' ');
+    
+    if (heroSeat) {
+      const seatNum = heroSeat.seatNumber ?? (heroSeat.index !== undefined ? heroSeat.index + 1 : undefined);
+      if (seatNum !== undefined) {
+        const cards = hand.handCards[seatNum];
+        if (cards && cards.length > 0) return cards.join(' ');
+      }
     }
     
     return 'Unknown';

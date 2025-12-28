@@ -1,4 +1,4 @@
-import { Seat } from '@/types/poker';
+import { Player, Seat } from '@/types/poker';
 import { SidePot } from '@/utils/hand-recording/types';
 import React, { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -9,6 +9,7 @@ interface WinnerSelectionModalProps {
   onClose: () => void;
   onConfirm: (results: { potIndex: number, winnerSeats: number[] }[]) => void;
   seats: Seat[];
+  players?: Player[];
   sidePots: SidePot[];
   themeColors: any;
 }
@@ -18,6 +19,7 @@ export function WinnerSelectionModal({
   onClose, 
   onConfirm, 
   seats, 
+  players,
   sidePots,
   themeColors 
 }: WinnerSelectionModalProps) {
@@ -85,6 +87,15 @@ export function WinnerSelectionModal({
                     const seat = seats.find(s => (s.seatNumber ?? (s.index + 1)) === seatNum);
                     const isSelected = (selections[index] || []).includes(seatNum);
                     
+                    // Resolve player name
+                    let playerName = seat?.player?.name;
+                    if (seat?.playerId && players) {
+                      const foundPlayer = players.find(p => p.id === seat.playerId);
+                      if (foundPlayer) {
+                        playerName = foundPlayer.name;
+                      }
+                    }
+                    
                     return (
                       <TouchableOpacity
                         key={seatNum}
@@ -98,7 +109,7 @@ export function WinnerSelectionModal({
                         onPress={() => toggleWinner(index, seatNum)}
                       >
                         <ThemedText style={{ color: isSelected ? '#fff' : themeColors.text }}>
-                          {seat?.player?.name || `Seat ${seatNum}`}
+                          {playerName || `Seat ${seatNum}`}
                         </ThemedText>
                       </TouchableOpacity>
                     );
