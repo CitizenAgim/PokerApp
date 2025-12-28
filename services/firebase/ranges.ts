@@ -63,7 +63,7 @@ export async function getPlayerRanges(playerId: string): Promise<PlayerRanges | 
 /**
  * Create or update player ranges
  */
-export async function savePlayerRanges(playerRanges: PlayerRanges): Promise<void> {
+export async function savePlayerRanges(playerRanges: PlayerRanges, userId: string): Promise<void> {
   try {
     const rangesRef = doc(db, COLLECTION_NAME, playerRanges.playerId);
     
@@ -72,6 +72,7 @@ export async function savePlayerRanges(playerRanges: PlayerRanges): Promise<void
       ranges: playerRanges.ranges,
       lastObserved: serverTimestamp(),
       handsObserved: playerRanges.handsObserved,
+      createdBy: userId,
     }, { merge: true });
   } catch (error) {
     if (!isOfflineError(error)) {
@@ -95,7 +96,8 @@ function isOfflineError(error: any): boolean {
 export async function updatePlayerRange(
   playerId: string,
   rangeKey: string,  // e.g., "early_open-raise"
-  range: Range
+  range: Range,
+  userId: string
 ): Promise<void> {
   try {
     const rangesRef = doc(db, COLLECTION_NAME, playerId);
@@ -115,6 +117,7 @@ export async function updatePlayerRange(
         ranges: { [rangeKey]: range },
         lastObserved: serverTimestamp(),
         handsObserved: 1,
+        createdBy: userId,
       });
     }
   } catch (error) {

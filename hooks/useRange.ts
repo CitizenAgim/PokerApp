@@ -1,3 +1,4 @@
+import { auth } from '@/config/firebase';
 import * as rangesFirebase from '@/services/firebase/ranges';
 import * as localStorage from '@/services/localStorage';
 import { isOnline } from '@/services/sync';
@@ -222,7 +223,10 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
     // Try to sync to cloud
     if (await isOnline()) {
       try {
-        await rangesFirebase.updatePlayerRange(playerId, key, range);
+        const userId = auth.currentUser?.uid;
+        if (userId) {
+          await rangesFirebase.updatePlayerRange(playerId, key, range, userId);
+        }
       } catch (err) {
         if (!isOfflineError(err)) {
           console.warn('Could not sync range to cloud:', err);
@@ -420,11 +424,14 @@ export function useRange(
         // Sync to cloud (fire and forget)
         isOnline().then(online => {
           if (online) {
-            rangesFirebase.updatePlayerRange(playerId, updateKey, update.range).catch(err => {
-              if (!isOfflineError(err)) {
-                console.warn('Could not sync propagated range to cloud:', err);
-              }
-            });
+            const userId = auth.currentUser?.uid;
+            if (userId) {
+              rangesFirebase.updatePlayerRange(playerId, updateKey, update.range, userId).catch(err => {
+                if (!isOfflineError(err)) {
+                  console.warn('Could not sync propagated range to cloud:', err);
+                }
+              });
+            }
           }
         });
       }
@@ -432,11 +439,14 @@ export function useRange(
       // Sync current range to cloud (fire and forget)
       isOnline().then(online => {
         if (online) {
-          rangesFirebase.updatePlayerRange(playerId, rangeKey, range).catch(err => {
-            if (!isOfflineError(err)) {
-              console.warn('Could not save range to cloud:', err);
-            }
-          });
+          const userId = auth.currentUser?.uid;
+          if (userId) {
+            rangesFirebase.updatePlayerRange(playerId, rangeKey, range, userId).catch(err => {
+              if (!isOfflineError(err)) {
+                console.warn('Could not save range to cloud:', err);
+              }
+            });
+          }
         }
       });
     } catch (err) {

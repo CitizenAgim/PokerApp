@@ -2,38 +2,92 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper to check if user is logged in
     function isAuthenticated() {
       return request.auth != null;
     }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
 
-    // USERS: Keep this strict
+    // =============================================
+    // USERS
+    // =============================================
+    // Only owner can access their own document
     match /users/{userId} {
-      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      allow read, write: if isOwner(userId);
     }
     
-    // DATA COLLECTIONS: Allow any logged-in user to read/write
-    
-    match /players/{document=**} {
-      allow read, write: if isAuthenticated();
+    // =============================================
+    // PLAYERS
+    // =============================================
+    // Only creator can access
+    // Each player document must have a 'createdBy' field set to the user's UID
+    match /players/{playerId} {
+      allow read: if isAuthenticated() && 
+        resource.data.createdBy == request.auth.uid;
+      allow create: if isAuthenticated() && 
+        request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if isAuthenticated() && 
+        resource.data.createdBy == request.auth.uid;
     }
     
-    match /playerRanges/{document=**} {
-      allow read, write: if isAuthenticated();
+    // =============================================
+    // PLAYER RANGES
+    // =============================================
+    // Linked to players by playerId (document ID = playerId)
+    // Note: Legacy documents may not have 'createdBy' field
+    // New documents will have 'createdBy' set by the app
+    match /playerRanges/{rangeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated();
     }
 
-    match /sessions/{document=**} {
-      allow read, write: if isAuthenticated();
+    // =============================================
+    // SESSIONS
+    // =============================================
+    // Only creator can access
+    // Each session document must have a 'createdBy' field set to the user's UID
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated() && 
+        resource.data.createdBy == request.auth.uid;
+      allow create: if isAuthenticated() && 
+        request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if isAuthenticated() && 
+        resource.data.createdBy == request.auth.uid;
     }
 
-    // Fix for "Missing Permissions" on hands
-    match /hands/{document=**} {
-      allow read, write: if isAuthenticated();
+    // =============================================
+    // HANDS
+    // =============================================
+    // Only owner can access
+    // Each hand document must have a 'userId' field set to the user's UID
+    match /hands/{handId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
     }
 
-    // Included based on your indexes
-    match /friendRequests/{document=**} {
-      allow read, write: if isAuthenticated();
+    // =============================================
+    // FRIEND REQUESTS
+    // =============================================
+    // Sender and receiver only
+    // 'fromUserId' = sender, 'toUserId' = receiver
+    match /friendRequests/{requestId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.fromUserId == request.auth.uid || 
+         resource.data.toUserId == request.auth.uid);
+      allow create: if isAuthenticated() && 
+        request.resource.data.fromUserId == request.auth.uid;
+      allow update: if isAuthenticated() && 
+        resource.data.toUserId == request.auth.uid;
+      allow delete: if isAuthenticated() && 
+        (resource.data.fromUserId == request.auth.uid || 
+         resource.data.toUserId == request.auth.uid);
     }
   }
 }

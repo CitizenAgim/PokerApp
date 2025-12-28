@@ -216,10 +216,16 @@ async function syncPlayerRanges(
   operation: localStorage.SyncOperation,
   data: PlayerRanges | { playerId: string }
 ): Promise<void> {
+  const userId = auth.currentUser?.uid;
+  if (!userId) {
+    console.error('[Sync] No user logged in during range sync');
+    return;
+  }
+
   switch (operation) {
     case 'create':
     case 'update':
-      await rangesFirebase.savePlayerRanges(data as PlayerRanges);
+      await rangesFirebase.savePlayerRanges(data as PlayerRanges, userId);
       break;
     case 'delete':
       await rangesFirebase.deletePlayerRanges((data as { playerId: string }).playerId);
