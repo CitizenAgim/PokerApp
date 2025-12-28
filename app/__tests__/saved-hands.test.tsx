@@ -1,8 +1,8 @@
+import * as handsService from '@/services/firebase/hands';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import SavedHandsScreen from '../saved-hands';
-import * as handsService from '@/services/firebase/hands';
 
 // Mock Firebase config FIRST to avoid import errors
 jest.mock('@/config/firebase', () => ({

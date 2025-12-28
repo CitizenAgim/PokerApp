@@ -139,7 +139,7 @@ export default function SessionDetailScreen() {
   );
 
   // Result View State
-  const [activeTab, setActiveTab] = useState<'overview' | 'graph'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'hands'>('overview');
 
   // Get all unique locations from players
   const allLocations = useMemo(() => {
@@ -557,10 +557,10 @@ export default function SessionDetailScreen() {
             <Text style={[styles.tabText, { color: themeColors.subText }, activeTab === 'overview' && styles.activeTabText]}>Overview</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.tabButton, activeTab === 'graph' && [styles.activeTabButton, { backgroundColor: themeColors.tabActiveBg }]]} 
-            onPress={() => setActiveTab('graph')}
+            style={[styles.tabButton, activeTab === 'hands' && [styles.activeTabButton, { backgroundColor: themeColors.tabActiveBg }]]} 
+            onPress={() => setActiveTab('hands')}
           >
-            <Text style={[styles.tabText, { color: themeColors.subText }, activeTab === 'graph' && styles.activeTabText]}>Graph</Text>
+            <Text style={[styles.tabText, { color: themeColors.subText }, activeTab === 'hands' && styles.activeTabText]}>Hands</Text>
           </TouchableOpacity>
         </View>
 
@@ -600,8 +600,28 @@ export default function SessionDetailScreen() {
             )}
           </View>
         ) : (
-          <View style={[styles.graphContainer, { backgroundColor: themeColors.card }]}>
-            <Text style={[styles.placeholderText, { color: themeColors.subText }]}>Graph View Coming Soon</Text>
+          <View style={{ flex: 1 }}>
+             {hands.length === 0 ? (
+               <View style={[styles.graphContainer, { backgroundColor: themeColors.card }]}>
+                 <Text style={[styles.placeholderText, { color: themeColors.subText }]}>No hands recorded for this session.</Text>
+               </View>
+             ) : (
+               <FlatList
+                 data={hands}
+                 keyExtractor={item => item.id}
+                 renderItem={({ item }) => (
+                   <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+                     <HandHistoryItem 
+                       hand={item} 
+                       onPress={(hand) => {
+                         console.log('Hand pressed:', hand.id);
+                       }} 
+                     />
+                   </View>
+                 )}
+                 contentContainerStyle={{ paddingVertical: 16 }}
+               />
+             )}
           </View>
         )}
 
