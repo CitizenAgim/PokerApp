@@ -166,6 +166,7 @@ interface PokerTableProps {
   handCards?: Record<number, string[]>; // Map of seatNumber to array of card IDs (e.g. ["As", "Kd"])
   onCardPress?: (seatNumber: number) => void;
   onBoardPress?: () => void;
+  communityCards?: string[];
   foldedSeats?: Set<number>;
   pot?: number;
   street?: string;

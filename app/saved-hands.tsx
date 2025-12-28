@@ -79,7 +79,7 @@ export default function SavedHandsScreen() {
     if (!hand.handCards) return 'Unknown';
     
     // Find seat with current user's ID
-    const heroSeat = hand.seats.find(s => s.playerId === user?.uid);
+    const heroSeat = hand.seats.find(s => s.playerId === user?.id);
     if (heroSeat && heroSeat.seatNumber) {
       const cards = hand.handCards[heroSeat.seatNumber];
       if (cards && cards.length > 0) return cards.join(' ');
