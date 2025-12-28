@@ -1,12 +1,11 @@
 import { PlayerCardSkeleton } from '@/components/ui';
-import { usePlayers, useSettings } from '@/hooks';
+import { usePlayers } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import * as localStorage from '@/services/localStorage';
 import { getThemeColors, styles } from '@/styles/players/index.styles';
 import { Player } from '@/types/poker';
 import { haptics } from '@/utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
