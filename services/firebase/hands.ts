@@ -10,7 +10,8 @@ import {
     QueryConstraint,
     serverTimestamp,
     setDoc,
-    where
+    where,
+    writeBatch
 } from 'firebase/firestore';
 
 const COLLECTION_NAME = 'hands';
@@ -146,6 +147,22 @@ export async function saveHand(sessionId: string, userId: string, state: HandSta
     return id;
   } catch (error) {
     console.error('Error saving hand:', error);
+    throw error;
+  }
+}
+
+export async function deleteHands(handIds: string[]): Promise<void> {
+  try {
+    const batch = writeBatch(db);
+    
+    handIds.forEach(id => {
+      const handRef = doc(handsCollection, id);
+      batch.delete(handRef);
+    });
+    
+    await batch.commit();
+  } catch (error) {
+    console.error('Error deleting hands:', error);
     throw error;
   }
 }
