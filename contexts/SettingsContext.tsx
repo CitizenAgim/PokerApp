@@ -24,7 +24,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<'en'>('en');
   const [currency, setCurrencyState] = useState<'EUR' | 'USD' | 'GBP'>('USD');
   const [country, setCountryState] = useState('US');
-  const [dateFormat, setDateFormatState] = useState<'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD'>('MM/DD/YYYY');
+  const [dateFormat, setDateFormatState] = useState<'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD'>('DD/MM/YYYY');
   const [timeFormat, setTimeFormatState] = useState<'12h' | '24h'>('12h');
   const [loading, setLoading] = useState(true);
 
@@ -35,7 +35,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       setLanguageState(prefs.language || 'en');
       setCurrencyState(prefs.currency || 'USD');
       setCountryState(prefs.country || 'US');
-      setDateFormatState(prefs.dateFormat || 'MM/DD/YYYY');
+      setDateFormatState(prefs.dateFormat || 'DD/MM/YYYY');
       setTimeFormatState(prefs.timeFormat || '12h');
     } catch (error) {
       console.error('Failed to load settings:', error);

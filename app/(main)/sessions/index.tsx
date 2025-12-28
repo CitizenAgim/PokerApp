@@ -1,9 +1,10 @@
 import { SessionCardSkeleton } from '@/components/ui';
-import { useSessions } from '@/hooks';
+import { useSessions, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getThemeColors, styles } from '@/styles/sessions/index.styles';
 import { Session } from '@/types/poker';
 import { haptics } from '@/utils/haptics';
+import { formatDate } from '@/utils/text';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -19,6 +20,7 @@ import {
 export default function SessionsScreen() {
   const router = useRouter();
   const { sessions, loading, error, refresh, deleteSession } = useSessions();
+  const { dateFormat } = useSettings();
   const [refreshing, setRefreshing] = useState(false);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -81,15 +83,6 @@ export default function SessionsScreen() {
     );
   };
 
-  const formatDate = (timestamp: number): string => {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
-
   const formatDuration = (start: number, end?: number): string => {
     const endTime = end || Date.now();
     const durationMs = endTime - start;
@@ -106,6 +99,19 @@ export default function SessionsScreen() {
     const profit = (item.cashOut || 0) - (item.buyIn || 0);
     const isProfit = profit >= 0;
 
+    // Check if name is a default name (Date - GameType) and reformat if needed
+    let displayName = item.name;
+    const defaultNameUS = formatDate(item.startTime, 'MM/DD/YYYY') + ' - ' + item.gameType;
+    const defaultNameEU = formatDate(item.startTime, 'DD/MM/YYYY') + ' - ' + item.gameType;
+    const defaultNameISO = formatDate(item.startTime, 'YYYY-MM-DD') + ' - ' + item.gameType;
+    
+    // Also check against system locale default which might have been used previously
+    const systemDefault = new Date(item.startTime).toLocaleDateString() + ' - ' + item.gameType;
+
+    if (item.name === defaultNameUS || item.name === defaultNameEU || item.name === defaultNameISO || item.name === systemDefault) {
+       displayName = formatDate(item.startTime, dateFormat) + ' - ' + item.gameType;
+    }
+
     return (
     <TouchableOpacity
       style={[styles.sessionCard, { backgroundColor: themeColors.card }, item.isActive && styles.sessionCardActive]}
@@ -118,7 +124,7 @@ export default function SessionsScreen() {
     >
       <View style={styles.sessionHeader}>
         <View style={styles.sessionInfo}>
-          <Text style={[styles.sessionName, { color: themeColors.text }]}>{item.name}</Text>
+          <Text style={[styles.sessionName, { color: themeColors.text }]}>{displayName}</Text>
           <Text style={[styles.sessionDetails, { color: themeColors.subText }]}>
             {item.stakes && `${item.stakes} • `}
             {item.location || 'No location'}
@@ -139,7 +145,7 @@ export default function SessionsScreen() {
       <View style={styles.sessionMeta}>
         <View style={styles.metaItem}>
           <Ionicons name="calendar-outline" size={14} color={themeColors.icon} />
-          <Text style={[styles.metaText, { color: themeColors.subText }]}>{formatDate(item.startTime)}</Text>
+          <Text style={[styles.metaText, { color: themeColors.subText }]}>{formatDate(item.startTime, dateFormat)}</Text>
         </View>
         <View style={styles.metaItem}>
           <Ionicons name="time-outline" size={14} color={themeColors.icon} />

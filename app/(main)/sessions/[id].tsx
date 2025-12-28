@@ -1,10 +1,11 @@
 import { HandHistoryItem } from '@/components/HandHistoryItem';
 import { PokerTable } from '@/components/table/PokerTable';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { useCurrentSession, useCurrentUser, usePlayers, useSession } from '@/hooks';
+import { useCurrentSession, useCurrentUser, usePlayers, useSession, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getHands, HandRecord } from '@/services/firebase/hands';
 import { getThemeColors, styles } from '@/styles/sessions/[id].styles';
+import { formatDate } from '@/utils/text';
 import { Ionicons } from '@expo/vector-icons';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
@@ -43,6 +44,7 @@ export default function SessionDetailScreen() {
   const { user, loading: userLoading } = useCurrentUser();
   const { clearSession } = useCurrentSession();
   const { players, createPlayer, updatePlayer } = usePlayers();
+  const { dateFormat } = useSettings();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -539,12 +541,7 @@ export default function SessionDetailScreen() {
         <View style={[styles.summaryHeader, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
           <Text style={[styles.summaryTitle, { color: themeColors.text }]}>Session Result</Text>
           <Text style={[styles.summaryDate, { color: themeColors.subText }]}>
-            {new Date(session.startTime).toLocaleDateString(undefined, {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
+            {formatDate(session.startTime, dateFormat)}
           </Text>
           <TouchableOpacity onPress={handleEditSession} style={[styles.editButton, { backgroundColor: themeColors.actionButtonBg }]}>
             <Ionicons name="pencil" size={16} color="#0a7ea4" />

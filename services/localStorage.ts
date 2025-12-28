@@ -35,7 +35,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   language: 'en',
   currency: 'USD',
   country: 'US',
-  dateFormat: 'MM/DD/YYYY',
+  dateFormat: 'DD/MM/YYYY',
   timeFormat: '12h',
 };
 

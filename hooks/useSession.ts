@@ -1,10 +1,11 @@
 import { auth } from '@/config/firebase';
+import { useSettings } from '@/hooks/useSettings';
 import * as sessionsFirebase from '@/services/firebase/sessions';
 import * as localStorage from '@/services/localStorage';
 import { isOnline, syncPendingChanges } from '@/services/sync';
 import { Position, Session, Table } from '@/types/poker';
 import { calculatePosition } from '@/utils/positionCalculator';
-import { normalizeLocation } from '@/utils/text';
+import { formatDate, normalizeLocation } from '@/utils/text';
 import { useCallback, useEffect, useState } from 'react';
 
 // ============================================
@@ -33,6 +34,7 @@ export function useSessions(): UseSessionsResult {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const { dateFormat } = useSettings();
 
   const loadSessions = useCallback(async () => {
     try {
@@ -82,7 +84,8 @@ export function useSessions(): UseSessionsResult {
     if (!userId) throw new Error('Not authenticated');
 
     const id = localStorage.generateId();
-    const dateStr = new Date().toLocaleDateString();
+    const startTime = Date.now();
+    const dateStr = formatDate(startTime, dateFormat);
     const name = `${dateStr} - ${gameType}`;
     const stakes = `${smallBlind}/${bigBlind}${thirdBlind ? `/${thirdBlind}` : ''}`;
     const normalizedLocation = normalizeLocation(location);
@@ -99,7 +102,7 @@ export function useSessions(): UseSessionsResult {
       buyIn,
       currency,
       stakes,
-      startTime: Date.now(),
+      startTime,
       isActive: true,
       createdBy: userId,
     };
