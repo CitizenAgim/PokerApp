@@ -72,6 +72,8 @@ function toFirestoreData(player: CreatePlayer | UpdatePlayer): Partial<Firestore
  * Get all players created by the current user
  */
 export async function getPlayers(userId: string): Promise<Player[]> {
+  if (!userId) return [];
+  
   try {
     // Get players created by user
     const createdByQuery = query(
@@ -86,7 +88,8 @@ export async function getPlayers(userId: string): Promise<Player[]> {
     );
   } catch (error) {
     console.error('Error fetching players:', error);
-    throw error;
+    // Return empty array instead of throwing to prevent app crash
+    return [];
   }
 }
 

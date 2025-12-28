@@ -1,45 +1,51 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useCurrentUser, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { getUserHands, HandRecord } from '@/services/firebase/hands';
+import { formatDate } from '@/utils/text';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-// Mock data for saved hands
-const MOCK_SAVED_HANDS = [
-  {
-    id: '1',
-    date: '2023-10-27 14:30',
-    pot: 150,
-    winner: 'Hero',
-    blinds: '1/2',
-    cards: ['As', 'Kd'],
-  },
-  {
-    id: '2',
-    date: '2023-10-26 20:15',
-    pot: 420,
-    winner: 'Villain 1',
-    blinds: '2/5',
-    cards: ['Jh', 'Jd'],
-  },
-  {
-    id: '3',
-    date: '2023-10-25 18:45',
-    pot: 85,
-    winner: 'Hero',
-    blinds: '1/2',
-    cards: ['7c', '8c'],
-  },
-];
 
 export default function SavedHandsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const insets = useSafeAreaInsets();
+  const { user, loading: authLoading } = useCurrentUser();
+  const { dateFormat } = useSettings();
+  
+  const [hands, setHands] = useState<HandRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    if (authLoading) return;
+
+    const fetchHands = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        if (!user.id) {
+          console.error('User ID is missing');
+          return;
+        }
+        const userHands = await getUserHands(user.id);
+        setHands(userHands);
+      } catch (error) {
+        console.error('Failed to fetch hands:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchHands();
+  }, [user, authLoading]);
   
   // We can reuse some theme logic or define local styles
   const themeColors = {
@@ -51,7 +57,38 @@ export default function SavedHandsScreen() {
     tint: '#2196f3',
   };
 
-  const renderHandItem = ({ item }: { item: typeof MOCK_SAVED_HANDS[0] }) => (
+  const getWinnerName = (hand: HandRecord) => {
+    if (!hand.winners || hand.winners.length === 0) return 'Unknown';
+    if (hand.winners.length > 1) return 'Split Pot';
+    
+    const winnerSeatIndex = hand.winners[0];
+    // Find seat with this index (seatNumber might be 1-based, index 0-based)
+    // In HandRecord, winners are seat numbers (1-9) usually.
+    // Let's check how winners are stored. In HandState, winners are seat numbers.
+    
+    const seat = hand.seats.find(s => s.seatNumber === winnerSeatIndex);
+    return seat?.player?.name || `Seat ${winnerSeatIndex}`;
+  };
+
+  const getHeroCards = (hand: HandRecord) => {
+    // Try to find hero's cards
+    // We need to know which seat was Hero.
+    // If we don't have heroSeatIndex stored, we can try to match by userId if available in seats
+    // But seats only have playerId.
+    
+    if (!hand.handCards) return 'Unknown';
+    
+    // Find seat with current user's ID
+    const heroSeat = hand.seats.find(s => s.playerId === user?.uid);
+    if (heroSeat && heroSeat.seatNumber) {
+      const cards = hand.handCards[heroSeat.seatNumber];
+      if (cards && cards.length > 0) return cards.join(' ');
+    }
+    
+    return 'Unknown';
+  };
+
+  const renderHandItem = ({ item }: { item: HandRecord }) => (
     <TouchableOpacity 
       style={[styles.card, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}
       onPress={() => {
@@ -60,8 +97,11 @@ export default function SavedHandsScreen() {
       }}
     >
       <View style={styles.cardHeader}>
-        <Text style={[styles.dateText, { color: themeColors.subText }]}>{item.date}</Text>
-        <Text style={[styles.blindsText, { color: themeColors.subText }]}>{item.blinds}</Text>
+        <Text style={[styles.dateText, { color: themeColors.subText }]}>
+          {formatDate(item.timestamp, dateFormat)}
+        </Text>
+        {/* Blinds are not directly in HandRecord, would need session info or store it in hand */}
+        {/* <Text style={[styles.blindsText, { color: themeColors.subText }]}>{item.blinds}</Text> */}
       </View>
       
       <View style={styles.cardBody}>
@@ -71,11 +111,11 @@ export default function SavedHandsScreen() {
         </View>
         <View style={styles.infoRow}>
           <Text style={[styles.label, { color: themeColors.subText }]}>Winner:</Text>
-          <Text style={[styles.value, { color: themeColors.text }]}>{item.winner}</Text>
+          <Text style={[styles.value, { color: themeColors.text }]}>{getWinnerName(item)}</Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={[styles.label, { color: themeColors.subText }]}>Hand:</Text>
-          <Text style={[styles.value, { color: themeColors.text }]}>{item.cards.join(' ')}</Text>
+          <Text style={[styles.value, { color: themeColors.text }]}>{getHeroCards(item)}</Text>
         </View>
       </View>
       
@@ -95,17 +135,23 @@ export default function SavedHandsScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <FlatList
-        data={MOCK_SAVED_HANDS}
-        renderItem={renderHandItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={{ color: themeColors.subText }}>No saved hands found.</Text>
-          </View>
-        }
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={themeColors.tint} />
+        </View>
+      ) : (
+        <FlatList
+          data={hands}
+          renderItem={renderHandItem}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={{ color: themeColors.subText }}>No saved hands found.</Text>
+            </View>
+          }
+        />
+      )}
     </ThemedView>
   );
 }
@@ -177,6 +223,11 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     padding: 32,
+    alignItems: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
   },
 });

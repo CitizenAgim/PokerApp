@@ -13,23 +13,35 @@ export function useCurrentUser() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
         if (firebaseUser) {
+          console.log('Fetching user profile for:', firebaseUser.uid);
           // Get user document from Firestore
-          const userDocRef = doc(db, 'users', firebaseUser.uid);
-          const userDoc = await getDoc(userDocRef);
+          try {
+            const userDocRef = doc(db, 'users', firebaseUser.uid);
+            const userDoc = await getDoc(userDocRef);
 
-          if (userDoc.exists()) {
-            setUser({ id: firebaseUser.uid, ...userDoc.data() } as User);
-          } else {
-            // Create user document if it doesn't exist
-            const newUser: User = {
+            if (userDoc.exists()) {
+              setUser({ id: firebaseUser.uid, ...userDoc.data() } as User);
+            } else {
+              // Create user document if it doesn't exist
+              const newUser: User = {
+                id: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                displayName: firebaseUser.displayName || 'User',
+                createdAt: Date.now(),
+              };
+              
+              await setDoc(userDocRef, newUser);
+              setUser(newUser);
+            }
+          } catch (firestoreError) {
+            console.error('Firestore error in useCurrentUser:', firestoreError);
+            // Fallback to basic user info if Firestore fails
+            setUser({
               id: firebaseUser.uid,
               email: firebaseUser.email || '',
               displayName: firebaseUser.displayName || 'User',
               createdAt: Date.now(),
-            };
-            
-            await setDoc(userDocRef, newUser);
-            setUser(newUser);
+            });
           }
         } else {
           setUser(null);

@@ -28,10 +28,13 @@ if (!getApps().length) {
   auth = initializeAuth(app, {
     persistence: getReactNativePersistence(AsyncStorage)
   });
+  
+  // Initialize Firestore with specific settings for React Native
+  // Using memory cache to avoid potential persistence issues with the new SDK
   db = initializeFirestore(app, {
     localCache: memoryLocalCache(),
-    ignoreUndefinedProperties: true,
   });
+  
   storage = getStorage(app);
 } else {
   app = getApp();
