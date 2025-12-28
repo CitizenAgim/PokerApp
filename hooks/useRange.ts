@@ -1,11 +1,18 @@
 import { auth } from '@/config/firebase';
-import * as rangesFirebase from '@/services/firebase/ranges';
+import * as playersFirebase from '@/services/firebase/players';
 import * as localStorage from '@/services/localStorage';
 import { isOnline } from '@/services/sync';
 import { Action, PlayerRanges, Position, Range } from '@/types/poker';
 import { createEmptyRange } from '@/utils/handRanking';
 import { propagateRangeUpdates } from '@/utils/rangePropagation';
 import { useCallback, useEffect, useState } from 'react';
+
+/**
+ * Get range key from position and action
+ */
+function getRangeKey(position: Position | string, action: Action | string): string {
+  return `${position}_${action}`;
+}
 
 // ============================================
 // IN-MEMORY CACHE FOR FAST ACCESS
@@ -14,9 +21,9 @@ import { useCallback, useEffect, useState } from 'react';
 const rangesCache = new Map<string, PlayerRanges>();
 const listeners = new Set<(playerId: string, ranges: PlayerRanges) => void>();
 
-function subscribeToCache(callback: (playerId: string, ranges: PlayerRanges) => void) {
+function subscribeToCache(callback: (playerId: string, ranges: PlayerRanges) => void): () => void {
   listeners.add(callback);
-  return () => listeners.delete(callback);
+  return () => { listeners.delete(callback); };
 }
 
 function notifyListeners(playerId: string, ranges: PlayerRanges) {
@@ -129,7 +136,7 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
     return () => { mounted = false; };
   }, [playerId]);
 
-  // Background cloud sync (non-blocking)
+  // Background cloud sync (non-blocking) - now uses embedded ranges in player doc
   useEffect(() => {
     if (!playerId) return;
     
@@ -137,15 +144,22 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
     
     const syncCloud = async () => {
       try {
-        if (await isOnline()) {
-          const cloudRanges = await rangesFirebase.getPlayerRanges(playerId);
+        const userId = auth.currentUser?.uid;
+        if (userId && await isOnline()) {
+          // Get ranges from embedded player document
+          const cloudRanges = await playersFirebase.getPlayerRanges(userId, playerId);
           if (cloudRanges && mounted) {
             const localRanges = await localStorage.getPlayerRanges(playerId);
-            if (!localRanges || cloudRanges.lastObserved > localRanges.lastObserved) {
-              await localStorage.savePlayerRanges(cloudRanges);
-              setCachedRanges(cloudRanges);
-              setRanges(cloudRanges);
-            }
+            // Convert to PlayerRanges format
+            const playerRanges: PlayerRanges = {
+              playerId,
+              ranges: cloudRanges,
+              lastObserved: Date.now(),
+              handsObserved: localRanges?.handsObserved || 0,
+            };
+            await localStorage.savePlayerRanges(playerRanges);
+            setCachedRanges(playerRanges);
+            setRanges(playerRanges);
           }
         }
       } catch (err) {
@@ -170,14 +184,19 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
       }
       setRanges(localRanges);
       
-      if (await isOnline()) {
-        const cloudRanges = await rangesFirebase.getPlayerRanges(playerId);
+      const userId = auth.currentUser?.uid;
+      if (userId && await isOnline()) {
+        const cloudRanges = await playersFirebase.getPlayerRanges(userId, playerId);
         if (cloudRanges) {
-          if (!localRanges || cloudRanges.lastObserved > localRanges.lastObserved) {
-            await localStorage.savePlayerRanges(cloudRanges);
-            setCachedRanges(cloudRanges);
-            setRanges(cloudRanges);
-          }
+          const playerRanges: PlayerRanges = {
+            playerId,
+            ranges: cloudRanges,
+            lastObserved: Date.now(),
+            handsObserved: localRanges?.handsObserved || 0,
+          };
+          await localStorage.savePlayerRanges(playerRanges);
+          setCachedRanges(playerRanges);
+          setRanges(playerRanges);
         }
       }
     } catch (err) {
@@ -188,7 +207,7 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
   }, [playerId]);
 
   const getRange = useCallback((position: Position, action: Action): Range => {
-    const key = rangesFirebase.getRangeKey(position, action);
+    const key = getRangeKey(position, action);
     return ranges?.ranges[key] || createEmptyRange();
   }, [ranges]);
 
@@ -197,7 +216,7 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
     action: Action,
     range: Range
   ): Promise<void> => {
-    const key = rangesFirebase.getRangeKey(position, action);
+    const key = getRangeKey(position, action);
 
     // Update locally
     await localStorage.updatePlayerRange(playerId, key, range);
@@ -220,13 +239,11 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
       };
     });
 
-    // Try to sync to cloud
-    if (await isOnline()) {
+    // Try to sync to cloud using embedded ranges
+    const userId = auth.currentUser?.uid;
+    if (userId && await isOnline()) {
       try {
-        const userId = auth.currentUser?.uid;
-        if (userId) {
-          await rangesFirebase.updatePlayerRange(playerId, key, range, userId);
-        }
+        await playersFirebase.updatePlayerRange(userId, playerId, key, range);
       } catch (err) {
         if (!isOfflineError(err)) {
           console.warn('Could not sync range to cloud:', err);
@@ -239,22 +256,9 @@ export function usePlayerRanges(playerId: string): UsePlayerRangesResult {
     position: Position,
     action: Action
   ): Promise<void> => {
-    const key = rangesFirebase.getRangeKey(position, action);
     const emptyRange = createEmptyRange();
-
     await updateRange(position, action, emptyRange);
-
-    // Also clear in cloud
-    if (await isOnline()) {
-      try {
-        await rangesFirebase.clearPlayerRange(playerId, key);
-      } catch (err) {
-        if (!isOfflineError(err)) {
-          console.warn('Could not clear range in cloud:', err);
-        }
-      }
-    }
-  }, [playerId, updateRange]);
+  }, [updateRange]);
   return {
     ranges,
     loading,
@@ -287,7 +291,7 @@ export function useRange(
   position: Position,
   action: Action
 ): UseRangeResult {
-  const rangeKey = rangesFirebase.getRangeKey(position, action);
+  const rangeKey = getRangeKey(position, action);
   
   // Try to get initial value from cache
   const cachedRanges = getCachedRanges(playerId);
@@ -359,7 +363,7 @@ export function useRange(
     return () => { mounted = false; };
   }, [playerId, rangeKey]);
 
-  // Background cloud sync (non-blocking)
+  // Background cloud sync (non-blocking) - now uses embedded ranges
   useEffect(() => {
     if (!playerId) return;
     
@@ -367,9 +371,10 @@ export function useRange(
     
     const syncCloud = async () => {
       try {
-        if (await isOnline()) {
-          const cloudRanges = await rangesFirebase.getPlayerRanges(playerId);
-          const cloudRange = cloudRanges?.ranges[rangeKey];
+        const userId = auth.currentUser?.uid;
+        if (userId && await isOnline()) {
+          const cloudRanges = await playersFirebase.getPlayerRanges(userId, playerId);
+          const cloudRange = cloudRanges?.[rangeKey];
           
           if (cloudRange && mounted) {
             _setRange(cloudRange);
@@ -402,7 +407,7 @@ export function useRange(
         action,
         range,
         async (pos, act) => {
-          const key = rangesFirebase.getRangeKey(pos, act);
+          const key = getRangeKey(pos, act);
           // Try cache first
           const cached = getCachedRanges(playerId);
           if (cached && cached.ranges[key]) return cached.ranges[key];
@@ -415,7 +420,7 @@ export function useRange(
 
       // 3. Save propagated updates
       for (const update of updates) {
-        const updateKey = rangesFirebase.getRangeKey(update.position, update.action);
+        const updateKey = getRangeKey(update.position, update.action);
         
         // Save locally
         await localStorage.updatePlayerRange(playerId, updateKey, update.range);
@@ -426,7 +431,7 @@ export function useRange(
           if (online) {
             const userId = auth.currentUser?.uid;
             if (userId) {
-              rangesFirebase.updatePlayerRange(playerId, updateKey, update.range, userId).catch(err => {
+              playersFirebase.updatePlayerRange(userId, playerId, updateKey, update.range).catch(err => {
                 if (!isOfflineError(err)) {
                   console.warn('Could not sync propagated range to cloud:', err);
                 }
@@ -441,7 +446,7 @@ export function useRange(
         if (online) {
           const userId = auth.currentUser?.uid;
           if (userId) {
-            rangesFirebase.updatePlayerRange(playerId, rangeKey, range, userId).catch(err => {
+            playersFirebase.updatePlayerRange(userId, playerId, rangeKey, range).catch(err => {
               if (!isOfflineError(err)) {
                 console.warn('Could not save range to cloud:', err);
               }
@@ -468,14 +473,17 @@ export function useRange(
       // Update the in-memory cache
       updateCachedRange(playerId, rangeKey, emptyRange);
 
-      // Cloud sync in background
+      // Cloud sync in background - update with empty range
       isOnline().then(online => {
         if (online) {
-          rangesFirebase.clearPlayerRange(playerId, rangeKey).catch(err => {
-            if (!isOfflineError(err)) {
-              console.warn('Could not clear range in cloud:', err);
-            }
-          });
+          const userId = auth.currentUser?.uid;
+          if (userId) {
+            playersFirebase.updatePlayerRange(userId, playerId, rangeKey, emptyRange).catch(err => {
+              if (!isOfflineError(err)) {
+                console.warn('Could not clear range in cloud:', err);
+              }
+            });
+          }
         }
       });
     } finally {

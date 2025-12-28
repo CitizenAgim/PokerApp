@@ -107,10 +107,13 @@ describe('Sync Flow Integration', () => {
     // Verify updateSession called with ALL data needed to create it if missing
     expect(sessionsFirebase.updateSession).toHaveBeenCalledTimes(1);
     
+    // New signature: updateSession(userId, sessionId, updates)
     const updateCall = (sessionsFirebase.updateSession as jest.Mock).mock.calls[0];
-    const sessionId = updateCall[0];
-    const updateData = updateCall[1];
+    const userId = updateCall[0];
+    const sessionId = updateCall[1];
+    const updateData = updateCall[2];
 
+    expect(userId).toBe('test-user');
     expect(sessionId).toBe('session-flow-1');
     
     // CRITICAL: Check if all fields are present in the update payload

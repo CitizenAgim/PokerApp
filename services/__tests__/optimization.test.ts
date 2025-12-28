@@ -142,10 +142,13 @@ describe('Data Optimization & Lean Sync', () => {
       expect(sessionsFirebase.updateSession).toHaveBeenCalled();
 
       // Verify the data passed to updateSession does NOT contain table
+      // New signature: updateSession(userId, sessionId, updates)
       const updateCall = (sessionsFirebase.updateSession as jest.Mock).mock.calls[0];
-      const sessionId = updateCall[0];
-      const updateData = updateCall[1];
+      const userId = updateCall[0];
+      const sessionId = updateCall[1];
+      const updateData = updateCall[2];
       
+      expect(userId).toBe('test-user');
       expect(sessionId).toBe('session-3');
       expect(updateData.table).toBeUndefined();
       

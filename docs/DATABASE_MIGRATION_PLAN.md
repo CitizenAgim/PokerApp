@@ -362,6 +362,58 @@ Since:
 
 ## Implementation Checklist
 
+### TDD Implementation Phases
+
+Each phase: **Write tests first → Implement → Verify tests pass**
+
+---
+
+#### Phase 1: Players Service (New Path)
+- [ ] Write tests for `/users/{userId}/players` CRUD
+- [ ] Update `services/firebase/players.ts`
+- [ ] Verify tests pass
+
+#### Phase 2: Embed Ranges in Players
+- [ ] Write tests for ranges embedded in player document
+- [ ] Update player types to include `ranges` field
+- [ ] Remove `services/firebase/ranges.ts` (merge into players)
+- [ ] Verify tests pass
+
+#### Phase 3: Sessions Service (New Path)
+- [ ] Write tests for `/users/{userId}/sessions` CRUD
+- [ ] Update `services/firebase/sessions.ts`
+- [ ] Verify tests pass
+
+#### Phase 4: Hands Service (Nested Under Sessions)
+- [ ] Write tests for `/users/{userId}/sessions/{sessionId}/hands` CRUD
+- [ ] Update `services/firebase/hands.ts`
+- [ ] Verify tests pass
+
+#### Phase 5: Update Types
+- [ ] Update `types/poker.ts` with new fields (isShared, embedded ranges)
+- [ ] Ensure backward compatibility during transition
+
+#### Phase 6: Update Hooks
+- [ ] Update `hooks/usePlayer.ts`
+- [ ] Update `hooks/useRange.ts` (read from player.ranges)
+- [ ] Update `hooks/useSession.ts`
+- [ ] Update hand-related hooks
+
+#### Phase 7: Update Local Storage
+- [ ] Update `services/localStorage.ts` data structure
+- [ ] Handle migration of local data
+
+#### Phase 8: Update Sync Service
+- [ ] Update `services/sync.ts` for new paths
+- [ ] Test offline/online sync
+
+#### Phase 9: Security Rules & Cleanup
+- [ ] Deploy new `firestore.rules`
+- [ ] Delete old collections from Firebase Console
+- [ ] End-to-end testing
+
+---
+
 ### Phase 1: Firebase Services
 
 - [ ] `services/firebase/players.ts` → `/users/{userId}/players`

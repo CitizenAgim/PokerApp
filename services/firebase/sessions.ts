@@ -1,25 +1,47 @@
+/**
+ * Firebase Sessions Service - Subcollection Structure
+ * Path: /users/{userId}/sessions/{sessionId}
+ * 
+ * Sessions are stored as subcollections under each user for:
+ * - Automatic scoping (no need to filter by createdBy)
+ * - Simpler security rules (path-based)
+ * - Better cost efficiency at scale
+ * - Easy sharing support via isShared flag
+ */
+
 import { db } from '@/config/firebase';
 import { Session, Table } from '@/types/poker';
 import {
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    orderBy,
-    query,
-    serverTimestamp,
-    setDoc,
-    Timestamp,
-    where
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  Timestamp,
+  where,
 } from 'firebase/firestore';
 
 // ============================================
-// COLLECTION REFERENCE
+// COLLECTION HELPERS
 // ============================================
 
-const COLLECTION_NAME = 'sessions';
-const sessionsCollection = collection(db, COLLECTION_NAME);
+/**
+ * Get the sessions collection reference for a user
+ */
+function getSessionsCollection(userId: string) {
+  return collection(db, 'users', userId, 'sessions');
+}
+
+/**
+ * Get a session document reference
+ */
+function getSessionDoc(userId: string, sessionId: string) {
+  return doc(db, 'users', userId, 'sessions', sessionId);
+}
 
 // ============================================
 // TYPE CONVERTERS
@@ -40,11 +62,11 @@ interface FirestoreSession {
   endTime?: Timestamp;
   duration?: number;
   isActive: boolean;
-  createdBy: string;
+  isShared?: boolean;
   table?: Table;
 }
 
-function toSession(id: string, data: FirestoreSession): Session & { table?: Table } {
+function toSession(id: string, data: FirestoreSession): Session & { table?: Table; isShared?: boolean } {
   return {
     id,
     name: data.name,
@@ -61,7 +83,8 @@ function toSession(id: string, data: FirestoreSession): Session & { table?: Tabl
     endTime: data.endTime?.toMillis(),
     duration: data.duration,
     isActive: data.isActive,
-    createdBy: data.createdBy,
+    isShared: data.isShared || false,
+    createdBy: '', // Not needed in subcollection model - derived from path
     table: data.table,
   };
 }
@@ -73,48 +96,56 @@ function toSession(id: string, data: FirestoreSession): Session & { table?: Tabl
 /**
  * Get all sessions for a user
  */
-export async function getSessions(userId: string): Promise<Session[]> {
+export async function getSessions(userId: string): Promise<(Session & { isShared?: boolean })[]> {
+  if (!userId) return [];
+
   try {
-    const q = query(
-      sessionsCollection,
-      where('createdBy', '==', userId),
-      orderBy('startTime', 'desc')
-    );
-    
+    const sessionsRef = getSessionsCollection(userId);
+    const q = query(sessionsRef, orderBy('startTime', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => toSession(doc.id, doc.data() as FirestoreSession));
+    
+    return snapshot.docs.map(doc => 
+      toSession(doc.id, doc.data() as FirestoreSession)
+    );
   } catch (error) {
     console.error('Error fetching sessions:', error);
-    throw error;
+    return [];
   }
 }
 
 /**
  * Get active sessions for a user
  */
-export async function getActiveSessions(userId: string): Promise<Session[]> {
+export async function getActiveSessions(userId: string): Promise<(Session & { isShared?: boolean })[]> {
+  if (!userId) return [];
+
   try {
+    const sessionsRef = getSessionsCollection(userId);
     const q = query(
-      sessionsCollection,
-      where('createdBy', '==', userId),
+      sessionsRef,
       where('isActive', '==', true),
       orderBy('startTime', 'desc')
     );
     
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => toSession(doc.id, doc.data() as FirestoreSession));
+    return snapshot.docs.map(doc => 
+      toSession(doc.id, doc.data() as FirestoreSession)
+    );
   } catch (error) {
     console.error('Error fetching active sessions:', error);
-    throw error;
+    return [];
   }
 }
 
 /**
  * Get a single session by ID
  */
-export async function getSession(sessionId: string): Promise<(Session & { table?: Table }) | null> {
+export async function getSession(
+  userId: string,
+  sessionId: string
+): Promise<(Session & { table?: Table; isShared?: boolean }) | null> {
   try {
-    const sessionDoc = await getDoc(doc(db, COLLECTION_NAME, sessionId));
+    const sessionDoc = await getDoc(getSessionDoc(userId, sessionId));
     
     if (!sessionDoc.exists()) {
       return null;
@@ -131,13 +162,14 @@ export async function getSession(sessionId: string): Promise<(Session & { table?
  * Create a new session
  */
 export async function createSession(
+  userId: string,
   session: Omit<Session, 'id' | 'startTime' | 'endTime' | 'isActive'>,
-  table?: Table, // Deprecated: Table data is no longer synced to cloud
   sessionId?: string
-): Promise<Session> {
+): Promise<Session & { isShared?: boolean }> {
   try {
-    const id = sessionId || doc(sessionsCollection).id;
-    const sessionRef = doc(db, COLLECTION_NAME, id);
+    const sessionsRef = getSessionsCollection(userId);
+    const id = sessionId || doc(sessionsRef).id;
+    const sessionRef = getSessionDoc(userId, id);
     
     const data: Record<string, unknown> = {
       name: session.name,
@@ -151,10 +183,8 @@ export async function createSession(
       buyIn: session.buyIn || null,
       startTime: serverTimestamp(),
       isActive: true,
-      createdBy: session.createdBy,
+      isShared: false,  // Default to not shared
     };
-    
-    // Table data is explicitly excluded from cloud sync
     
     await setDoc(sessionRef, data);
     
@@ -165,7 +195,8 @@ export async function createSession(
       stakes: session.stakes,
       startTime: Date.now(),
       isActive: true,
-      createdBy: session.createdBy,
+      isShared: false,
+      createdBy: userId,
     };
   } catch (error) {
     console.error('Error creating session:', error);
@@ -177,16 +208,17 @@ export async function createSession(
  * Update a session
  */
 export async function updateSession(
+  userId: string,
   sessionId: string,
-  updates: Partial<Session> // Changed to allow all fields including createdBy
+  updates: Partial<Session>
 ): Promise<void> {
   try {
     console.log(`[Firebase] Updating session ${sessionId} with ${Object.keys(updates).length} fields`);
-    const sessionRef = doc(db, COLLECTION_NAME, sessionId);
+    const sessionRef = getSessionDoc(userId, sessionId);
     
     const data: Record<string, unknown> = {};
     
-    // Map all possible fields to ensure we can fully recreate the session if it's new
+    // Map all possible fields
     if (updates.name !== undefined) data.name = updates.name;
     if (updates.location !== undefined) data.location = updates.location;
     if (updates.gameType !== undefined) data.gameType = updates.gameType;
@@ -198,7 +230,6 @@ export async function updateSession(
     if (updates.buyIn !== undefined) data.buyIn = updates.buyIn;
     if (updates.cashOut !== undefined) data.cashOut = updates.cashOut;
     if (updates.isActive !== undefined) data.isActive = updates.isActive;
-    if (updates.createdBy !== undefined) data.createdBy = updates.createdBy;
     
     if (updates.startTime !== undefined) {
       data.startTime = Timestamp.fromMillis(updates.startTime);
@@ -208,8 +239,6 @@ export async function updateSession(
     }
     if (updates.duration !== undefined) data.duration = updates.duration;
     
-    // Use setDoc with merge: true instead of updateDoc to handle cases where
-    // the document might not exist yet (e.g. creation sync failed or is pending)
     await setDoc(sessionRef, data, { merge: true });
     console.log(`[Firebase] Successfully updated session ${sessionId}`);
   } catch (error) {
@@ -221,11 +250,16 @@ export async function updateSession(
 /**
  * End a session
  */
-export async function endSession(sessionId: string, cashOut?: number, endTime?: number): Promise<void> {
+export async function endSession(
+  userId: string,
+  sessionId: string,
+  cashOut?: number,
+  endTime?: number
+): Promise<void> {
   try {
-    const sessionRef = doc(db, COLLECTION_NAME, sessionId);
+    const sessionRef = getSessionDoc(userId, sessionId);
     
-    const data: any = {
+    const data: Record<string, unknown> = {
       isActive: false,
       endTime: endTime ? Timestamp.fromMillis(endTime) : serverTimestamp(),
     };
@@ -234,7 +268,6 @@ export async function endSession(sessionId: string, cashOut?: number, endTime?: 
       data.cashOut = cashOut;
     }
     
-    // Use setDoc with merge: true for safety
     await setDoc(sessionRef, data, { merge: true });
   } catch (error) {
     console.error('Error ending session:', error);
@@ -245,36 +278,56 @@ export async function endSession(sessionId: string, cashOut?: number, endTime?: 
 /**
  * Delete a session
  */
-export async function deleteSession(sessionId: string): Promise<void> {
+export async function deleteSession(userId: string, sessionId: string): Promise<void> {
   try {
-    await deleteDoc(doc(db, COLLECTION_NAME, sessionId));
+    await deleteDoc(getSessionDoc(userId, sessionId));
   } catch (error) {
     console.error('Error deleting session:', error);
     throw error;
   }
 }
 
-// Deprecated: Table data is no longer synced to cloud
+// ============================================
+// SHARING OPERATIONS
+// ============================================
+
+/**
+ * Toggle session sharing
+ */
+export async function toggleSessionSharing(
+  userId: string,
+  sessionId: string,
+  isShared: boolean
+): Promise<void> {
+  try {
+    const sessionRef = getSessionDoc(userId, sessionId);
+    
+    await setDoc(sessionRef, { isShared }, { merge: true });
+  } catch (error) {
+    console.error('Error toggling session sharing:', error);
+    throw error;
+  }
+}
+
+// ============================================
+// DEPRECATED (Table data not synced to cloud)
+// ============================================
+
 export async function updateTable(sessionId: string, table: Table): Promise<void> {
-  // No-op
   console.warn('updateTable is deprecated and no longer syncs to cloud');
 }
 
-// Deprecated: Table data is no longer synced to cloud
 export async function updateButtonPosition(
   sessionId: string,
   buttonPosition: number
 ): Promise<void> {
-  // No-op
   console.warn('updateButtonPosition is deprecated and no longer syncs to cloud');
 }
 
-// Deprecated: Table data is no longer synced to cloud
 export async function assignPlayerToSeat(
   sessionId: string,
   seatNumber: number,
   playerId: string | null
 ): Promise<void> {
-  // No-op
   console.warn('assignPlayerToSeat is deprecated and no longer syncs to cloud');
 }

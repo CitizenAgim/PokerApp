@@ -140,9 +140,10 @@ export function useSessions(): UseSessionsResult {
     await localStorage.deleteSession(id);
     setSessions(prev => prev.filter(s => s.id !== id));
 
-    if (await isOnline()) {
+    const userId = auth.currentUser?.uid;
+    if (userId && await isOnline()) {
       try {
-        await sessionsFirebase.deleteSession(id);
+        await sessionsFirebase.deleteSession(userId, id);
       } catch (err) {
         console.warn('Could not sync session deletion to cloud:', err);
       }
@@ -212,9 +213,10 @@ export function useSession(sessionId: string): UseSessionResult {
       }
 
       // Try cloud
-      if (await isOnline()) {
+      const userId = auth.currentUser?.uid;
+      if (userId && await isOnline()) {
         try {
-          const cloudSession = await sessionsFirebase.getSession(sessionId);
+          const cloudSession = await sessionsFirebase.getSession(userId, sessionId);
           if (cloudSession) {
             setSession(cloudSession);
             if (cloudSession.table) {

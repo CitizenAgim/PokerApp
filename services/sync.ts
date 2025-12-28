@@ -2,7 +2,6 @@ import { auth } from '@/config/firebase';
 import { Player, PlayerRanges, Session } from '@/types/poker';
 import NetInfo from '@react-native-community/netinfo';
 import * as playersFirebase from './firebase/players';
-import * as rangesFirebase from './firebase/ranges';
 import * as sessionsFirebase from './firebase/sessions';
 import * as localStorage from './localStorage';
 
@@ -189,6 +188,7 @@ async function syncPlayer(
       if (operation === 'create') {
         console.log(`[Sync] Creating player with createdBy: ${userId}`);
         await playersFirebase.createPlayer(
+          userId,
           {
             name: player.name,
             notes: player.notes || null,
@@ -198,7 +198,7 @@ async function syncPlayer(
           player.id
         );
       } else {
-        await playersFirebase.updatePlayer({
+        await playersFirebase.updatePlayer(userId, {
           id: player.id,
           name: player.name,
           notes: player.notes || null,
@@ -207,7 +207,7 @@ async function syncPlayer(
       }
       break;
     case 'delete':
-      await playersFirebase.deletePlayer((data as { id: string }).id);
+      await playersFirebase.deletePlayer(userId, (data as { id: string }).id);
       break;
   }
 }
@@ -225,10 +225,13 @@ async function syncPlayerRanges(
   switch (operation) {
     case 'create':
     case 'update':
-      await rangesFirebase.savePlayerRanges(data as PlayerRanges, userId);
+      // Ranges are now embedded in player documents
+      const playerRanges = data as PlayerRanges;
+      await playersFirebase.updatePlayerRanges(userId, playerRanges.playerId, playerRanges.ranges);
       break;
     case 'delete':
-      await rangesFirebase.deletePlayerRanges((data as { playerId: string }).playerId);
+      // Clear ranges by setting to empty object
+      await playersFirebase.updatePlayerRanges(userId, (data as { playerId: string }).playerId, {});
       break;
   }
 }
@@ -245,13 +248,13 @@ async function syncSession(
       const { table: _, ...sessionData } = newSession;
       
       await sessionsFirebase.createSession(
+        userId,
         {
           name: sessionData.name,
           location: sessionData.location,
           stakes: sessionData.stakes,
           createdBy: userId,
         },
-        undefined, // No table data
         sessionData.id
       );
       break;
@@ -267,7 +270,7 @@ async function syncSession(
         if (userId) updatedSessionData.createdBy = userId;
       }
 
-      await sessionsFirebase.updateSession(updatedSessionData.id, {
+      await sessionsFirebase.updateSession(userId, updatedSessionData.id, {
         ...updatedSessionData,
         // Ensure timestamps are numbers
         startTime: Number(updatedSessionData.startTime),
@@ -275,7 +278,7 @@ async function syncSession(
       });
       break;
     case 'delete':
-      await sessionsFirebase.deleteSession((data as { id: string }).id);
+      await sessionsFirebase.deleteSession(userId, (data as { id: string }).id);
       break;
   }
 }
@@ -316,30 +319,29 @@ export async function pullFromCloud(): Promise<void> {
         .filter(Boolean)
     );
 
-    // Pull players
+    // Pull players (ranges are now embedded in player documents)
     const cloudPlayers = await playersFirebase.getPlayers(userId);
     for (const player of cloudPlayers) {
       if (pendingPlayerIds.has(player.id)) continue;
       await localStorage.savePlayerFromCloud(player);
-    }
-
-    // Pull ranges for each player
-    for (const player of cloudPlayers) {
-      // Note: We don't have granular pending checks for ranges easily, 
-      // but ranges are usually sub-collections. 
-      // For now, we'll skip if player has pending changes to be safe, 
-      // or we could check pending ranges.
-      // Let's check pending ranges for this player.
-      const hasPendingRanges = pending.some(
-        p => p.collection === 'playerRanges' && 
-        (p.data as PlayerRanges | { playerId: string })?.playerId === player.id
-      );
       
-      if (hasPendingRanges) continue;
-
-      const ranges = await rangesFirebase.getPlayerRanges(player.id);
-      if (ranges) {
-        await localStorage.savePlayerRangesFromCloud(ranges);
+      // Ranges are embedded in player doc, extract and save separately for local storage
+      const playerWithRanges = player as typeof player & { ranges?: Record<string, any> };
+      if (playerWithRanges.ranges && Object.keys(playerWithRanges.ranges).length > 0) {
+        const hasPendingRanges = pending.some(
+          p => p.collection === 'playerRanges' && 
+          (p.data as PlayerRanges | { playerId: string })?.playerId === player.id
+        );
+        
+        if (!hasPendingRanges) {
+          const playerRanges: PlayerRanges = {
+            playerId: player.id,
+            ranges: playerWithRanges.ranges,
+            lastObserved: Date.now(),
+            handsObserved: 0,
+          };
+          await localStorage.savePlayerRangesFromCloud(playerRanges);
+        }
       }
     }
 

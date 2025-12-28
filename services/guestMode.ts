@@ -124,7 +124,7 @@ export async function migrateGuestDataToUser(newUserId: string): Promise<void> {
 
       // Sync to Firebase
       try {
-        await playersFirebase.createPlayer({
+        await playersFirebase.createPlayer(newUserId, {
           name: updatedPlayer.name,
           notes: updatedPlayer.notes,
           createdBy: newUserId,

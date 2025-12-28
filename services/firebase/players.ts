@@ -1,26 +1,47 @@
+/**
+ * Firebase Players Service - Subcollection Structure
+ * Path: /users/{userId}/players/{playerId}
+ * 
+ * Players are stored as subcollections under each user for:
+ * - Automatic scoping (no need to filter by createdBy)
+ * - Simpler security rules (path-based)
+ * - Better cost efficiency at scale
+ * - Easy sharing support via isShared flag
+ */
+
 import { db } from '@/config/firebase';
-import { CreatePlayer, NoteEntry, Player, UpdatePlayer } from '@/types/poker';
+import { CreatePlayer, NoteEntry, Player, Range, UpdatePlayer } from '@/types/poker';
 import {
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    orderBy,
-    query,
-    serverTimestamp,
-    setDoc,
-    Timestamp,
-    updateDoc,
-    where,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  Timestamp,
+  updateDoc,
 } from 'firebase/firestore';
 
 // ============================================
-// COLLECTION REFERENCE
+// COLLECTION HELPERS
 // ============================================
 
-const COLLECTION_NAME = 'players';
-const playersCollection = collection(db, COLLECTION_NAME);
+/**
+ * Get the players collection reference for a user
+ */
+function getPlayersCollection(userId: string) {
+  return collection(db, 'users', userId, 'players');
+}
+
+/**
+ * Get a player document reference
+ */
+function getPlayerDoc(userId: string, playerId: string) {
+  return doc(db, 'users', userId, 'players', playerId);
+}
 
 // ============================================
 // TYPE CONVERTERS
@@ -32,12 +53,13 @@ interface FirestorePlayer {
   locations?: string[];
   notes?: string;
   notesList?: NoteEntry[];
-  createdBy: string;
+  ranges?: Record<string, Range>;  // Embedded ranges
+  isShared?: boolean;              // Sharing flag
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
 
-function toPlayer(id: string, data: FirestorePlayer): Player {
+function toPlayer(id: string, data: FirestorePlayer): Player & { ranges?: Record<string, Range>; isShared?: boolean } {
   return {
     id,
     name: data.name,
@@ -45,7 +67,9 @@ function toPlayer(id: string, data: FirestorePlayer): Player {
     locations: data.locations || [],
     notes: data.notes,
     notesList: data.notesList || [],
-    createdBy: data.createdBy,
+    ranges: data.ranges || {},
+    isShared: data.isShared || false,
+    createdBy: '', // Not needed in subcollection model - derived from path
     createdAt: data.createdAt?.toMillis() || Date.now(),
     updatedAt: data.updatedAt?.toMillis() || Date.now(),
   };
@@ -55,11 +79,10 @@ function toFirestoreData(player: CreatePlayer | UpdatePlayer): Partial<Firestore
   const data: Record<string, unknown> = {};
   
   if ('name' in player && player.name !== undefined) data.name = player.name;
+  if ('color' in player && player.color !== undefined) data.color = player.color;
   if ('locations' in player && player.locations !== undefined) data.locations = player.locations;
-  // Only include notes if it's defined (not undefined)
   if ('notes' in player && player.notes !== undefined) data.notes = player.notes;
   if ('notesList' in player && player.notesList !== undefined) data.notesList = player.notesList;
-  if ('createdBy' in player && player.createdBy !== undefined) data.createdBy = player.createdBy;
   
   return data as Partial<FirestorePlayer>;
 }
@@ -69,26 +92,21 @@ function toFirestoreData(player: CreatePlayer | UpdatePlayer): Partial<Firestore
 // ============================================
 
 /**
- * Get all players created by the current user
+ * Get all players for a user
  */
-export async function getPlayers(userId: string): Promise<Player[]> {
+export async function getPlayers(userId: string): Promise<(Player & { ranges?: Record<string, Range>; isShared?: boolean })[]> {
   if (!userId) return [];
   
   try {
-    // Get players created by user
-    const createdByQuery = query(
-      playersCollection,
-      where('createdBy', '==', userId),
-      orderBy('updatedAt', 'desc')
-    );
+    const playersRef = getPlayersCollection(userId);
+    const q = query(playersRef, orderBy('updatedAt', 'desc'));
+    const snapshot = await getDocs(q);
     
-    const createdBySnapshot = await getDocs(createdByQuery);
-    return createdBySnapshot.docs.map(doc => 
+    return snapshot.docs.map(doc => 
       toPlayer(doc.id, doc.data() as FirestorePlayer)
     );
   } catch (error) {
     console.error('Error fetching players:', error);
-    // Return empty array instead of throwing to prevent app crash
     return [];
   }
 }
@@ -96,9 +114,12 @@ export async function getPlayers(userId: string): Promise<Player[]> {
 /**
  * Get a single player by ID
  */
-export async function getPlayer(playerId: string): Promise<Player | null> {
+export async function getPlayer(
+  userId: string, 
+  playerId: string
+): Promise<(Player & { ranges?: Record<string, Range>; isShared?: boolean }) | null> {
   try {
-    const playerDoc = await getDoc(doc(db, COLLECTION_NAME, playerId));
+    const playerDoc = await getDoc(getPlayerDoc(userId, playerId));
     
     if (!playerDoc.exists()) {
       return null;
@@ -115,28 +136,33 @@ export async function getPlayer(playerId: string): Promise<Player | null> {
  * Create a new player
  */
 export async function createPlayer(
+  userId: string,
   player: CreatePlayer,
   playerId?: string
-): Promise<Player> {
+): Promise<Player & { ranges?: Record<string, Range>; isShared?: boolean }> {
   try {
-    const id = playerId || doc(playersCollection).id;
-    const playerRef = doc(db, COLLECTION_NAME, id);
+    const playersRef = getPlayersCollection(userId);
+    const id = playerId || doc(playersRef).id;
+    const playerRef = getPlayerDoc(userId, id);
     
     const data = {
       ...toFirestoreData(player),
+      ranges: {},           // Initialize empty ranges
+      isShared: false,      // Default to not shared
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
     
     await setDoc(playerRef, data);
     
-    // Return the created player
     return {
       id,
       name: player.name,
       color: player.color,
       notesList: player.notesList || [],
-      createdBy: player.createdBy,
+      ranges: {},
+      isShared: false,
+      createdBy: userId,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -149,9 +175,12 @@ export async function createPlayer(
 /**
  * Update an existing player
  */
-export async function updatePlayer(player: UpdatePlayer): Promise<void> {
+export async function updatePlayer(
+  userId: string,
+  player: UpdatePlayer
+): Promise<void> {
   try {
-    const playerRef = doc(db, COLLECTION_NAME, player.id);
+    const playerRef = getPlayerDoc(userId, player.id);
     
     const data = {
       ...toFirestoreData(player),
@@ -168,11 +197,106 @@ export async function updatePlayer(player: UpdatePlayer): Promise<void> {
 /**
  * Delete a player
  */
-export async function deletePlayer(playerId: string): Promise<void> {
+export async function deletePlayer(userId: string, playerId: string): Promise<void> {
   try {
-    await deleteDoc(doc(db, COLLECTION_NAME, playerId));
+    await deleteDoc(getPlayerDoc(userId, playerId));
   } catch (error) {
     console.error('Error deleting player:', error);
     throw error;
   }
+}
+
+// ============================================
+// RANGES OPERATIONS (embedded in player doc)
+// ============================================
+
+/**
+ * Update all ranges for a player
+ */
+export async function updatePlayerRanges(
+  userId: string,
+  playerId: string,
+  ranges: Record<string, Range>
+): Promise<void> {
+  try {
+    const playerRef = getPlayerDoc(userId, playerId);
+    
+    await updateDoc(playerRef, {
+      ranges,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error updating player ranges:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a specific range for a player
+ */
+export async function updatePlayerRange(
+  userId: string,
+  playerId: string,
+  rangeKey: string,
+  range: Range
+): Promise<void> {
+  try {
+    const playerRef = getPlayerDoc(userId, playerId);
+    
+    await updateDoc(playerRef, {
+      [`ranges.${rangeKey}`]: range,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error updating player range:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get ranges for a player
+ */
+export async function getPlayerRanges(
+  userId: string,
+  playerId: string
+): Promise<Record<string, Range> | null> {
+  try {
+    const player = await getPlayer(userId, playerId);
+    return player?.ranges || null;
+  } catch (error) {
+    console.error('Error getting player ranges:', error);
+    throw error;
+  }
+}
+
+// ============================================
+// SHARING OPERATIONS
+// ============================================
+
+/**
+ * Toggle player sharing
+ */
+export async function togglePlayerSharing(
+  userId: string,
+  playerId: string,
+  isShared: boolean
+): Promise<void> {
+  try {
+    const playerRef = getPlayerDoc(userId, playerId);
+    
+    await updateDoc(playerRef, {
+      isShared,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error toggling player sharing:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get range key from position and action
+ */
+export function getRangeKey(position: string, action: string): string {
+  return `${position}_${action}`;
 }
