@@ -127,7 +127,6 @@ export async function migrateGuestDataToUser(newUserId: string): Promise<void> {
         await playersFirebase.createPlayer({
           name: updatedPlayer.name,
           notes: updatedPlayer.notes,
-          photoUrl: updatedPlayer.photoUrl,
           createdBy: newUserId,
         }, updatedPlayer.id);
       } catch (error) {

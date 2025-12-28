@@ -2,7 +2,6 @@ import { Player, Seat, TablePlayer } from '@/types/poker';
 import { getCurrencySymbol } from '@/utils/currency';
 import { getPositionName } from '@/utils/positionCalculator';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SEAT_SIZE, styles, TABLE_HEIGHT, TABLE_WIDTH } from './PokerTable.styles';
@@ -63,16 +62,14 @@ interface SeatViewProps {
   onPress: () => void;
   buttonPosition: number;
   themeColors: any;
-  isNinjaMode: boolean;
   currency?: string;
 }
 
-function SeatView({ seat, player, isButton, isHero, isActive, onPress, buttonPosition, themeColors, isNinjaMode, currency }: SeatViewProps) {
+function SeatView({ seat, player, isButton, isHero, isActive, onPress, buttonPosition, themeColors, currency }: SeatViewProps) {
   const seatNum = seat.seatNumber ?? (typeof seat.index === 'number' ? seat.index + 1 : 1);
   const positionName = getPositionName(seatNum, buttonPosition);
   const currencySymbol = getCurrencySymbol(currency);
 
-  const showPhoto = player?.photoUrl && !isNinjaMode;
   const { x, y } = getSeatPosition(seatNum);
 
   // Determine background color
@@ -115,30 +112,19 @@ function SeatView({ seat, player, isButton, isHero, isActive, onPress, buttonPos
       onPress={onPress}
     >
       {player ? (
-        <>
-          {showPhoto && (
-            <>
-              <Image 
-                source={{ uri: player.photoUrl }} 
-                style={[StyleSheet.absoluteFill, { borderRadius: SEAT_SIZE / 2 }]} 
-              />
-              <View style={styles.seatOverlay} />
-            </>
+        <View style={styles.seatContent}>
+          <Text style={[styles.seatPosition, { color: themeColors.subText }]}>
+            {positionName}
+          </Text>
+          <Text style={[styles.seatPlayerName, { color: themeColors.text }]} numberOfLines={1}>
+            {player.name}
+          </Text>
+          {player.stack !== undefined && (
+            <Text style={[styles.seatStack, { color: themeColors.text }]}>
+              {currencySymbol}{player.stack}
+            </Text>
           )}
-          <View style={styles.seatContent}>
-            <Text style={[styles.seatPosition, { color: themeColors.subText }, showPhoto && styles.seatTextLight]}>
-              {positionName}
-            </Text>
-            <Text style={[styles.seatPlayerName, { color: themeColors.text }, showPhoto && styles.seatTextLight]} numberOfLines={1}>
-              {player.name}
-            </Text>
-            {player.stack !== undefined && (
-              <Text style={[styles.seatStack, { color: themeColors.text }, showPhoto && styles.seatTextLight]}>
-                {currencySymbol}{player.stack}
-              </Text>
-            )}
-          </View>
-        </>
+        </View>
       ) : (
         <>
           <Ionicons name="add" size={20} color={themeColors.icon} />
@@ -171,7 +157,6 @@ interface PokerTableProps {
   activeSeat?: number | null;
   onSeatPress: (seatNumber: number) => void;
   themeColors: any;
-  isNinjaMode?: boolean;
   centerText?: string;
   currency?: string;
   smallBlind?: number;
@@ -180,7 +165,6 @@ interface PokerTableProps {
   showCards?: boolean;
   handCards?: Record<number, string[]>; // Map of seatNumber to array of card IDs (e.g. ["As", "Kd"])
   onCardPress?: (seatNumber: number) => void;
-  communityCards?: string[]; // Array of 5 card IDs
   onBoardPress?: () => void;
   foldedSeats?: Set<number>;
   pot?: number;
@@ -195,7 +179,6 @@ export function PokerTable({
   activeSeat,
   onSeatPress, 
   themeColors, 
-  isNinjaMode = false,
   centerText = "Tap seat to assign player",
   currency,
   smallBlind,
@@ -205,7 +188,6 @@ export function PokerTable({
   handCards = {},
   onCardPress,
   communityCards = [],
-  onBoardPress,
   foldedSeats,
   pot = 0,
   street = 'preflop',
@@ -323,9 +305,7 @@ export function PokerTable({
                 ...(player || {}), // Keep stack and other session props
                 id: found.id,
                 name: found.name,
-                photoUrl: found.photoUrl,
                 color: found.color,
-                isTemp: false,
               };
             }
           }
@@ -409,7 +389,6 @@ export function PokerTable({
                 onPress={() => onSeatPress(seatNum)}
                 buttonPosition={buttonPosition}
                 themeColors={themeColors}
-                isNinjaMode={isNinjaMode}
                 currency={currency}
               />
             </React.Fragment>

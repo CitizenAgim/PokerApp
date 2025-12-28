@@ -210,7 +210,6 @@ export default function RecordHandScreen() {
       player: {
         id: player.id,
         name: player.name,
-        photoUrl: player.photoUrl,
         isTemp: false,
         stack: player.stack
       },
@@ -773,8 +772,8 @@ export default function RecordHandScreen() {
                 style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: themeColors.border, flexDirection: 'row', alignItems: 'center' }}
                 onPress={() => handleAssignPlayer(item)}
               >
-                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#ccc', marginRight: 12, overflow: 'hidden' }}>
-                   {item.photoUrl && <Image source={{ uri: item.photoUrl }} style={{ width: '100%', height: '100%' }} />}
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#ccc', marginRight: 12, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+                   <ThemedText style={{ fontSize: 18, color: '#fff' }}>{item.name.charAt(0).toUpperCase()}</ThemedText>
                 </View>
                 <ThemedText style={{ fontSize: 16, color: themeColors.text }}>{item.name}</ThemedText>
               </TouchableOpacity>

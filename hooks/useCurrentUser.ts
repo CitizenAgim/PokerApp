@@ -28,10 +28,6 @@ export function useCurrentUser() {
               createdAt: Date.now(),
             };
             
-            if (firebaseUser.photoURL) {
-              newUser.photoUrl = firebaseUser.photoURL;
-            }
-
             await setDoc(userDocRef, newUser);
             setUser(newUser);
           }
@@ -54,10 +50,9 @@ export function useCurrentUser() {
 
     try {
       // Update Firebase Auth profile
-      if (data.displayName || data.photoUrl) {
+      if (data.displayName) {
         await firebaseUpdateProfile(auth.currentUser, {
           displayName: data.displayName,
-          photoURL: data.photoUrl,
         });
       }
 

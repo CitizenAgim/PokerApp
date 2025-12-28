@@ -1,15 +1,12 @@
 import { HandHistoryItem } from '@/components/HandHistoryItem';
 import { PokerTable } from '@/components/table/PokerTable';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { useCurrentSession, useCurrentUser, usePlayers, useSession, useSettings } from '@/hooks';
+import { useCurrentSession, useCurrentUser, usePlayers, useSession } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getHands, HandRecord } from '@/services/firebase/hands';
 import { getThemeColors, styles } from '@/styles/sessions/[id].styles';
-import { resizeImage } from '@/utils/image';
 import { Ionicons } from '@expo/vector-icons';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
-import { Image } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
@@ -46,7 +43,6 @@ export default function SessionDetailScreen() {
   const { user, loading: userLoading } = useCurrentUser();
   const { clearSession } = useCurrentSession();
   const { players, createPlayer, updatePlayer } = usePlayers();
-  const { ninjaMode } = useSettings();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -72,7 +68,6 @@ export default function SessionDetailScreen() {
   // Create Player State
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerNotes, setNewPlayerNotes] = useState('');
-  const [newPlayerPhoto, setNewPlayerPhoto] = useState<string | undefined>(undefined);
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
 
   // Edit Buy-in State
@@ -367,20 +362,6 @@ export default function SessionDetailScreen() {
     );
   };
 
-  const handlePickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.5,
-    });
-
-    if (!result.canceled) {
-      const resizedUri = await resizeImage(result.assets[0].uri);
-      setNewPlayerPhoto(resizedUri);
-    }
-  };
-
   const handleSaveNewPlayer = async () => {
     if (!newPlayerName.trim()) {
       Alert.alert('Error', 'Please enter a player name');
@@ -392,14 +373,12 @@ export default function SessionDetailScreen() {
       const newPlayer = await createPlayer({
         name: newPlayerName.trim(),
         notes: newPlayerNotes.trim() || undefined,
-        photoUrl: newPlayerPhoto,
         locations: session?.location ? [session.location] : [],
       });
       
       setShowCreatePlayerModal(false);
       setNewPlayerName('');
       setNewPlayerNotes('');
-      setNewPlayerPhoto(undefined);
       
       // Auto-assign the new player
       if (selectedSeat !== null && newPlayer) {
@@ -807,7 +786,6 @@ export default function SessionDetailScreen() {
               heroSeat={table.heroSeatIndex}
               onSeatPress={handleSeatPress}
               themeColors={themeColors}
-              isNinjaMode={ninjaMode}
               currency={session.currency}
               showCards={false}
             />
@@ -823,7 +801,7 @@ export default function SessionDetailScreen() {
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[styles.actionButton, { backgroundColor: isDark ? '#1b3a24' : '#e8f5e9' }]}
+                style={[styles.actionButton, { backgroundColor: isDark ? '#1b3a20' : '#e8f5e9' }]}
                 onPress={openEditBuyInModal}
               >
                 <Ionicons name="cash-outline" size={20} color="#2e7d32" />
@@ -967,13 +945,9 @@ export default function SessionDetailScreen() {
                     onPress={() => handleAssignPlayer(player.id)}
                   >
                     <View style={styles.playerAvatar}>
-                      {player.photoUrl ? (
-                        <Image source={{ uri: player.photoUrl }} style={{ width: 44, height: 44, borderRadius: 22 }} />
-                      ) : (
-                        <Text style={styles.playerInitial}>
-                          {player.name.charAt(0).toUpperCase()}
-                        </Text>
-                      )}
+                      <Text style={styles.playerInitial}>
+                        {player.name.charAt(0).toUpperCase()}
+                      </Text>
                     </View>
                     <View style={styles.playerInfo}>
                       <Text style={[styles.playerName, { color: themeColors.text }]}>{player.name}</Text>
@@ -991,7 +965,6 @@ export default function SessionDetailScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-
       {/* Create Player Modal */}
       <Modal
         visible={showCreatePlayerModal}
@@ -1013,21 +986,11 @@ export default function SessionDetailScreen() {
             
             <ScrollView style={styles.formContent} keyboardShouldPersistTaps="handled">
               <View style={styles.avatarContainer}>
-                <TouchableOpacity onPress={handlePickImage}>
-                  {newPlayerPhoto ? (
-                    <Image source={{ uri: newPlayerPhoto }} style={styles.avatar} />
-                  ) : (
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>
-                        {newPlayerName ? newPlayerName.charAt(0).toUpperCase() : '?'}
-                      </Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.photoButton} onPress={handlePickImage}>
-                  <Ionicons name="camera" size={20} color="#0a7ea4" />
-                  <Text style={styles.photoButtonText}>{newPlayerPhoto ? 'Change Photo' : 'Add Photo'}</Text>
-                </TouchableOpacity>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {newPlayerName ? newPlayerName.charAt(0).toUpperCase() : '?'}
+                  </Text>
+                </View>
               </View>
 
               <Text style={[styles.label, { color: themeColors.text }]}>Name *</Text>

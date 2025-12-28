@@ -22,7 +22,6 @@ const KEYS = {
 // ============================================
 
 export interface UserPreferences {
-  ninjaMode: boolean;
   themeMode: 'system' | 'light' | 'dark';
   language: 'en';
   currency: 'EUR' | 'USD' | 'GBP';
@@ -32,7 +31,6 @@ export interface UserPreferences {
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
-  ninjaMode: false,
   themeMode: 'system',
   language: 'en',
   currency: 'USD',

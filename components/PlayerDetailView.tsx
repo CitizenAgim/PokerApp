@@ -1,13 +1,10 @@
 import { HAND_MAP } from '@/constants/hands';
-import { usePlayer, usePlayerRanges, usePlayers, useSettings } from '@/hooks';
+import { usePlayer, usePlayerRanges, usePlayers } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getThemeColors, styles } from '@/styles/players/[id]/index.styles';
 import { Action, NoteEntry, Position } from '@/types/poker';
-import { resizeImage } from '@/utils/image';
 import { normalizeLocation } from '@/utils/text';
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -47,7 +44,6 @@ export default function PlayerDetailView() {
   const { player, loading, error } = usePlayer(id);
   const { deletePlayer, updatePlayer } = usePlayers();
   const { ranges } = usePlayerRanges(id);
-  const { ninjaMode } = useSettings();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -57,9 +53,8 @@ export default function PlayerDetailView() {
   // Edit modal state
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState('');
-  const [editPhotoUrl, setEditPhotoUrl] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
-  
+
   // Notes state
   const [showNotes, setShowNotes] = useState(true);
   const [isAddingNote, setIsAddingNote] = useState(false);
@@ -81,29 +76,13 @@ export default function PlayerDetailView() {
   useEffect(() => {
     if (player && showEditModal) {
       setEditName(player.name);
-      setEditPhotoUrl(player.photoUrl);
     }
   }, [player, showEditModal]);
 
   const handleOpenEditModal = () => {
     if (player) {
       setEditName(player.name);
-      setEditPhotoUrl(player.photoUrl);
       setShowEditModal(true);
-    }
-  };
-
-  const handlePickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.5,
-    });
-
-    if (!result.canceled) {
-      const resizedUri = await resizeImage(result.assets[0].uri);
-      setEditPhotoUrl(resizedUri);
     }
   };
 
@@ -118,7 +97,6 @@ export default function PlayerDetailView() {
       await updatePlayer({
         id,
         name: editName.trim(),
-        photoUrl: editPhotoUrl,
       });
       setShowEditModal(false);
     } catch (error) {
@@ -134,7 +112,6 @@ export default function PlayerDetailView() {
     // Reset form to original values
     if (player) {
       setEditName(player.name);
-      setEditPhotoUrl(player.photoUrl);
     }
   };
 
@@ -151,8 +128,7 @@ export default function PlayerDetailView() {
 
       // Prepend new note to existing list
       const updatedNotesList = [noteEntry, ...(player?.notesList || [])];
-
-      await updatePlayer({
+  await updatePlayer({
         id,
         notesList: updatedNotesList,
       });
@@ -388,16 +364,11 @@ export default function PlayerDetailView() {
     <ScrollView style={[styles.container, { backgroundColor: themeColors.background }]} contentContainerStyle={styles.content}>
       {/* Player Header */}
       <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
-        {!ninjaMode && player.photoUrl ? (
-          <Image source={{ uri: player.photoUrl }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {player.name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-        <Text style={[styles.playerName, { color: themeColors.text }]}>{player.name}</Text>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {player.name.charAt(0).toUpperCase()}
+          </Text>
+        </View>
         <View style={styles.headerActions}>
           <TouchableOpacity style={[styles.editButton, { backgroundColor: themeColors.editButtonBg }]} onPress={handleOpenEditModal}>
             <Ionicons name="pencil" size={18} color="#0a7ea4" />
@@ -719,28 +690,7 @@ export default function PlayerDetailView() {
               style={styles.editModalBody}
               keyboardShouldPersistTaps="handled"
             >
-              {/* Avatar Preview */}
               <View style={styles.editAvatarContainer}>
-                <TouchableOpacity onPress={handlePickImage}>
-                  {editPhotoUrl ? (
-                    <Image source={{ uri: editPhotoUrl }} style={styles.editAvatar} />
-                  ) : (
-                    <View style={styles.editAvatar}>
-                      <Text style={styles.editAvatarText}>
-                        {editName ? editName.charAt(0).toUpperCase() : '?'}
-                      </Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handlePickImage} style={{ marginTop: 8 }}>
-                  <Text style={{ color: '#0a7ea4', fontWeight: '500' }}>
-                    {editPhotoUrl ? 'Change Photo' : 'Add Photo'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              
-              {/* Name Input */}
-              <View style={styles.editInputGroup}>
                 <Text style={[styles.editLabel, { color: themeColors.text }]}>Name *</Text>
                 <TextInput
                   style={[styles.editInput, { backgroundColor: themeColors.modalInputBg, color: themeColors.text, borderColor: themeColors.border }]}

@@ -15,7 +15,6 @@ export default function SettingsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { 
-    ninjaMode, toggleNinjaMode, 
     themeMode, setThemeMode,
     language, setLanguage,
     currency, setCurrency,
@@ -328,24 +327,6 @@ export default function SettingsScreen() {
         {/* Appearance */}
         {renderSectionHeader('APPEARANCE')}
         
-        <View style={[styles.settingItem, { backgroundColor: themeColors.card }]}>
-          <View style={[styles.settingIcon, { backgroundColor: themeColors.settingIconBg }]}>
-            <Ionicons name={ninjaMode ? "eye-off-outline" : "eye-outline"} size={22} color={themeColors.icon} />
-          </View>
-          <View style={styles.settingContent}>
-            <Text style={[styles.settingText, { color: themeColors.text }]}>Hide Pictures (Ninja Mode)</Text>
-          </View>
-          <Switch
-            value={ninjaMode}
-            onValueChange={() => {
-              haptics.lightTap();
-              toggleNinjaMode();
-            }}
-            trackColor={{ false: isDark ? '#333' : '#e0e0e0', true: '#81c784' }}
-            thumbColor={ninjaMode ? '#27ae60' : '#f5f5f5'}
-          />
-        </View>
-
         <View style={[styles.settingItem, { backgroundColor: themeColors.card, flexDirection: 'column', alignItems: 'stretch', paddingVertical: 16 }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
             <View style={[styles.settingIcon, { backgroundColor: themeColors.settingIconBg }]}>

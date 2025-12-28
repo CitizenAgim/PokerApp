@@ -88,7 +88,6 @@ export interface NoteEntry {
 export interface Player {
   id: string;
   name: string;
-  photoUrl?: string;
   color?: string;         // Hex color code for player categorization
   locations?: string[];   // Places where the player plays
   notes?: string; // Deprecated, kept for backward compatibility
@@ -134,7 +133,6 @@ export interface Session {
 export interface TablePlayer {
   id: string;
   name: string;
-  photoUrl?: string;
   color?: string;
   isTemp: boolean; // True if the player is not saved to the global database
   stack?: number;

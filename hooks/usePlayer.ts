@@ -1,7 +1,6 @@
 import { auth } from '@/config/firebase';
 import * as playersFirebase from '@/services/firebase/players';
 import * as rangesFirebase from '@/services/firebase/ranges';
-import * as storageFirebase from '@/services/firebase/storage';
 import { GUEST_USER_ID } from '@/services/guestMode';
 import * as localStorage from '@/services/localStorage';
 import { isOnline } from '@/services/sync';
@@ -61,7 +60,7 @@ interface UsePlayersResult {
   error: Error | null;
   refresh: () => Promise<void>;
   refreshPlayers: () => Promise<void>;
-  createPlayer: (player: { name: string; notes?: string; photoUrl?: string; locations?: string[] }) => Promise<Player>;
+  createPlayer: (player: { name: string; notes?: string; locations?: string[] }) => Promise<Player>;
   updatePlayer: (player: UpdatePlayer) => Promise<void>;
   deletePlayer: (id: string) => Promise<void>;
 }
@@ -107,7 +106,7 @@ export function usePlayers(): UsePlayersResult {
   }, []);
 
   const createPlayer = useCallback(async (
-    playerData: { name: string; notes?: string; photoUrl?: string; locations?: string[] }
+    playerData: { name: string; notes?: string; locations?: string[] }
   ): Promise<Player> => {
     // Use Firebase user ID if logged in, otherwise use guest ID
     const userId = auth.currentUser?.uid || GUEST_USER_ID;
@@ -131,29 +130,9 @@ export function usePlayers(): UsePlayersResult {
     // Try to sync to cloud only if user is logged in (not guest)
     if (auth.currentUser?.uid && await isOnline()) {
       try {
-        let finalPhotoUrl = playerData.photoUrl;
-
-        // If there is a photo and it's a local file, upload it
-        if (playerData.photoUrl && !playerData.photoUrl.startsWith('http')) {
-           try {
-             finalPhotoUrl = await storageFirebase.uploadPlayerPhoto(userId, id, playerData.photoUrl);
-             
-             // Update local player with the new remote URL
-             const updatedPlayer = { ...player, photoUrl: finalPhotoUrl };
-             await localStorage.savePlayer(updatedPlayer);
-             setCachedPlayer(updatedPlayer);
-             setPlayers(prev => prev.map(p => p.id === id ? updatedPlayer : p));
-           } catch (uploadErr) {
-             console.warn('Failed to upload photo:', uploadErr);
-             // If upload fails, do not save local URI to cloud
-             finalPhotoUrl = undefined;
-           }
-        }
-
         await playersFirebase.createPlayer(
           { 
             ...playerData, 
-            photoUrl: finalPhotoUrl,
             notesList: [], 
             createdBy: auth.currentUser.uid 
           },
@@ -187,27 +166,8 @@ export function usePlayers(): UsePlayersResult {
     const userId = auth.currentUser?.uid;
     if (userId && existingPlayer.createdBy === userId && await isOnline()) {
       try {
-        let finalPhotoUrl = playerUpdate.photoUrl;
-
-        // If photoUrl is being updated and it's a local file, upload it
-        if (finalPhotoUrl && !finalPhotoUrl.startsWith('http')) {
-           try {
-             finalPhotoUrl = await storageFirebase.uploadPlayerPhoto(userId, playerUpdate.id, finalPhotoUrl);
-             
-             // Update local player with the new remote URL
-             const playerWithRemoteUrl = { ...updatedPlayer, photoUrl: finalPhotoUrl };
-             await localStorage.savePlayer(playerWithRemoteUrl);
-             setCachedPlayer(playerWithRemoteUrl);
-             setPlayers(prev => prev.map(p => p.id === playerUpdate.id ? playerWithRemoteUrl : p));
-           } catch (uploadErr) {
-             console.warn('Failed to upload photo:', uploadErr);
-             finalPhotoUrl = undefined;
-           }
-        }
-
         await playersFirebase.updatePlayer({
           ...playerUpdate,
-          photoUrl: finalPhotoUrl
         });
       } catch (err) {
         console.warn('Could not sync player update to cloud:', err);
@@ -216,21 +176,18 @@ export function usePlayers(): UsePlayersResult {
   }, []);
 
   const deletePlayer = useCallback(async (id: string): Promise<void> => {
-    const existingPlayer = await localStorage.getPlayer(id);
-    
-    // Delete locally
+    // Delete locally first
     await localStorage.deletePlayer(id);
     removeCachedPlayer(id);
     setPlayers(prev => prev.filter(p => p.id !== id));
     notifyPlayersListListeners();
 
-    // Try to sync to cloud only if user is logged in and player was created by them
+    // Try to sync to cloud only if user is logged in and online
     const userId = auth.currentUser?.uid;
-    if (userId && existingPlayer?.createdBy === userId && await isOnline()) {
+    if (userId && await isOnline()) {
       try {
         await playersFirebase.deletePlayer(id);
         await rangesFirebase.deletePlayerRanges(id);
-        await storageFirebase.deletePlayerPhoto(userId, id);
       } catch (err) {
         console.warn('Could not sync player deletion to cloud:', err);
       }
@@ -269,7 +226,7 @@ interface UsePlayerResult {
 
 export function usePlayer(playerId: string): UsePlayerResult {
   const [player, setPlayer] = useState<Player | null>(() => getCachedPlayer(playerId));
-  const [loading, setLoading] = useState(!getCachedPlayer(playerId));
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   // Subscribe to cache updates

@@ -2,7 +2,6 @@ import * as localStorage from '@/services/localStorage';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 interface SettingsContextType {
-  ninjaMode: boolean;
   themeMode: 'system' | 'light' | 'dark';
   language: 'en';
   currency: 'EUR' | 'USD' | 'GBP';
@@ -10,7 +9,6 @@ interface SettingsContextType {
   dateFormat: 'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD';
   timeFormat: '12h' | '24h';
   loading: boolean;
-  toggleNinjaMode: () => Promise<void>;
   setThemeMode: (mode: 'system' | 'light' | 'dark') => Promise<void>;
   setLanguage: (lang: 'en') => Promise<void>;
   setCurrency: (currency: 'EUR' | 'USD' | 'GBP') => Promise<void>;
@@ -22,7 +20,6 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const [ninjaMode, setNinjaMode] = useState(false);
   const [themeMode, setThemeModeState] = useState<'system' | 'light' | 'dark'>('system');
   const [language, setLanguageState] = useState<'en'>('en');
   const [currency, setCurrencyState] = useState<'EUR' | 'USD' | 'GBP'>('USD');
@@ -34,7 +31,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const loadSettings = useCallback(async () => {
     try {
       const prefs = await localStorage.getUserPreferences();
-      setNinjaMode(prefs.ninjaMode);
       setThemeModeState(prefs.themeMode || 'system');
       setLanguageState(prefs.language || 'en');
       setCurrencyState(prefs.currency || 'USD');
@@ -47,18 +43,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     }
   }, []);
-
-  const toggleNinjaMode = useCallback(async () => {
-    try {
-      const newValue = !ninjaMode;
-      setNinjaMode(newValue);
-      await localStorage.saveUserPreferences({ ninjaMode: newValue });
-    } catch (error) {
-      console.error('Failed to save settings:', error);
-      // Revert on error
-      setNinjaMode(prev => !prev);
-    }
-  }, [ninjaMode]);
 
   const setThemeMode = useCallback(async (mode: 'system' | 'light' | 'dark') => {
     try {
@@ -120,8 +104,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <SettingsContext.Provider value={{ 
-      ninjaMode, themeMode, language, currency, country, dateFormat, timeFormat, loading, 
-      toggleNinjaMode, setThemeMode, setLanguage, setCurrency, setCountry, setDateFormat, setTimeFormat 
+      themeMode, language, currency, country, dateFormat, timeFormat, loading, 
+      setThemeMode, setLanguage, setCurrency, setCountry, setDateFormat, setTimeFormat 
     }}>
       {children}
     </SettingsContext.Provider>

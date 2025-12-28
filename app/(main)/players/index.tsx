@@ -23,7 +23,6 @@ import {
 export default function PlayersScreen() {
   const router = useRouter();
   const { players, loading, error, refresh } = usePlayers();
-  const { ninjaMode } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -74,15 +73,11 @@ export default function PlayersScreen() {
         router.push(`/(main)/players/${item.id}`);
       }}
     >
-      {!ninjaMode && item.photoUrl ? (
-        <Image source={{ uri: item.photoUrl }} style={styles.avatar} />
-      ) : (
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {item.name.charAt(0).toUpperCase()}
-          </Text>
-        </View>
-      )}
+      <View style={styles.avatar}>
+        <Text style={styles.avatarText}>
+          {item.name.charAt(0).toUpperCase()}
+        </Text>
+      </View>
       <View style={styles.playerInfo}>
         <Text style={[styles.playerName, { color: themeColors.text }]}>{item.name}</Text>
         {item.notes && (

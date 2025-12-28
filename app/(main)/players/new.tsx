@@ -1,11 +1,8 @@
 import { usePlayers } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getThemeColors, styles } from '@/styles/players/new.styles';
-import { resizeImage } from '@/utils/image';
 import { normalizeLocation } from '@/utils/text';
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -32,22 +29,7 @@ export default function NewPlayerScreen() {
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
-  const [photoUrl, setPhotoUrl] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
-
-  const handlePickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.5,
-    });
-
-    if (!result.canceled) {
-      const resizedUri = await resizeImage(result.assets[0].uri);
-      setPhotoUrl(resizedUri);
-    }
-  };
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -62,7 +44,6 @@ export default function NewPlayerScreen() {
       await createPlayer({
         name: name.trim(),
         notes: notes.trim() || undefined,
-        photoUrl,
         locations: normalizedLocation ? [normalizedLocation] : undefined,
       });
       router.back();
@@ -87,21 +68,11 @@ export default function NewPlayerScreen() {
       >
         {/* Avatar Preview */}
         <View style={styles.avatarContainer}>
-          <TouchableOpacity onPress={handlePickImage}>
-            {photoUrl ? (
-              <Image source={{ uri: photoUrl }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {name ? name.charAt(0).toUpperCase() : '?'}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.photoButton} onPress={handlePickImage}>
-            <Ionicons name="camera" size={20} color="#0a7ea4" />
-            <Text style={styles.photoButtonText}>{photoUrl ? 'Change Photo' : 'Add Photo'}</Text>
-          </TouchableOpacity>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {name ? name.charAt(0).toUpperCase() : '?'}
+            </Text>
+          </View>
         </View>
 
         {/* Form */}
