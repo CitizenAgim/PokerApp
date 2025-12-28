@@ -600,6 +600,21 @@ export default function RecordHandScreen() {
     }
   };
 
+  const onStartHandPress = () => {
+    if (heroSeat === undefined) {
+      Alert.alert('Setup Required', 'Please select a Hero seat (tap a seat and choose "Set as Hero").');
+      return;
+    }
+
+    const heroCards = handCards[heroSeat];
+    if (!heroCards || heroCards.length < 2) {
+      Alert.alert('Setup Required', "Please select Hero's hole cards before starting the hand.");
+      return;
+    }
+
+    handleStartHand();
+  };
+
   return (
     <ThemedView style={[styles.container, { backgroundColor: themeColors.background }]}>
       {/* Header */}
@@ -671,7 +686,7 @@ export default function RecordHandScreen() {
               </View>
               <TouchableOpacity 
                 style={[styles.actionButton, { backgroundColor: '#2196f3', width: '100%' }]} 
-                onPress={handleStartHand}
+                onPress={onStartHandPress}
               >
                 <ThemedText style={[styles.actionButtonText, { color: '#fff' }]}>Start Hand</ThemedText>
               </TouchableOpacity>
