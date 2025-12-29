@@ -12,17 +12,17 @@
 import { db } from '@/config/firebase';
 import { Session, Table } from '@/types/poker';
 import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  setDoc,
-  Timestamp,
-  where,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    orderBy,
+    query,
+    serverTimestamp,
+    setDoc,
+    Timestamp,
+    where,
 } from 'firebase/firestore';
 import { checkRateLimit } from '../rateLimit';
 import { validateSessionData } from '../validation';

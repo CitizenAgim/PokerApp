@@ -1,10 +1,10 @@
 import {
   VALIDATION_LIMITS,
-  validatePlayerData,
-  validateSessionData,
-  validateRange,
   combineValidationResults,
   estimateDocumentSize,
+  validatePlayerData,
+  validateRange,
+  validateSessionData,
 } from '../validation';
 
 describe('Validation Service', () => {

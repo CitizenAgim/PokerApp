@@ -12,17 +12,17 @@
 import { db } from '@/config/firebase';
 import { CreatePlayer, NoteEntry, Player, Range, UpdatePlayer } from '@/types/poker';
 import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  setDoc,
-  Timestamp,
-  updateDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    orderBy,
+    query,
+    serverTimestamp,
+    setDoc,
+    Timestamp,
+    updateDoc,
 } from 'firebase/firestore';
 import { checkRateLimit } from '../rateLimit';
 import { validatePlayerData, validateRange, VALIDATION_LIMITS } from '../validation';

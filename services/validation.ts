@@ -5,7 +5,7 @@
  * Validates data on the client before sending to Firebase.
  */
 
-import { Player, Session, Range } from '@/types/poker';
+import { Player, Range, Session } from '@/types/poker';
 
 // ============================================
 // VALIDATION LIMITS

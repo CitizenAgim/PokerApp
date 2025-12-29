@@ -1,10 +1,10 @@
 import {
-  rateLimiter,
-  checkRateLimit,
-  tryCheckRateLimit,
-  RateLimitError,
-  isRateLimitError,
-  RATE_LIMITS,
+    checkRateLimit,
+    isRateLimitError,
+    RATE_LIMITS,
+    rateLimiter,
+    RateLimitError,
+    tryCheckRateLimit,
 } from '../rateLimit';
 
 describe('Rate Limiting Service', () => {

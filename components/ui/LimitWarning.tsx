@@ -1,6 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { VALIDATION_LIMITS } from '@/services/validation';
+import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, Text, View } from 'react-native';
 
 // ============================================
 // TYPES
