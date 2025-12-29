@@ -71,12 +71,12 @@ export function validatePlayerData(player: Partial<Player> & { ranges?: Record<s
   }
 
   // Notes validation (legacy single notes field)
-  if (player.notes !== undefined && player.notes.length > VALIDATION_LIMITS.MAX_PLAYER_NOTES_LENGTH) {
+  if (player.notes != null && player.notes.length > VALIDATION_LIMITS.MAX_PLAYER_NOTES_LENGTH) {
     errors.push(`Player notes exceed max length of ${VALIDATION_LIMITS.MAX_PLAYER_NOTES_LENGTH} characters`);
   }
 
   // Notes list validation
-  if (player.notesList !== undefined) {
+  if (player.notesList != null && player.notesList.length > 0) {
     if (player.notesList.length > VALIDATION_LIMITS.MAX_NOTES_LIST_ITEMS) {
       errors.push(`Notes list exceeds max of ${VALIDATION_LIMITS.MAX_NOTES_LIST_ITEMS} items`);
     }
@@ -96,7 +96,7 @@ export function validatePlayerData(player: Partial<Player> & { ranges?: Record<s
   }
 
   // Locations validation
-  if (player.locations !== undefined) {
+  if (player.locations != null && player.locations.length > 0) {
     if (player.locations.length > VALIDATION_LIMITS.MAX_LOCATIONS_PER_PLAYER) {
       errors.push(`Locations exceed max of ${VALIDATION_LIMITS.MAX_LOCATIONS_PER_PLAYER}`);
     }

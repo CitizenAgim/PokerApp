@@ -202,6 +202,13 @@ export async function updatePlayer(
   try {
     const playerRef = getPlayerDoc(userId, player.id);
     
+    // Check if player exists - if not, skip (stale sync item)
+    const playerDoc = await getDoc(playerRef);
+    if (!playerDoc.exists()) {
+      console.warn(`[Players] Player ${player.id} not found in subcollection, skipping update`);
+      return;
+    }
+    
     const data = {
       ...toFirestoreData(player),
       updatedAt: serverTimestamp(),
@@ -291,6 +298,13 @@ export async function updatePlayerRanges(
   try {
     const playerRef = getPlayerDoc(userId, playerId);
     
+    // Check if player exists first
+    const playerDoc = await getDoc(playerRef);
+    if (!playerDoc.exists()) {
+      console.warn(`[Players] Player ${playerId} not found, skipping range update`);
+      return;
+    }
+    
     // Sanitize ranges before saving (sparse storage optimization)
     const sanitizedRanges = sanitizeRangesForStorage(ranges);
     
@@ -324,6 +338,13 @@ export async function updatePlayerRange(
   
   try {
     const playerRef = getPlayerDoc(userId, playerId);
+    
+    // Check if player exists first
+    const playerDoc = await getDoc(playerRef);
+    if (!playerDoc.exists()) {
+      console.warn(`[Players] Player ${playerId} not found, skipping single range update`);
+      return;
+    }
     
     // Sanitize range before saving (sparse storage optimization)
     const sanitizedRange = sanitizeRangeForStorage(range);
