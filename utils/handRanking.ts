@@ -1,4 +1,4 @@
-import { HAND_MAP, HAND_MATRIX } from '@/constants/hands';
+import { HAND_MAP } from '@/constants/hands';
 import { Range, RANKS, SelectionState } from '@/types/poker';
 
 // ============================================
