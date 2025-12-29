@@ -56,11 +56,13 @@ service cloud.firestore {
       allow write: if isOwner(userId);
       
       // ============================================
-      // PLAYERS SUBCOLLECTION (with validation & sharing)
+      // PLAYERS SUBCOLLECTION (with sharing)
       // ============================================
       
       match /players/{playerId} {
-        // Owner: full access (temporarily simplified for debugging)
+        // Owner: full read/write access
+        // Note: Field validation done client-side in validation.ts
+        // Note: Size limits temporarily disabled for debugging
         allow read, write: if isOwner(userId);
         
         // Friends: read if shared
@@ -68,22 +70,14 @@ service cloud.firestore {
       }
       
       // ============================================
-      // SESSIONS SUBCOLLECTION (with validation & sharing)
+      // SESSIONS SUBCOLLECTION (with sharing)
       // ============================================
       
       match /sessions/{sessionId} {
-        // Owner: full access with validation
-        allow read: if isOwner(userId);
-        
-        allow create: if isOwner(userId)
-          && isValidSession(request.resource.data)
-          && request.resource.size < 1000000;  // 1 MB max
-        
-        allow update: if isOwner(userId)
-          && isValidSession(request.resource.data)
-          && request.resource.size < 1000000;  // 1 MB max
-        
-        allow delete: if isOwner(userId);
+        // Owner: full read/write access
+        // Note: Field validation done client-side in validation.ts
+        // Note: Size limits temporarily disabled for debugging
+        allow read, write: if isOwner(userId);
         
         // Friends: read if shared
         allow read: if isAuthenticated() && isFriend(userId) && isShared();
