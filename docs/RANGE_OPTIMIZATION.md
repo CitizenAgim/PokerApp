@@ -1,16 +1,18 @@
 # Range Storage Optimization Plan
 
+## Status: ✅ COMPLETED (December 2025)
+
 ## Overview
 
-This document outlines a strategy to reduce the storage size of poker hand ranges by **~90%** through "Sparse Storage" - only saving hands that have been selected, rather than storing all 169 hands including unselected ones.
+This document outlines the strategy used to reduce the storage size of poker hand ranges by **~85%** through "Sparse Storage" - only saving hands that have been selected, rather than storing all 169 hands including unselected ones.
 
 ---
 
-## The Problem
+## The Problem (Solved)
 
-### Current Implementation
+### Previous Implementation
 
-In the current implementation (`utils/handRanking.ts`), every range stores **all 169 possible hands** in the 13×13 matrix, even if the hand is `'unselected'`.
+Previously (`utils/handRanking.ts`), every range stored **all 169 possible hands** in the 13×13 matrix, even if the hand was `'unselected'`.
 
 ```typescript
 // Current: Every range initializes ALL 169 hands

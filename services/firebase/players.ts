@@ -211,6 +211,36 @@ export async function deletePlayer(userId: string, playerId: string): Promise<vo
 // ============================================
 
 /**
+ * Sanitize a range for storage (sparse storage optimization)
+ * Removes all 'unselected' keys to reduce document size by ~85%
+ */
+function sanitizeRangeForStorage(range: Range): Range {
+  const sanitized: Range = {};
+  
+  for (const [hand, state] of Object.entries(range)) {
+    // Only store non-unselected hands (sparse storage)
+    if (state !== 'unselected') {
+      sanitized[hand] = state;
+    }
+  }
+  
+  return sanitized;
+}
+
+/**
+ * Sanitize all ranges for storage
+ */
+function sanitizeRangesForStorage(ranges: Record<string, Range>): Record<string, Range> {
+  const sanitized: Record<string, Range> = {};
+  
+  for (const [key, range] of Object.entries(ranges)) {
+    sanitized[key] = sanitizeRangeForStorage(range);
+  }
+  
+  return sanitized;
+}
+
+/**
  * Update all ranges for a player
  */
 export async function updatePlayerRanges(
@@ -221,8 +251,11 @@ export async function updatePlayerRanges(
   try {
     const playerRef = getPlayerDoc(userId, playerId);
     
+    // Sanitize ranges before saving (sparse storage optimization)
+    const sanitizedRanges = sanitizeRangesForStorage(ranges);
+    
     await updateDoc(playerRef, {
-      ranges,
+      ranges: sanitizedRanges,
       updatedAt: serverTimestamp(),
     });
   } catch (error) {
@@ -243,8 +276,11 @@ export async function updatePlayerRange(
   try {
     const playerRef = getPlayerDoc(userId, playerId);
     
+    // Sanitize range before saving (sparse storage optimization)
+    const sanitizedRange = sanitizeRangeForStorage(range);
+    
     await updateDoc(playerRef, {
-      [`ranges.${rangeKey}`]: range,
+      [`ranges.${rangeKey}`]: sanitizedRange,
       updatedAt: serverTimestamp(),
     });
   } catch (error) {

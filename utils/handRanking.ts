@@ -97,14 +97,11 @@ export function updateAutoSelections(range: Range): Range {
 // ============================================
 
 /**
- * Create an empty range (all hands unselected)
+ * Create an empty range (sparse storage - empty object)
+ * Missing keys are treated as 'unselected'
  */
 export function createEmptyRange(): Range {
-  const range: Range = {};
-  HAND_MATRIX.flat().forEach(hand => {
-    range[hand.id] = 'unselected';
-  });
-  return range;
+  return {};
 }
 
 /**
@@ -121,14 +118,14 @@ export function toggleHandInRange(range: Range, handId: string): Range {
   let newRange = { ...range };
   const currentState = range[handId] || 'unselected';
   
-  // State transitions:
+  // State transitions (sparse storage - delete 'unselected' keys):
   // Unselected -> Manual-Selected
-  // Manual-Selected -> Unselected
+  // Manual-Selected -> Unselected (delete key)
   // Auto-Selected -> Manual-Unselected
   // Manual-Unselected -> Manual-Selected
   
   if (currentState === 'manual-selected') {
-    newRange[handId] = 'unselected';
+    delete newRange[handId]; // Sparse: remove instead of setting 'unselected'
   } else if (currentState === 'auto-selected') {
     newRange[handId] = 'manual-unselected';
   } else if (currentState === 'manual-unselected') {
@@ -198,10 +195,10 @@ export function getSelectionPercentage(range: Range): number {
 // ============================================
 
 /**
- * Create a range from a list of hand IDs
+ * Create a range from a list of hand IDs (sparse storage)
  */
 export function createRangeFromHands(handIds: string[]): Range {
-  const range = createEmptyRange();
+  const range: Range = {};
   
   handIds.forEach(id => {
     const hand = HAND_MAP[id];
