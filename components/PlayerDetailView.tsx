@@ -1,6 +1,7 @@
 import { HAND_MAP } from '@/constants/hands';
 import { usePlayer, usePlayerRanges, usePlayers } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { VALIDATION_LIMITS } from '@/services/validation';
 import { getThemeColors, styles } from '@/styles/players/[id]/index.styles';
 import { Action, NoteEntry, Position } from '@/types/poker';
 import { normalizeLocation } from '@/utils/text';
@@ -19,6 +20,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { LimitWarning, checkLimit } from './ui/LimitWarning';
 
 const POSITIONS: { id: Position; label: string; color: string }[] = [
   { id: 'early', label: 'Early', color: '#e74c3c' },
@@ -117,6 +119,13 @@ export default function PlayerDetailView() {
 
   const handleAddNote = async () => {
     if (!newNote.trim()) return;
+
+    // Check limit before adding
+    const currentCount = player?.notesList?.length || 0;
+    if (currentCount >= VALIDATION_LIMITS.MAX_NOTES_LIST_ITEMS) {
+      Alert.alert('Limit Reached', `Maximum ${VALIDATION_LIMITS.MAX_NOTES_LIST_ITEMS} notes per player.`);
+      return;
+    }
 
     try {
       setAddingNote(true);
@@ -237,6 +246,13 @@ export default function PlayerDetailView() {
 
   const handleAddLocation = async () => {
     if (!newLocation.trim()) return;
+    
+    // Check limit before adding
+    const currentCount = player?.locations?.length || 0;
+    if (currentCount >= VALIDATION_LIMITS.MAX_LOCATIONS_PER_PLAYER) {
+      Alert.alert('Limit Reached', `Maximum ${VALIDATION_LIMITS.MAX_LOCATIONS_PER_PLAYER} locations per player.`);
+      return;
+    }
     
     try {
       setAddingLocation(true);
@@ -422,6 +438,7 @@ export default function PlayerDetailView() {
                 <TouchableOpacity 
                   style={[styles.addNoteButton, { backgroundColor: themeColors.editButtonBg }]}
                   onPress={() => setIsAddingNote(true)}
+                  disabled={checkLimit(player?.notesList?.length || 0, VALIDATION_LIMITS.MAX_NOTES_LIST_ITEMS).isAtLimit}
                 >
                   <Ionicons name="add" size={16} color="#0a7ea4" />
                   <Text style={styles.addNoteButtonText}>Add Note</Text>
@@ -433,6 +450,13 @@ export default function PlayerDetailView() {
         
         {showNotes && (
           <View style={styles.notesContainer}>
+            {/* Show limit warning if approaching limit */}
+            <LimitWarning
+              current={player?.notesList?.length || 0}
+              max={VALIDATION_LIMITS.MAX_NOTES_LIST_ITEMS}
+              label="Notes"
+            />
+            
             {isAddingNote && (
               <View style={[styles.addNoteContainer, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
                 <TextInput
@@ -522,6 +546,14 @@ export default function PlayerDetailView() {
       {/* Ranges Grid */}
       <View style={styles.rangesSection}>
         <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Ranges</Text>
+        
+        {/* Show limit warning if approaching limit */}
+        <LimitWarning
+          current={ranges?.ranges ? Object.keys(ranges.ranges).length : 0}
+          max={VALIDATION_LIMITS.MAX_RANGES_PER_PLAYER}
+          label="Ranges"
+        />
+        
         {POSITIONS.map((pos) => (
           <View key={pos.id} style={[styles.positionCard, { backgroundColor: themeColors.card }]}>
             <View style={styles.positionHeader}>
@@ -617,6 +649,13 @@ export default function PlayerDetailView() {
             </View>
           </View>
         )}
+
+        {/* Show limit warning if approaching limit */}
+        <LimitWarning
+          current={player?.locations?.length || 0}
+          max={VALIDATION_LIMITS.MAX_LOCATIONS_PER_PLAYER}
+          label="Locations"
+        />
 
         <View style={[styles.notesList, { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }]}>
           {player.locations && player.locations.length > 0 ? (

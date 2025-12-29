@@ -24,6 +24,8 @@ import {
   Timestamp,
   where,
 } from 'firebase/firestore';
+import { checkRateLimit } from '../rateLimit';
+import { validateSessionData } from '../validation';
 
 // ============================================
 // COLLECTION HELPERS
@@ -166,6 +168,15 @@ export async function createSession(
   session: Omit<Session, 'id' | 'startTime' | 'endTime' | 'isActive'>,
   sessionId?: string
 ): Promise<Session & { isShared?: boolean }> {
+  // Rate limiting
+  checkRateLimit(userId, 'CREATE_SESSION');
+  
+  // Validation
+  const validation = validateSessionData(session);
+  if (!validation.valid) {
+    throw new Error(`Invalid session data: ${validation.errors.join(', ')}`);
+  }
+  
   try {
     const sessionsRef = getSessionsCollection(userId);
     const id = sessionId || doc(sessionsRef).id;
@@ -212,6 +223,15 @@ export async function updateSession(
   sessionId: string,
   updates: Partial<Session>
 ): Promise<void> {
+  // Rate limiting
+  checkRateLimit(userId, 'UPDATE_SESSION');
+  
+  // Validation
+  const validation = validateSessionData(updates);
+  if (!validation.valid) {
+    throw new Error(`Invalid session data: ${validation.errors.join(', ')}`);
+  }
+  
   try {
     console.log(`[Firebase] Updating session ${sessionId} with ${Object.keys(updates).length} fields`);
     const sessionRef = getSessionDoc(userId, sessionId);
@@ -279,6 +299,9 @@ export async function endSession(
  * Delete a session
  */
 export async function deleteSession(userId: string, sessionId: string): Promise<void> {
+  // Rate limiting
+  checkRateLimit(userId, 'DELETE_SESSION');
+  
   try {
     await deleteDoc(getSessionDoc(userId, sessionId));
   } catch (error) {

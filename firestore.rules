@@ -2,81 +2,149 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
     function isAuthenticated() {
       return request.auth != null;
     }
     
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Check if requester is a friend of the user
+    function isFriend(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId)/friends/$(request.auth.uid));
+    }
+    
+    // Check if item is shared
+    function isShared() {
+      return resource.data.isShared == true;
+    }
+    
+    // ============================================
+    // VALIDATION FUNCTIONS
+    // ============================================
+    
+    // Validate player document structure and limits
+    function isValidPlayer(player) {
+      return player.name != null 
+        && player.name is string
+        && player.name.size() >= 1
+        && player.name.size() <= 100
+        // Optional notes field
+        && (player.notes == null || player.notes.size() <= 10000)
+        // Optional notesList array
+        && (player.notesList == null || player.notesList.size() <= 500)
+        // Optional locations array
+        && (player.locations == null || player.locations.size() <= 50)
+        // Optional ranges map (sparse storage)
+        && (player.ranges == null || player.ranges.size() <= 100)
+        // Optional color (hex format validated client-side)
+        && (player.color == null || player.color is string);
+    }
+    
+    // Validate session document structure and limits
+    function isValidSession(session) {
+      return session.name != null 
+        && session.name is string
+        && session.name.size() >= 1
+        && session.name.size() <= 200
+        // Optional location
+        && (session.location == null || session.location.size() <= 200)
+        // Optional notes
+        && (session.notes == null || session.notes.size() <= 50000)
+        // Required isActive boolean
+        && session.isActive is bool
+        // Optional table with player limit
+        && (session.table == null || session.table.seats == null || session.table.seats.size() <= 20);
     }
 
-    // =============================================
-    // USERS
-    // =============================================
-    // Only owner can access their own document
+    // ============================================
+    // USER DOCUMENT + SETTINGS
+    // ============================================
+    
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isAuthenticated();  // Basic profile visible to all authenticated
+      allow write: if isOwner(userId);
+      
+      // ============================================
+      // PLAYERS SUBCOLLECTION (with validation & sharing)
+      // ============================================
+      
+      match /players/{playerId} {
+        // Owner: full access with validation
+        allow read: if isOwner(userId);
+        
+        allow create: if isOwner(userId)
+          && isValidPlayer(request.resource.data)
+          && request.resource.size < 500000;  // 500 KB max
+        
+        allow update: if isOwner(userId)
+          && isValidPlayer(request.resource.data)
+          && request.resource.size < 500000;  // 500 KB max
+        
+        allow delete: if isOwner(userId);
+        
+        // Friends: read if shared
+        allow read: if isAuthenticated() && isFriend(userId) && isShared();
+      }
+      
+      // ============================================
+      // SESSIONS SUBCOLLECTION (with validation & sharing)
+      // ============================================
+      
+      match /sessions/{sessionId} {
+        // Owner: full access with validation
+        allow read: if isOwner(userId);
+        
+        allow create: if isOwner(userId)
+          && isValidSession(request.resource.data)
+          && request.resource.size < 1000000;  // 1 MB max
+        
+        allow update: if isOwner(userId)
+          && isValidSession(request.resource.data)
+          && request.resource.size < 1000000;  // 1 MB max
+        
+        allow delete: if isOwner(userId);
+        
+        // Friends: read if shared
+        allow read: if isAuthenticated() && isFriend(userId) && isShared();
+        
+        // Hands subcollection - inherit session access
+        match /hands/{handId} {
+          allow read, write: if isOwner(userId);
+          // Friends can read hands if session is shared
+          allow read: if isAuthenticated() && isFriend(userId) && 
+            get(/databases/$(database)/documents/users/$(userId)/sessions/$(sessionId)).data.isShared == true;
+        }
+      }
+      
+      // ============================================
+      // FRIENDS LIST
+      // ============================================
+      
+      match /friends/{friendId} {
+        allow read, write: if isOwner(userId);
+        // Friend can read their own entry (to see permissions granted)
+        allow read: if request.auth.uid == friendId;
+      }
+      
+      // ============================================
+      // IMPORTS (copied data from friends)
+      // ============================================
+      
+      match /imports/{importId} {
+        allow read, write: if isOwner(userId);
+      }
     }
+
+    // ============================================
+    // FRIEND REQUESTS (global for discovery)
+    // ============================================
     
-    // =============================================
-    // PLAYERS
-    // =============================================
-    // Only creator can access
-    // Each player document must have a 'createdBy' field set to the user's UID
-    match /players/{playerId} {
-      allow read: if isAuthenticated() && 
-        resource.data.createdBy == request.auth.uid;
-      allow create: if isAuthenticated() && 
-        request.resource.data.createdBy == request.auth.uid;
-      allow update, delete: if isAuthenticated() && 
-        resource.data.createdBy == request.auth.uid;
-    }
-    
-    // =============================================
-    // PLAYER RANGES
-    // =============================================
-    // Linked to players by playerId (document ID = playerId)
-    // Note: Legacy documents may not have 'createdBy' field
-    // New documents will have 'createdBy' set by the app
-    match /playerRanges/{rangeId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if isAuthenticated();
-    }
-
-    // =============================================
-    // SESSIONS
-    // =============================================
-    // Only creator can access
-    // Each session document must have a 'createdBy' field set to the user's UID
-    match /sessions/{sessionId} {
-      allow read: if isAuthenticated() && 
-        resource.data.createdBy == request.auth.uid;
-      allow create: if isAuthenticated() && 
-        request.resource.data.createdBy == request.auth.uid;
-      allow update, delete: if isAuthenticated() && 
-        resource.data.createdBy == request.auth.uid;
-    }
-
-    // =============================================
-    // HANDS
-    // =============================================
-    // Only owner can access
-    // Each hand document must have a 'userId' field set to the user's UID
-    match /hands/{handId} {
-      allow read: if isAuthenticated() && 
-        resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && 
-        request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && 
-        resource.data.userId == request.auth.uid;
-    }
-
-    // =============================================
-    // FRIEND REQUESTS
-    // =============================================
-    // Sender and receiver only
-    // 'fromUserId' = sender, 'toUserId' = receiver
     match /friendRequests/{requestId} {
       allow read: if isAuthenticated() && 
         (resource.data.fromUserId == request.auth.uid || 
@@ -88,6 +156,37 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && 
         (resource.data.fromUserId == request.auth.uid || 
          resource.data.toUserId == request.auth.uid);
+    }
+
+    // ============================================
+    // LEGACY COLLECTIONS (Read-only for migration)
+    // ============================================
+    
+    // Old flat players collection - allow read for migration, no new writes
+    match /players/{playerId} {
+      allow read: if isAuthenticated() && 
+        resource.data.createdBy == request.auth.uid;
+      allow write: if false;  // No new writes to legacy collection
+    }
+    
+    // Old flat playerRanges collection - allow read for migration
+    match /playerRanges/{rangeId} {
+      allow read: if isAuthenticated();
+      allow write: if false;  // No new writes to legacy collection
+    }
+    
+    // Old flat sessions collection - allow read for migration, no new writes
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated() && 
+        resource.data.createdBy == request.auth.uid;
+      allow write: if false;  // No new writes to legacy collection
+    }
+
+    // Old flat hands collection
+    match /hands/{handId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow write: if false;  // No new writes to legacy collection
     }
   }
 }

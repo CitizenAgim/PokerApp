@@ -24,6 +24,8 @@ import {
   Timestamp,
   updateDoc,
 } from 'firebase/firestore';
+import { checkRateLimit } from '../rateLimit';
+import { validatePlayerData, validateRange, VALIDATION_LIMITS } from '../validation';
 
 // ============================================
 // COLLECTION HELPERS
@@ -140,6 +142,15 @@ export async function createPlayer(
   player: CreatePlayer,
   playerId?: string
 ): Promise<Player & { ranges?: Record<string, Range>; isShared?: boolean }> {
+  // Rate limiting
+  checkRateLimit(userId, 'CREATE_PLAYER');
+  
+  // Validation
+  const validation = validatePlayerData(player);
+  if (!validation.valid) {
+    throw new Error(`Invalid player data: ${validation.errors.join(', ')}`);
+  }
+  
   try {
     const playersRef = getPlayersCollection(userId);
     const id = playerId || doc(playersRef).id;
@@ -179,6 +190,15 @@ export async function updatePlayer(
   userId: string,
   player: UpdatePlayer
 ): Promise<void> {
+  // Rate limiting
+  checkRateLimit(userId, 'UPDATE_PLAYER');
+  
+  // Validation
+  const validation = validatePlayerData(player);
+  if (!validation.valid) {
+    throw new Error(`Invalid player data: ${validation.errors.join(', ')}`);
+  }
+  
   try {
     const playerRef = getPlayerDoc(userId, player.id);
     
@@ -198,6 +218,9 @@ export async function updatePlayer(
  * Delete a player
  */
 export async function deletePlayer(userId: string, playerId: string): Promise<void> {
+  // Rate limiting
+  checkRateLimit(userId, 'DELETE_PLAYER');
+  
   try {
     await deleteDoc(getPlayerDoc(userId, playerId));
   } catch (error) {
@@ -248,6 +271,23 @@ export async function updatePlayerRanges(
   playerId: string,
   ranges: Record<string, Range>
 ): Promise<void> {
+  // Rate limiting
+  checkRateLimit(userId, 'UPDATE_RANGE');
+  
+  // Validate range count
+  const rangeCount = Object.keys(ranges).length;
+  if (rangeCount > VALIDATION_LIMITS.MAX_RANGES_PER_PLAYER) {
+    throw new Error(`Too many ranges: ${rangeCount}. Maximum is ${VALIDATION_LIMITS.MAX_RANGES_PER_PLAYER}`);
+  }
+  
+  // Validate each range
+  for (const [key, range] of Object.entries(ranges)) {
+    const validation = validateRange(range);
+    if (!validation.valid) {
+      throw new Error(`Invalid range "${key}": ${validation.errors.join(', ')}`);
+    }
+  }
+  
   try {
     const playerRef = getPlayerDoc(userId, playerId);
     
@@ -273,6 +313,15 @@ export async function updatePlayerRange(
   rangeKey: string,
   range: Range
 ): Promise<void> {
+  // Rate limiting
+  checkRateLimit(userId, 'UPDATE_RANGE');
+  
+  // Validate range
+  const validation = validateRange(range);
+  if (!validation.valid) {
+    throw new Error(`Invalid range: ${validation.errors.join(', ')}`);
+  }
+  
   try {
     const playerRef = getPlayerDoc(userId, playerId);
     
