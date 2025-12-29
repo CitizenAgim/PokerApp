@@ -116,7 +116,7 @@ describe('Validation Service', () => {
     });
 
     it('should fail when ranges exceed max', () => {
-      const ranges: Record<string, Record<string, string>> = {};
+      const ranges: Record<string, Record<string, 'unselected'>> = {};
       for (let i = 0; i < VALIDATION_LIMITS.MAX_RANGES_PER_PLAYER + 1; i++) {
         ranges[`range_${i}`] = {};
       }
