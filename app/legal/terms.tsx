@@ -10,7 +10,7 @@ export default function TermsOfServiceScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: themeColors.background }]} contentContainerStyle={styles.content}>
-      <Text style={[styles.lastUpdated, { color: themeColors.subText }]}>Last Updated: December 9, 2025</Text>
+      <Text style={[styles.lastUpdated, { color: themeColors.subText }]}>Last Updated: December 30, 2025</Text>
 
       <Text style={[styles.paragraph, { color: themeColors.subText }]}>
         Please read these Terms of Service ("Terms") carefully before using the Poker Range Manager application ("the App") operated by us.
@@ -34,7 +34,18 @@ export default function TermsOfServiceScreen() {
         You are responsible for safeguarding the password that you use to access the App and for any activities or actions under your password.
       </Text>
 
-      <Text style={[styles.heading, { color: themeColors.heading }]}>4. User Content</Text>
+      <Text style={[styles.heading, { color: themeColors.heading }]}>4. Subscriptions and Paid Features</Text>
+      <Text style={[styles.paragraph, { color: themeColors.subText }]}>
+        While the App is free to download, certain features and functionality may require a paid subscription ("Pro Version").
+      </Text>
+      <Text style={[styles.paragraph, { color: themeColors.subText }]}>
+        If you choose to purchase a subscription, payment will be charged to your Apple ID account at the confirmation of purchase. The subscription automatically renews unless it is canceled at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period.
+      </Text>
+      <Text style={[styles.paragraph, { color: themeColors.subText }]}>
+        You can manage and cancel your subscriptions by going to your account settings on the App Store after purchase. Any unused portion of a free trial period, if offered, will be forfeited when you purchase a subscription.
+      </Text>
+
+      <Text style={[styles.heading, { color: themeColors.heading }]}>5. User Content</Text>
       <Text style={[styles.paragraph, { color: themeColors.subText }]}>
         Our App allows you to post, link, store, share and otherwise make available certain information, text, graphics, videos, or other material ("Content"). You are responsible for the Content that you post to the App, including its legality, reliability, and appropriateness.
       </Text>
@@ -45,32 +56,32 @@ export default function TermsOfServiceScreen() {
         You represent and warrant that: (i) the Content is yours (you own it) or you have the right to use it and grant us the rights and license as provided in these Terms, and (ii) the posting of your Content on or through the App does not violate the privacy rights, publicity rights, copyrights, contract rights or any other rights of any person.
       </Text>
 
-      <Text style={[styles.heading, { color: themeColors.heading }]}>5. Intellectual Property</Text>
+      <Text style={[styles.heading, { color: themeColors.heading }]}>6. Intellectual Property</Text>
       <Text style={[styles.paragraph, { color: themeColors.subText }]}>
         The App and its original content (excluding Content provided by users), features and functionality are and will remain the exclusive property of the App developers and its licensors. The App is protected by copyright, trademark, and other laws.
       </Text>
 
-      <Text style={[styles.heading, { color: themeColors.heading }]}>6. Termination</Text>
+      <Text style={[styles.heading, { color: themeColors.heading }]}>7. Termination</Text>
       <Text style={[styles.paragraph, { color: themeColors.subText }]}>
         We may terminate or suspend your account immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms. Upon termination, your right to use the App will immediately cease.
       </Text>
 
-      <Text style={[styles.heading, { color: themeColors.heading }]}>7. Limitation of Liability</Text>
+      <Text style={[styles.heading, { color: themeColors.heading }]}>8. Limitation of Liability</Text>
       <Text style={[styles.paragraph, { color: themeColors.subText }]}>
         In no event shall the App developers, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from (i) your access to or use of or inability to access or use the App; (ii) any conduct or content of any third party on the App; (iii) any content obtained from the App; and (iv) unauthorized access, use or alteration of your transmissions or content, whether based on warranty, contract, tort (including negligence) or any other legal theory, whether or not we have been informed of the possibility of such damage.
       </Text>
 
-      <Text style={[styles.heading, { color: themeColors.heading }]}>8. Disclaimer</Text>
+      <Text style={[styles.heading, { color: themeColors.heading }]}>9. Disclaimer</Text>
       <Text style={[styles.paragraph, { color: themeColors.subText }]}>
         Your use of the App is at your sole risk. The App is provided on an "AS IS" and "AS AVAILABLE" basis. The App is provided without warranties of any kind, whether express or implied, including, but not limited to, implied warranties of merchantability, fitness for a particular purpose, non-infringement or course of performance.
       </Text>
 
-      <Text style={[styles.heading, { color: themeColors.heading }]}>9. Changes</Text>
+      <Text style={[styles.heading, { color: themeColors.heading }]}>10. Changes</Text>
       <Text style={[styles.paragraph, { color: themeColors.subText }]}>
         We reserve the right, at our sole discretion, to modify or replace these Terms at any time. By continuing to access or use our App after those revisions become effective, you agree to be bound by the revised terms.
       </Text>
 
-      <Text style={[styles.heading, { color: themeColors.heading }]}>10. Contact Us</Text>
+      <Text style={[styles.heading, { color: themeColors.heading }]}>11. Contact Us</Text>
       <Text style={[styles.paragraph, { color: themeColors.subText }]}>
         If you have any questions about these Terms, please contact us.
       </Text>

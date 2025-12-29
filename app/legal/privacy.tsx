@@ -10,7 +10,7 @@ export default function PrivacyPolicyScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: themeColors.background }]} contentContainerStyle={styles.content}>
-      <Text style={[styles.lastUpdated, { color: themeColors.subText }]}>Last Updated: December 9, 2025</Text>
+      <Text style={[styles.lastUpdated, { color: themeColors.subText }]}>Last Updated: December 30, 2025</Text>
 
       <Text style={[styles.paragraph, { color: themeColors.subText }]}>
         This Privacy Policy describes how your personal information is collected, used, and shared when you use the Poker Range Manager application ("the App").
@@ -26,7 +26,7 @@ export default function PrivacyPolicyScreen() {
       </Text>
       <Text style={[styles.subheading, { color: themeColors.subheading }]}>User Content</Text>
       <Text style={[styles.paragraph, { color: themeColors.subText }]}>
-        We store the data you input into the App, including poker hand ranges, player notes, session data, and any images you upload (such as player photos). This data is stored securely on our servers (Google Firebase) to allow you to access it across multiple devices.
+        We store the data you input into the App, including poker hand ranges, player notes, and session data. This data is stored securely on our servers (Google Firebase) to allow you to access it across multiple devices.
       </Text>
       <Text style={[styles.subheading, { color: themeColors.subheading }]}>Usage Data</Text>
       <Text style={[styles.paragraph, { color: themeColors.subText }]}>
@@ -64,9 +64,9 @@ export default function PrivacyPolicyScreen() {
         You can delete your account and all data directly within the App settings or by contacting us.
       </Text>
 
-      <Text style={[styles.heading, { color: themeColors.heading }]}>6. Children's Privacy</Text>
+      <Text style={[styles.heading, { color: themeColors.heading }]}>6. Age Restriction</Text>
       <Text style={[styles.paragraph, { color: themeColors.subText }]}>
-        The App is not intended for use by children under the age of 13. We do not knowingly collect personal information from children under 13.
+        The App is intended for use by individuals aged 18 and older (or the legal age of majority in your jurisdiction). We do not knowingly collect personal information from individuals under the age of 18. By using the App, you represent that you are at least 18 years of age.
       </Text>
 
       <Text style={[styles.heading, { color: themeColors.heading }]}>7. Changes to This Privacy Policy</Text>
