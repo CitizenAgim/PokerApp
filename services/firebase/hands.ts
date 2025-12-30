@@ -3,6 +3,7 @@ import { Seat } from '@/types/poker';
 import { HandAction, HandState, SidePot, Street } from '@/utils/hand-recording/types';
 import {
     collection,
+    collectionGroup,
     doc,
     getDocs,
     orderBy,
@@ -14,8 +15,24 @@ import {
     writeBatch
 } from 'firebase/firestore';
 
-const COLLECTION_NAME = 'hands';
-const handsCollection = collection(db, COLLECTION_NAME);
+// ============================================
+// COLLECTION HELPERS
+// ============================================
+
+/**
+ * Get the hands subcollection reference for a session
+ * Path: /users/{userId}/sessions/{sessionId}/hands
+ */
+function getHandsCollection(userId: string, sessionId: string) {
+  return collection(db, 'users', userId, 'sessions', sessionId, 'hands');
+}
+
+/**
+ * Get a hand document reference
+ */
+function getHandDoc(userId: string, sessionId: string, handId: string) {
+  return doc(db, 'users', userId, 'sessions', sessionId, 'hands', handId);
+}
 
 export interface HandRecord {
   id: string;
@@ -50,27 +67,17 @@ function docToHandRecord(doc: any): HandRecord {
   };
 }
 
-export async function getHands(sessionId: string, userId?: string): Promise<HandRecord[]> {
+export async function getHands(sessionId: string, userId: string): Promise<HandRecord[]> {
   try {
     console.log(`[getHands] Fetching hands for session: ${sessionId}, user: ${userId}`);
     
     if (!userId) {
-      console.warn('getHands called without userId. This may fail if security rules require authentication.');
+      console.warn('getHands called without userId. Cannot fetch from subcollection.');
+      return [];
     }
 
-    // Base constraints
-    const constraints: QueryConstraint[] = [
-      where('sessionId', '==', sessionId)
-    ];
-
-    if (userId) {
-      constraints.push(where('userId', '==', userId));
-    }
-
-    // Add ordering
-    constraints.push(orderBy('timestamp', 'desc'));
-
-    const q = query(handsCollection, ...constraints);
+    const handsRef = getHandsCollection(userId, sessionId);
+    const q = query(handsRef, orderBy('timestamp', 'desc'));
     
     const snapshot = await getDocs(q);
     return snapshot.docs.map(docToHandRecord);
@@ -87,23 +94,26 @@ export async function getUserHands(userId: string): Promise<HandRecord[]> {
   }
 
   try {
-    const constraints: QueryConstraint[] = [
+    // Use collectionGroup to query all hands subcollections for this user
+    // Path pattern: /users/{userId}/sessions/*/hands
+    const handsGroup = collectionGroup(db, 'hands');
+    const q = query(
+      handsGroup,
       where('userId', '==', userId),
       orderBy('timestamp', 'desc')
-    ];
-
-    const q = query(handsCollection, ...constraints);
+    );
     
     const snapshot = await getDocs(q);
     return snapshot.docs.map(docToHandRecord);
   } catch (error: any) {
     // Handle missing index error by falling back to client-side sorting
     if (error.code === 'failed-precondition' && error.message.includes('index')) {
-      console.warn('Missing Firestore index. Falling back to client-side sorting.');
+      console.warn('Missing Firestore index for collectionGroup query. Falling back to client-side sorting.');
       console.log('Please create the index using the link in the console logs to improve performance.');
       
       try {
-        const q = query(handsCollection, where('userId', '==', userId));
+        const handsGroup = collectionGroup(db, 'hands');
+        const q = query(handsGroup, where('userId', '==', userId));
         const snapshot = await getDocs(q);
         const hands = snapshot.docs.map(docToHandRecord);
         return hands.sort((a, b) => b.timestamp - a.timestamp);
@@ -120,7 +130,8 @@ export async function getUserHands(userId: string): Promise<HandRecord[]> {
 
 export async function saveHand(sessionId: string, userId: string, state: HandState): Promise<string> {
   try {
-    const handRef = doc(handsCollection);
+    const handsRef = getHandsCollection(userId, sessionId);
+    const handRef = doc(handsRef);
     const id = handRef.id;
     
     const handData: any = {
@@ -151,18 +162,47 @@ export async function saveHand(sessionId: string, userId: string, state: HandSta
   }
 }
 
-export async function deleteHands(handIds: string[]): Promise<void> {
+/**
+ * Delete hands from a single session
+ */
+export async function deleteHands(
+  handIds: string[], 
+  userId: string, 
+  sessionId: string
+): Promise<void> {
   try {
     const batch = writeBatch(db);
     
     handIds.forEach(id => {
-      const handRef = doc(handsCollection, id);
+      const handRef = getHandDoc(userId, sessionId, id);
       batch.delete(handRef);
     });
     
     await batch.commit();
   } catch (error) {
     console.error('Error deleting hands:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete hands across multiple sessions
+ * Accepts an array of HandRecord objects and groups deletions by session
+ */
+export async function deleteHandRecords(hands: HandRecord[]): Promise<void> {
+  if (!hands.length) return;
+  
+  try {
+    const batch = writeBatch(db);
+    
+    hands.forEach(hand => {
+      const handRef = getHandDoc(hand.userId, hand.sessionId, hand.id);
+      batch.delete(handRef);
+    });
+    
+    await batch.commit();
+  } catch (error) {
+    console.error('Error deleting hand records:', error);
     throw error;
   }
 }

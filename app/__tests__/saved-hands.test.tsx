@@ -36,7 +36,7 @@ jest.mock('@/hooks', () => ({
 
 jest.mock('@/services/firebase/hands', () => ({
   getUserHands: jest.fn(),
-  deleteHands: jest.fn(),
+  deleteHandRecords: jest.fn(),
 }));
 
 // Mock data
@@ -73,7 +73,7 @@ describe('SavedHandsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (handsService.getUserHands as jest.Mock).mockResolvedValue(mockHands);
-    (handsService.deleteHands as jest.Mock).mockResolvedValue(undefined);
+    (handsService.deleteHandRecords as jest.Mock).mockResolvedValue(undefined);
     jest.spyOn(Alert, 'alert');
   });
 
@@ -142,7 +142,7 @@ describe('SavedHandsScreen', () => {
       await deleteCallback();
     });
 
-    expect(handsService.deleteHands).toHaveBeenCalledWith(['hand-1', 'hand-2']);
+    expect(handsService.deleteHandRecords).toHaveBeenCalledWith(mockHands);
     
     // Should refresh list (mock getUserHands again or check if items removed from view)
     // In a real app, we'd probably optimistically update or refetch.

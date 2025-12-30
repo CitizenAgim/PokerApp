@@ -2,7 +2,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useCurrentUser, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { deleteHands, getUserHands, HandRecord } from '@/services/firebase/hands';
+import { deleteHandRecords, getUserHands, HandRecord } from '@/services/firebase/hands';
 import { formatDate } from '@/utils/text';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -135,8 +135,8 @@ export default function SavedHandsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const idsToDelete = Array.from(selectedHandIds);
-              await deleteHands(idsToDelete);
+              const handsToDelete = hands.filter(h => selectedHandIds.has(h.id));
+              await deleteHandRecords(handsToDelete);
               
               // Update local state
               setHands(prev => prev.filter(h => !selectedHandIds.has(h.id)));
