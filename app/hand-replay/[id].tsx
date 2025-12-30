@@ -113,6 +113,7 @@ function HandReplayContent({ hand }: { hand: HandRecord }) {
     prevAction,
     goToStart,
     goToEnd,
+    jumpToStreet,
     toggleVillainCards,
     dismissWinnerOverlay,
     canGoNext,
@@ -179,7 +180,21 @@ function HandReplayContent({ hand }: { hand: HandRecord }) {
           <Ionicons name="arrow-back" size={24} color={themeColors.text} />
         </TouchableOpacity>
         <ThemedText style={[styles.headerTitle, { color: themeColors.text }]}>Hand Replay</ThemedText>
-        <View style={{ width: 24 }} />
+        
+        {/* Toggle Villain Cards */}
+        <TouchableOpacity 
+          style={styles.toggleContainer}
+          onPress={toggleVillainCards}
+        >
+          <Text style={[styles.toggleText, { color: themeColors.subText }]}>
+            {showVillainCards ? 'Hide Cards' : 'Show Cards'}
+          </Text>
+          <Ionicons 
+            name={showVillainCards ? "eye-off" : "eye"} 
+            size={20} 
+            color={themeColors.tint} 
+          />
+        </TouchableOpacity>
       </View>
       
       {/* Session Info */}
@@ -191,21 +206,37 @@ function HandReplayContent({ hand }: { hand: HandRecord }) {
         </View>
       )}
       
-      {/* Settings Row */}
-      <View style={[styles.settingsRow, { backgroundColor: themeColors.card }]}>
-        <Text style={[styles.settingsLabel, { color: themeColors.subText }]}>Show opponent cards</Text>
-        <TouchableOpacity 
-          style={[
-            styles.checkbox, 
-            { 
-              borderColor: themeColors.tint,
-              backgroundColor: showVillainCards ? themeColors.tint : 'transparent',
-            }
-          ]}
-          onPress={toggleVillainCards}
-        >
-          {showVillainCards && <Ionicons name="checkmark" size={16} color="#fff" />}
-        </TouchableOpacity>
+      {/* Street Progress Bar */}
+      <View style={[styles.streetProgressContainer, { backgroundColor: themeColors.background }]}>
+        {['preflop', 'flop', 'turn', 'river'].map((street, index, arr) => {
+          const isActive = state.currentStreet === street;
+          const isPast = ['preflop', 'flop', 'turn', 'river'].indexOf(state.currentStreet) > index;
+          
+          return (
+            <TouchableOpacity 
+              key={street} 
+              style={styles.streetStep}
+              onPress={() => jumpToStreet(street as any)}
+            >
+              <View style={[
+                styles.streetDot, 
+                { backgroundColor: isActive || isPast ? themeColors.tint : themeColors.subText, opacity: isActive || isPast ? 1 : 0.3 }
+              ]} />
+              <Text style={[
+                styles.streetLabel, 
+                { color: isActive ? themeColors.tint : themeColors.subText, opacity: isActive ? 1 : (isPast ? 0.7 : 0.3) }
+              ]}>
+                {street}
+              </Text>
+              {index < arr.length - 1 && (
+                <View style={[
+                  styles.streetLine, 
+                  { backgroundColor: isPast ? themeColors.tint : themeColors.subText, opacity: isPast ? 0.5 : 0.1 }
+                ]} />
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </View>
       
       {/* Poker Table */}
@@ -238,62 +269,50 @@ function HandReplayContent({ hand }: { hand: HandRecord }) {
         />
       </View>
       
-      {/* Action Display */}
-      <View style={[styles.actionDisplay, { backgroundColor: themeColors.card, borderTopColor: themeColors.border }]}>
-        <Text style={[styles.actionText, { color: themeColors.text }]}>
-          {actionText}
-        </Text>
-        {state.currentStreet !== 'preflop' && currentIndex >= 0 && (
+      {/* Action Display & Controls */}
+      <View style={{ backgroundColor: themeColors.card, borderTopWidth: 1, borderTopColor: themeColors.border }}>
+        <View style={styles.actionDisplay}>
+          <Text style={[styles.actionText, { color: themeColors.text }]}>
+            {actionText}
+          </Text>
           <Text style={[styles.actionSubtext, { color: themeColors.subText }]}>
-            {state.currentStreet.toUpperCase()}
+            Step {progress}
           </Text>
-        )}
-      </View>
-      
-      {/* Controls */}
-      <View style={[styles.controls, { backgroundColor: themeColors.card, borderTopColor: themeColors.border }]}>
-        <TouchableOpacity 
-          style={[styles.controlButtonSmall, { backgroundColor: canGoPrev ? themeColors.actionButtonBg : themeColors.actionButtonDisabledBg }]}
-          onPress={goToStart}
-          disabled={!canGoPrev}
-        >
-          <Ionicons name="play-skip-back" size={20} color={canGoPrev ? themeColors.tint : themeColors.subText} />
-        </TouchableOpacity>
+        </View>
         
-        <TouchableOpacity 
-          style={[styles.controlButton, { backgroundColor: canGoPrev ? themeColors.actionButtonBg : themeColors.actionButtonDisabledBg }]}
-          onPress={prevAction}
-          disabled={!canGoPrev}
-        >
-          <Ionicons name="play-back" size={28} color={canGoPrev ? themeColors.tint : themeColors.subText} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.controlButton, { backgroundColor: canGoNext ? themeColors.tint : themeColors.actionButtonDisabledBg }]}
-          onPress={nextAction}
-          disabled={!canGoNext}
-        >
-          <Ionicons name="play-forward" size={28} color={canGoNext ? '#fff' : themeColors.subText} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.controlButtonSmall, { backgroundColor: canGoNext ? themeColors.actionButtonBg : themeColors.actionButtonDisabledBg }]}
-          onPress={goToEnd}
-          disabled={!canGoNext}
-        >
-          <Ionicons name="play-skip-forward" size={20} color={canGoNext ? themeColors.tint : themeColors.subText} />
-        </TouchableOpacity>
-      </View>
-      
-      {/* Progress Row */}
-      <View style={[styles.progressRow, { backgroundColor: themeColors.card }]}>
-        <Text style={[styles.progressText, { color: themeColors.subText }]}>
-          Step {progress}
-        </Text>
-        <View style={[styles.streetBadge, { backgroundColor: themeColors.actionButtonBg }]}>
-          <Text style={[styles.streetText, { color: themeColors.tint }]}>
-            {state.currentStreet}
-          </Text>
+        {/* Controls */}
+        <View style={styles.controls}>
+          <TouchableOpacity 
+            style={[styles.controlButtonSmall, { backgroundColor: canGoPrev ? themeColors.actionButtonBg : themeColors.actionButtonDisabledBg }]}
+            onPress={goToStart}
+            disabled={!canGoPrev}
+          >
+            <Ionicons name="play-skip-back" size={20} color={canGoPrev ? themeColors.tint : themeColors.subText} />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.controlButton, { backgroundColor: canGoPrev ? themeColors.actionButtonBg : themeColors.actionButtonDisabledBg }]}
+            onPress={prevAction}
+            disabled={!canGoPrev}
+          >
+            <Ionicons name="play-back" size={28} color={canGoPrev ? themeColors.tint : themeColors.subText} />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.controlButton, { backgroundColor: canGoNext ? themeColors.tint : themeColors.actionButtonDisabledBg }]}
+            onPress={nextAction}
+            disabled={!canGoNext}
+          >
+            <Ionicons name="play-forward" size={28} color={canGoNext ? '#fff' : themeColors.subText} />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.controlButtonSmall, { backgroundColor: canGoNext ? themeColors.actionButtonBg : themeColors.actionButtonDisabledBg }]}
+            onPress={goToEnd}
+            disabled={!canGoNext}
+          >
+            <Ionicons name="play-skip-forward" size={20} color={canGoNext ? themeColors.tint : themeColors.subText} />
+          </TouchableOpacity>
         </View>
       </View>
       

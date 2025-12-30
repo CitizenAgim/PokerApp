@@ -252,6 +252,20 @@ export function useHandReplay(hand: HandRecord) {
   const dismissWinnerOverlay = useCallback(() => {
     setShowWinnerOverlay(false);
   }, []);
+
+  const jumpToStreet = useCallback((street: Street) => {
+    if (street === 'preflop') {
+      setCurrentIndex(-1);
+      setShowWinnerOverlay(false);
+      return;
+    }
+    
+    const index = hand.actions.findIndex(a => a.street === street);
+    if (index !== -1) {
+      setCurrentIndex(index);
+      setShowWinnerOverlay(false);
+    }
+  }, [hand.actions]);
   
   const currentAction = currentIndex >= 0 ? hand.actions[currentIndex] : null;
   const actionText = currentAction 
@@ -271,6 +285,7 @@ export function useHandReplay(hand: HandRecord) {
     prevAction,
     goToStart,
     goToEnd,
+    jumpToStreet,
     toggleVillainCards,
     dismissWinnerOverlay,
     canGoNext: currentIndex < totalActions - 1,
