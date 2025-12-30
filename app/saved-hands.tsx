@@ -1,3 +1,4 @@
+import { PokerCard } from '@/components/PokerCard';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useCurrentUser, useSettings } from '@/hooks';
@@ -99,20 +100,19 @@ export default function SavedHandsScreen() {
     return 'Seat ' + winnerSeatNum;
   };
 
-  const getHeroCards = (hand: HandRecord) => {
-    if (!hand.handCards) return 'Unknown';
+  const getHeroCardsArray = (hand: HandRecord): string[] => {
+    if (!hand.handCards) return [];
     
     const heroSeat = hand.seats.find(s => s.playerId === user?.id);
     
     if (heroSeat) {
       const seatNum = heroSeat.seatNumber ?? (heroSeat.index !== undefined ? heroSeat.index + 1 : undefined);
       if (seatNum !== undefined) {
-        const cards = hand.handCards[seatNum];
-        if (cards && cards.length > 0) return cards.join(' ');
+        return hand.handCards[seatNum] || [];
       }
     }
     
-    return 'Unknown';
+    return [];
   };
 
   const toggleSelection = (id: string) => {
@@ -178,6 +178,7 @@ export default function SavedHandsScreen() {
 
   const renderHandItem = ({ item }: { item: HandRecord }) => {
     const isSelected = selectedHandIds.has(item.id);
+    const heroCards = getHeroCardsArray(item);
     
     return (
       <TouchableOpacity 
@@ -204,24 +205,37 @@ export default function SavedHandsScreen() {
         )}
         
         <View style={styles.cardContent}>
-          <View style={styles.cardHeader}>
-            <Text style={[styles.dateText, { color: themeColors.subText }]}>
-              {formatDate(item.timestamp, dateFormat)}
-            </Text>
-          </View>
-          
-          <View style={styles.cardBody}>
-            <View style={styles.infoRow}>
-              <Text style={[styles.label, { color: themeColors.subText }]}>Pot:</Text>
-              <Text style={[styles.value, { color: themeColors.text }]}>${item.pot}</Text>
+          <View style={styles.handRow}>
+            {/* Hero Cards */}
+            <View style={styles.heroCardsContainer}>
+              <Text style={[styles.sectionLabel, { color: themeColors.subText }]}>Hero</Text>
+              <View style={styles.cardsRow}>
+                {heroCards.length > 0 ? (
+                  heroCards.map((card, index) => (
+                    <PokerCard key={index} card={card} style={index > 0 ? { marginLeft: -15, zIndex: index } : { zIndex: index }} />
+                  ))
+                ) : (
+                  <Text style={{ color: themeColors.subText, fontSize: 12 }}>No cards</Text>
+                )}
+              </View>
             </View>
-            <View style={styles.infoRow}>
-              <Text style={[styles.label, { color: themeColors.subText }]}>Winner:</Text>
-              <Text style={[styles.value, { color: themeColors.text }]}>{getWinnerName(item)}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={[styles.label, { color: themeColors.subText }]}>Hand:</Text>
-              <Text style={[styles.value, { color: themeColors.text }]}>{getHeroCards(item)}</Text>
+
+            {/* Board Cards */}
+            <View style={styles.boardContainer}>
+              <View style={styles.headerRow}>
+                 <Text style={[styles.potText, { color: themeColors.text }]}>${item.pot}</Text>
+                 <Text style={[styles.dateText, { color: themeColors.subText }]}> • {formatDate(item.timestamp, dateFormat)}</Text>
+              </View>
+              
+              <View style={styles.cardsRow}>
+                {item.communityCards && item.communityCards.length > 0 ? (
+                  item.communityCards.map((card, index) => (
+                    <PokerCard key={index} card={card} style={{ marginRight: 4 }} />
+                  ))
+                ) : (
+                  <Text style={{ color: themeColors.subText, fontSize: 12 }}>No board</Text>
+                )}
+              </View>
             </View>
           </View>
         </View>
@@ -322,7 +336,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -333,34 +347,44 @@ const styles = StyleSheet.create({
   cardContent: {
     flex: 1,
   },
-  cardHeader: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    alignItems: 'flex-end',
+  handRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  heroCardsContainer: {
+    alignItems: 'center',
+    marginRight: 16,
+    minWidth: 60,
+  },
+  boardContainer: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  cardsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 42,
+  },
+  sectionLabel: {
+    fontSize: 10,
+    marginBottom: 4,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  potText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginRight: 4,
   },
   dateText: {
     fontSize: 12,
   },
-  cardBody: {
-    gap: 4,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  label: {
-    fontSize: 14,
-    width: 60,
-  },
-  value: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
   cardFooter: {
     justifyContent: 'center',
-    paddingLeft: 12,
+    paddingLeft: 8,
   },
   emptyContainer: {
     padding: 32,

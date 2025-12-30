@@ -1,4 +1,6 @@
+import { PokerCard } from '@/components/PokerCard';
 import { Colors } from '@/constants/theme';
+import { useCurrentUser } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { HandRecord } from '@/services/firebase/hands';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +16,7 @@ export function HandHistoryItem({ hand, onPress }: HandHistoryItemProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = isDark ? Colors.dark : Colors.light;
+  const { user } = useCurrentUser();
 
   const formatTime = (timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -30,6 +33,23 @@ export function HandHistoryItem({ hand, onPress }: HandHistoryItemProps) {
     }
   };
 
+  const getHeroCardsArray = (hand: HandRecord): string[] => {
+    if (!hand.handCards) return [];
+    
+    const heroSeat = hand.seats.find(s => s.playerId === user?.id);
+    
+    if (heroSeat) {
+      const seatNum = heroSeat.seatNumber ?? (heroSeat.index !== undefined ? heroSeat.index + 1 : undefined);
+      if (seatNum !== undefined) {
+        return hand.handCards[seatNum] || [];
+      }
+    }
+    
+    return [];
+  };
+
+  const heroCards = getHeroCardsArray(hand);
+
   return (
     <TouchableOpacity 
       style={[styles.container, { backgroundColor: theme.card, borderColor: theme.border }]} 
@@ -43,20 +63,39 @@ export function HandHistoryItem({ hand, onPress }: HandHistoryItemProps) {
       </View>
 
       <View style={styles.content}>
-        <View style={styles.potInfo}>
-          <Text style={[styles.potLabel, { color: theme.subText }]}>Pot</Text>
-          <Text style={[styles.potValue, { color: theme.text }]}>{hand.pot}</Text>
-        </View>
-
-        {hand.communityCards && hand.communityCards.length > 0 && (
-          <View style={styles.cardsContainer}>
-            {hand.communityCards.map((card, index) => (
-              <View key={index} style={[styles.card, { backgroundColor: '#fff', borderColor: theme.border }]}>
-                <Text style={styles.cardText}>{card}</Text>
-              </View>
-            ))}
+        <View style={styles.handRow}>
+          {/* Hero Cards */}
+          <View style={styles.heroCardsContainer}>
+            <Text style={[styles.sectionLabel, { color: theme.subText }]}>Hero</Text>
+            <View style={styles.cardsRow}>
+              {heroCards.length > 0 ? (
+                heroCards.map((card, index) => (
+                  <PokerCard key={index} card={card} style={index > 0 ? { marginLeft: -15, zIndex: index } : { zIndex: index }} />
+                ))
+              ) : (
+                <Text style={{ color: theme.subText, fontSize: 12 }}>No cards</Text>
+              )}
+            </View>
           </View>
-        )}
+
+          {/* Board Cards */}
+          <View style={styles.boardContainer}>
+            <View style={styles.potInfo}>
+              <Text style={[styles.potLabel, { color: theme.subText }]}>Pot: </Text>
+              <Text style={[styles.potValue, { color: theme.text }]}>{hand.pot}</Text>
+            </View>
+            
+            <View style={styles.cardsRow}>
+              {hand.communityCards && hand.communityCards.length > 0 ? (
+                hand.communityCards.map((card, index) => (
+                  <PokerCard key={index} card={card} style={{ marginRight: 4 }} />
+                ))
+              ) : (
+                <Text style={{ color: theme.subText, fontSize: 12 }}>No board</Text>
+              )}
+            </View>
+          </View>
+        </View>
       </View>
 
       <View style={styles.footer}>
@@ -97,45 +136,48 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   content: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 8,
   },
-  potInfo: {
+  handRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  heroCardsContainer: {
+    alignItems: 'center',
+    marginRight: 16,
+    minWidth: 60,
+  },
+  boardContainer: {
     flex: 1,
+    alignItems: 'flex-start',
+  },
+  cardsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 42,
+  },
+  sectionLabel: {
+    fontSize: 10,
+    marginBottom: 4,
+  },
+  potInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   potLabel: {
     fontSize: 12,
-    marginBottom: 2,
   },
   potValue: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: 'bold',
-  },
-  cardsContainer: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  card: {
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: 4,
-    borderWidth: 1,
-    minWidth: 24,
-    alignItems: 'center',
-  },
-  cardText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#000',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#ccc', // This should probably be themed too, but using a generic gray for now
+    borderTopColor: '#ccc',
     paddingTop: 8,
   },
   winnerLabel: {
