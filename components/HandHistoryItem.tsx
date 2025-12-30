@@ -75,7 +75,7 @@ export function HandHistoryItem({ hand, onPress }: HandHistoryItemProps) {
             <View style={styles.cardsRow}>
               {heroCards.length > 0 ? (
                 heroCards.map((card, index) => (
-                  <PokerCard key={index} card={card} style={index > 0 ? { marginLeft: -15, zIndex: index } : { zIndex: index }} />
+                  <PokerCard key={index} card={card} style={index > 0 ? { marginLeft: -5, zIndex: index } : { zIndex: index }} />
                 ))
               ) : (
                 <Text style={{ color: theme.subText, fontSize: 12 }}>No cards</Text>
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   },
   heroCardsContainer: {
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 24,
     minWidth: 60,
   },
   boardContainer: {
