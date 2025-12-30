@@ -2,7 +2,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useCurrentUser, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { deleteHandRecords, getUserHands, HandRecord } from '@/services/firebase/hands';
+import { deleteHandRecords, getUserHandsPaginated, HandRecord, PaginatedHandsResult } from '@/services/firebase/hands';
 import { formatDate } from '@/utils/text';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -20,35 +20,56 @@ export default function SavedHandsScreen() {
   
   const [hands, setHands] = useState<HandRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [lastTimestamp, setLastTimestamp] = useState<number | null>(null);
   const [selectedHandIds, setSelectedHandIds] = useState<Set<string>>(new Set());
   
   const isSelectionMode = selectedHandIds.size > 0;
 
-  useEffect(() => {
-    if (authLoading) return;
-
-    const fetchHands = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
+  const fetchHands = async (isLoadMore = false) => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      if (isLoadMore) {
+        setLoadingMore(true);
       }
       
-      try {
-        if (!user.id) {
-          console.error('User ID is missing');
-          return;
-        }
-        const userHands = await getUserHands(user.id);
-        setHands(userHands);
-      } catch (error) {
-        console.error('Failed to fetch hands:', error);
-      } finally {
-        setLoading(false);
+      const result = await getUserHandsPaginated(
+        user.id, 
+        50, 
+        isLoadMore ? lastTimestamp ?? undefined : undefined
+      );
+      
+      if (isLoadMore) {
+        setHands(prev => [...prev, ...result.hands]);
+      } else {
+        setHands(result.hands);
       }
-    };
-    
+      
+      setHasMore(result.hasMore);
+      setLastTimestamp(result.lastTimestamp);
+    } catch (error) {
+      console.error('Failed to fetch hands:', error);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  useEffect(() => {
+    if (authLoading) return;
     fetchHands();
   }, [user, authLoading]);
+
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchHands(true);
+    }
+  };
   
   const themeColors = {
     background: isDark ? '#1a1a1a' : '#f5f5f5',
@@ -252,6 +273,15 @@ export default function SavedHandsScreen() {
           renderItem={renderHandItem}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={styles.footerLoader}>
+                <ActivityIndicator size="small" color={themeColors.tint} />
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={{ color: themeColors.subText }}>No saved hands found.</Text>
@@ -339,6 +369,10 @@ const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  footerLoader: {
+    paddingVertical: 16,
     alignItems: 'center',
   },
 });

@@ -157,5 +157,16 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid;
       allow write: if false;  // No new writes to legacy collection
     }
+
+    // ============================================
+    // COLLECTION GROUP QUERIES
+    // ============================================
+    
+    // Allow collection group query on 'hands' subcollection
+    // This enables getUserHandsPaginated to query across all sessions
+    match /{path=**}/hands/{handId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+    }
   }
 }

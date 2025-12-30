@@ -6,11 +6,12 @@ import {
     collectionGroup,
     doc,
     getDocs,
+    limit,
     orderBy,
     query,
-    QueryConstraint,
     serverTimestamp,
     setDoc,
+    startAfter,
     where,
     writeBatch
 } from 'firebase/firestore';
@@ -34,6 +35,13 @@ function getHandDoc(userId: string, sessionId: string, handId: string) {
   return doc(db, 'users', userId, 'sessions', sessionId, 'hands', handId);
 }
 
+// ============================================
+// CONSTANTS
+// ============================================
+
+const DEFAULT_PAGE_SIZE = 50;
+const FIRESTORE_BATCH_LIMIT = 500;
+
 export interface HandRecord {
   id: string;
   sessionId: string;
@@ -47,6 +55,12 @@ export interface HandRecord {
   communityCards: string[];
   handCards?: Record<number, string[]>; // Map of seat number to cards
   winners?: number[]; // Seat numbers of winners
+}
+
+export interface PaginatedHandsResult {
+  hands: HandRecord[];
+  hasMore: boolean;
+  lastTimestamp: number | null;
 }
 
 function docToHandRecord(doc: any): HandRecord {
@@ -87,6 +101,85 @@ export async function getHands(sessionId: string, userId: string): Promise<HandR
   }
 }
 
+/**
+ * Get user hands with pagination support
+ * @param userId - The user's ID
+ * @param pageSize - Number of hands to fetch (default 50)
+ * @param afterTimestamp - Fetch hands older than this timestamp (for pagination)
+ */
+export async function getUserHandsPaginated(
+  userId: string, 
+  pageSize: number = DEFAULT_PAGE_SIZE,
+  afterTimestamp?: number
+): Promise<PaginatedHandsResult> {
+  if (!userId) {
+    console.warn('getUserHandsPaginated called with empty userId');
+    return { hands: [], hasMore: false, lastTimestamp: null };
+  }
+
+  try {
+    const handsGroup = collectionGroup(db, 'hands');
+    
+    // Build query with optional pagination cursor
+    const constraints = [
+      where('userId', '==', userId),
+      orderBy('timestamp', 'desc'),
+      limit(pageSize + 1) // Fetch one extra to check if there are more
+    ];
+    
+    if (afterTimestamp) {
+      constraints.push(startAfter(new Date(afterTimestamp)));
+    }
+    
+    const q = query(handsGroup, ...constraints);
+    const snapshot = await getDocs(q);
+    const allHands = snapshot.docs.map(docToHandRecord);
+    
+    // Check if there are more results
+    const hasMore = allHands.length > pageSize;
+    const hands = hasMore ? allHands.slice(0, pageSize) : allHands;
+    const lastTimestamp = hands.length > 0 ? hands[hands.length - 1].timestamp : null;
+    
+    return { hands, hasMore, lastTimestamp };
+  } catch (error: any) {
+    // Handle missing index error
+    if (error.code === 'failed-precondition' && error.message.includes('index')) {
+      console.warn('Missing Firestore index for collectionGroup query. Please create the required index.');
+      console.log('Falling back to non-paginated query with client-side sorting.');
+      
+      // Fallback: fetch all and paginate client-side (not ideal but works)
+      try {
+        const handsGroup = collectionGroup(db, 'hands');
+        const q = query(handsGroup, where('userId', '==', userId));
+        const snapshot = await getDocs(q);
+        let hands = snapshot.docs.map(docToHandRecord);
+        hands = hands.sort((a, b) => b.timestamp - a.timestamp);
+        
+        // Apply client-side pagination
+        if (afterTimestamp) {
+          hands = hands.filter(h => h.timestamp < afterTimestamp);
+        }
+        
+        const hasMore = hands.length > pageSize;
+        const paginatedHands = hands.slice(0, pageSize);
+        const lastTimestamp = paginatedHands.length > 0 ? paginatedHands[paginatedHands.length - 1].timestamp : null;
+        
+        return { hands: paginatedHands, hasMore, lastTimestamp };
+      } catch (fallbackError) {
+        console.error('Error in fallback fetching:', fallbackError);
+        throw fallbackError;
+      }
+    }
+    
+    console.error('Error fetching user hands:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all user hands (no pagination) - use sparingly for small datasets
+ * @deprecated Prefer getUserHandsPaginated for better performance
+ */
 export async function getUserHands(userId: string): Promise<HandRecord[]> {
   if (!userId) {
     console.warn('getUserHands called with empty userId');
@@ -188,19 +281,24 @@ export async function deleteHands(
 /**
  * Delete hands across multiple sessions
  * Accepts an array of HandRecord objects and groups deletions by session
+ * Handles Firestore's 500 operation batch limit automatically
  */
 export async function deleteHandRecords(hands: HandRecord[]): Promise<void> {
   if (!hands.length) return;
   
   try {
-    const batch = writeBatch(db);
-    
-    hands.forEach(hand => {
-      const handRef = getHandDoc(hand.userId, hand.sessionId, hand.id);
-      batch.delete(handRef);
-    });
-    
-    await batch.commit();
+    // Split into chunks of FIRESTORE_BATCH_LIMIT to respect Firestore limits
+    for (let i = 0; i < hands.length; i += FIRESTORE_BATCH_LIMIT) {
+      const chunk = hands.slice(i, i + FIRESTORE_BATCH_LIMIT);
+      const batch = writeBatch(db);
+      
+      chunk.forEach(hand => {
+        const handRef = getHandDoc(hand.userId, hand.sessionId, hand.id);
+        batch.delete(handRef);
+      });
+      
+      await batch.commit();
+    }
   } catch (error) {
     console.error('Error deleting hand records:', error);
     throw error;

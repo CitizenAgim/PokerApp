@@ -35,7 +35,7 @@ jest.mock('@/hooks', () => ({
 }));
 
 jest.mock('@/services/firebase/hands', () => ({
-  getUserHands: jest.fn(),
+  getUserHandsPaginated: jest.fn(),
   deleteHandRecords: jest.fn(),
 }));
 
@@ -72,7 +72,11 @@ const mockHands = [
 describe('SavedHandsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (handsService.getUserHands as jest.Mock).mockResolvedValue(mockHands);
+    (handsService.getUserHandsPaginated as jest.Mock).mockResolvedValue({
+      hands: mockHands,
+      hasMore: false,
+      lastTimestamp: mockHands[mockHands.length - 1].timestamp,
+    });
     (handsService.deleteHandRecords as jest.Mock).mockResolvedValue(undefined);
     jest.spyOn(Alert, 'alert');
   });
@@ -144,10 +148,10 @@ describe('SavedHandsScreen', () => {
 
     expect(handsService.deleteHandRecords).toHaveBeenCalledWith(mockHands);
     
-    // Should refresh list (mock getUserHands again or check if items removed from view)
+    // Should refresh list (mock getUserHandsPaginated again or check if items removed from view)
     // In a real app, we'd probably optimistically update or refetch.
-    // If we refetch, getUserHands is called again.
-    expect(handsService.getUserHands).toHaveBeenCalledTimes(1); // Initial only (optimistic update)
+    // If we refetch, getUserHandsPaginated is called again.
+    expect(handsService.getUserHandsPaginated).toHaveBeenCalledTimes(1); // Initial only (optimistic update)
   });
 
   it('exits selection mode', async () => {
