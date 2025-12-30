@@ -2,7 +2,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useCurrentUser, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { deleteHandRecords, getUserHandsPaginated, HandRecord, PaginatedHandsResult } from '@/services/firebase/hands';
+import { deleteHandRecords, getUserHandsPaginated, HandRecord } from '@/services/firebase/hands';
 import { formatDate } from '@/utils/text';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
