@@ -82,13 +82,26 @@ service cloud.firestore {
         // Friends: read if shared
         allow read: if isAuthenticated() && isFriend(userId) && isShared();
         
-        // Hands subcollection - inherit session access
+        // Legacy hands subcollection - read only for migration
         match /hands/{handId} {
-          allow read, write: if isOwner(userId);
-          // Friends can read hands if session is shared
-          allow read: if isAuthenticated() && isFriend(userId) && 
-            get(/databases/$(database)/documents/users/$(userId)/sessions/$(sessionId)).data.isShared == true;
+          allow read: if isOwner(userId);
+          allow write: if false; // No new writes to legacy location
         }
+      }
+      
+      // ============================================
+      // HANDS SUBCOLLECTION (NEW - top level under user)
+      // ============================================
+      
+      match /hands/{handId} {
+        // Owner: full read/write access
+        allow read, write: if isOwner(userId);
+        
+        // Friends: can read hands if the associated session is shared
+        // For standalone hands (no session), only owner can read
+        allow read: if isAuthenticated() && isFriend(userId) && 
+          resource.data.sessionId != null &&
+          get(/databases/$(database)/documents/users/$(userId)/sessions/$(resource.data.sessionId)).data.isShared == true;
       }
       
       // ============================================
@@ -156,17 +169,6 @@ service cloud.firestore {
       allow read: if isAuthenticated() && 
         resource.data.userId == request.auth.uid;
       allow write: if false;  // No new writes to legacy collection
-    }
-
-    // ============================================
-    // COLLECTION GROUP QUERIES
-    // ============================================
-    
-    // Allow collection group query on 'hands' subcollection
-    // This enables getUserHandsPaginated to query across all sessions
-    match /{path=**}/hands/{handId} {
-      allow read: if isAuthenticated() && 
-        resource.data.userId == request.auth.uid;
     }
   }
 }

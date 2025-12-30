@@ -26,6 +26,7 @@ import {
 } from 'firebase/firestore';
 import { checkRateLimit } from '../rateLimit';
 import { validateSessionData } from '../validation';
+import { clearSessionFromHands } from './hands';
 
 // ============================================
 // COLLECTION HELPERS
@@ -297,12 +298,17 @@ export async function endSession(
 
 /**
  * Delete a session
+ * Note: Associated hands are NOT deleted, but their sessionId is cleared
  */
 export async function deleteSession(userId: string, sessionId: string): Promise<void> {
   // Rate limiting
   checkRateLimit(userId, 'DELETE_SESSION');
   
   try {
+    // Clear sessionId from all associated hands (they become orphaned but preserved)
+    await clearSessionFromHands(userId, sessionId);
+    
+    // Delete the session document
     await deleteDoc(getSessionDoc(userId, sessionId));
   } catch (error) {
     console.error('Error deleting session:', error);

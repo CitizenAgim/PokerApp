@@ -3,7 +3,6 @@ import { Seat } from '@/types/poker';
 import { HandAction, HandState, SidePot, Street } from '@/utils/hand-recording/types';
 import {
     collection,
-    collectionGroup,
     doc,
     getDocs,
     limit,
@@ -21,18 +20,18 @@ import {
 // ============================================
 
 /**
- * Get the hands subcollection reference for a session
- * Path: /users/{userId}/sessions/{sessionId}/hands
+ * Get the hands collection reference for a user
+ * NEW Path: /users/{userId}/hands
  */
-function getHandsCollection(userId: string, sessionId: string) {
-  return collection(db, 'users', userId, 'sessions', sessionId, 'hands');
+function getHandsCollection(userId: string) {
+  return collection(db, 'users', userId, 'hands');
 }
 
 /**
  * Get a hand document reference
  */
-function getHandDoc(userId: string, sessionId: string, handId: string) {
-  return doc(db, 'users', userId, 'sessions', sessionId, 'hands', handId);
+function getHandDoc(userId: string, handId: string) {
+  return doc(db, 'users', userId, 'hands', handId);
 }
 
 // ============================================
@@ -42,10 +41,14 @@ function getHandDoc(userId: string, sessionId: string, handId: string) {
 const DEFAULT_PAGE_SIZE = 50;
 const FIRESTORE_BATCH_LIMIT = 500;
 
+// ============================================
+// TYPES
+// ============================================
+
 export interface HandRecord {
   id: string;
-  sessionId: string;
   userId: string;
+  sessionId: string | null; // null = standalone hand, not tied to session
   timestamp: number;
   street: Street;
   pot: number;
@@ -56,6 +59,18 @@ export interface HandRecord {
   handCards?: Record<number, string[]>; // Map of seat number to cards
   heroSeat?: number; // Seat number of the hero
   winners?: number[]; // Seat numbers of winners
+  
+  // Denormalized session info (for display without fetching session)
+  sessionName?: string;
+  stakes?: string;
+  location?: string;
+}
+
+export interface SessionInfo {
+  sessionId: string;
+  sessionName?: string;
+  stakes?: string;
+  location?: string;
 }
 
 export interface PaginatedHandsResult {
@@ -64,43 +79,70 @@ export interface PaginatedHandsResult {
   lastTimestamp: number | null;
 }
 
+// ============================================
+// HELPERS
+// ============================================
+
 function docToHandRecord(doc: any): HandRecord {
   const data = doc.data();
   return {
     id: doc.id,
-    sessionId: data.sessionId,
+    sessionId: data.sessionId ?? null,
     userId: data.userId,
     timestamp: data.timestamp?.toMillis() || Date.now(),
     street: data.street,
     pot: data.pot,
-    sidePots: data.sidePots,
-    actions: data.actions,
-    seats: data.seats,
-    communityCards: data.communityCards,
+    sidePots: data.sidePots || [],
+    actions: data.actions || [],
+    seats: data.seats || [],
+    communityCards: data.communityCards || [],
     handCards: data.handCards,
     heroSeat: data.heroSeat,
-    winners: data.winners
+    winners: data.winners,
+    // Denormalized session info
+    sessionName: data.sessionName,
+    stakes: data.stakes,
+    location: data.location,
   };
 }
 
-export async function getHands(sessionId: string, userId: string): Promise<HandRecord[]> {
+// ============================================
+// READ OPERATIONS
+// ============================================
+
+/**
+ * Get hands for a specific session
+ */
+export async function getHandsBySession(sessionId: string, userId: string): Promise<HandRecord[]> {
   try {
-    console.log(`[getHands] Fetching hands for session: ${sessionId}, user: ${userId}`);
+    console.log(`[getHandsBySession] Fetching hands for session: ${sessionId}, user: ${userId}`);
     
     if (!userId) {
-      console.warn('getHands called without userId. Cannot fetch from subcollection.');
+      console.warn('getHandsBySession called without userId.');
       return [];
     }
 
-    const handsRef = getHandsCollection(userId, sessionId);
-    const q = query(handsRef, orderBy('timestamp', 'desc'));
+    const handsRef = getHandsCollection(userId);
+    const q = query(
+      handsRef, 
+      where('sessionId', '==', sessionId),
+      orderBy('timestamp', 'desc')
+    );
     
     const snapshot = await getDocs(q);
     return snapshot.docs.map(docToHandRecord);
   } catch (error) {
-    console.error('Error fetching hands:', error);
+    console.error('Error fetching hands by session:', error);
     throw error;
   }
+}
+
+/**
+ * @deprecated Use getHandsBySession instead
+ * Keeping for backward compatibility during transition
+ */
+export async function getHands(sessionId: string, userId: string): Promise<HandRecord[]> {
+  return getHandsBySession(sessionId, userId);
 }
 
 /**
@@ -120,20 +162,25 @@ export async function getUserHandsPaginated(
   }
 
   try {
-    const handsGroup = collectionGroup(db, 'hands');
+    const handsRef = getHandsCollection(userId);
     
-    // Build query with optional pagination cursor
-    const constraints = [
-      where('userId', '==', userId),
-      orderBy('timestamp', 'desc'),
-      limit(pageSize + 1) // Fetch one extra to check if there are more
-    ];
-    
+    // Build query - now much simpler without collectionGroup
+    let q;
     if (afterTimestamp) {
-      constraints.push(startAfter(new Date(afterTimestamp)));
+      q = query(
+        handsRef,
+        orderBy('timestamp', 'desc'),
+        startAfter(new Date(afterTimestamp)),
+        limit(pageSize + 1)
+      );
+    } else {
+      q = query(
+        handsRef,
+        orderBy('timestamp', 'desc'),
+        limit(pageSize + 1)
+      );
     }
     
-    const q = query(handsGroup, ...constraints);
     const snapshot = await getDocs(q);
     const allHands = snapshot.docs.map(docToHandRecord);
     
@@ -144,35 +191,6 @@ export async function getUserHandsPaginated(
     
     return { hands, hasMore, lastTimestamp };
   } catch (error: any) {
-    // Handle missing index error
-    if (error.code === 'failed-precondition' && error.message.includes('index')) {
-      console.warn('Missing Firestore index for collectionGroup query. Please create the required index.');
-      console.log('Falling back to non-paginated query with client-side sorting.');
-      
-      // Fallback: fetch all and paginate client-side (not ideal but works)
-      try {
-        const handsGroup = collectionGroup(db, 'hands');
-        const q = query(handsGroup, where('userId', '==', userId));
-        const snapshot = await getDocs(q);
-        let hands = snapshot.docs.map(docToHandRecord);
-        hands = hands.sort((a, b) => b.timestamp - a.timestamp);
-        
-        // Apply client-side pagination
-        if (afterTimestamp) {
-          hands = hands.filter(h => h.timestamp < afterTimestamp);
-        }
-        
-        const hasMore = hands.length > pageSize;
-        const paginatedHands = hands.slice(0, pageSize);
-        const lastTimestamp = paginatedHands.length > 0 ? paginatedHands[paginatedHands.length - 1].timestamp : null;
-        
-        return { hands: paginatedHands, hasMore, lastTimestamp };
-      } catch (fallbackError) {
-        console.error('Error in fallback fetching:', fallbackError);
-        throw fallbackError;
-      }
-    }
-    
     console.error('Error fetching user hands:', error);
     throw error;
   }
@@ -189,58 +207,50 @@ export async function getUserHands(userId: string): Promise<HandRecord[]> {
   }
 
   try {
-    // Use collectionGroup to query all hands subcollections for this user
-    // Path pattern: /users/{userId}/sessions/*/hands
-    const handsGroup = collectionGroup(db, 'hands');
-    const q = query(
-      handsGroup,
-      where('userId', '==', userId),
-      orderBy('timestamp', 'desc')
-    );
+    const handsRef = getHandsCollection(userId);
+    const q = query(handsRef, orderBy('timestamp', 'desc'));
     
     const snapshot = await getDocs(q);
     return snapshot.docs.map(docToHandRecord);
-  } catch (error: any) {
-    // Handle missing index error by falling back to client-side sorting
-    if (error.code === 'failed-precondition' && error.message.includes('index')) {
-      console.warn('Missing Firestore index for collectionGroup query. Falling back to client-side sorting.');
-      console.log('Please create the index using the link in the console logs to improve performance.');
-      
-      try {
-        const handsGroup = collectionGroup(db, 'hands');
-        const q = query(handsGroup, where('userId', '==', userId));
-        const snapshot = await getDocs(q);
-        const hands = snapshot.docs.map(docToHandRecord);
-        return hands.sort((a, b) => b.timestamp - a.timestamp);
-      } catch (fallbackError) {
-        console.error('Error in fallback fetching:', fallbackError);
-        throw fallbackError;
-      }
-    }
-    
+  } catch (error) {
     console.error('Error fetching user hands:', error);
     throw error;
   }
 }
 
-export async function saveHand(sessionId: string, userId: string, state: HandState): Promise<string> {
+// ============================================
+// WRITE OPERATIONS
+// ============================================
+
+/**
+ * Save a hand record
+ * @param userId - The user's ID
+ * @param state - The hand state to save
+ * @param sessionInfo - Optional session info (null for standalone hands)
+ */
+export async function saveHand(
+  userId: string, 
+  state: HandState, 
+  sessionInfo?: SessionInfo | null
+): Promise<string> {
   try {
-    const handsRef = getHandsCollection(userId, sessionId);
+    const handsRef = getHandsCollection(userId);
     const handRef = doc(handsRef);
     const id = handRef.id;
     
-    const handData: any = {
-      sessionId,
+    const handData: Record<string, any> = {
       userId,
+      sessionId: sessionInfo?.sessionId ?? null,
       timestamp: serverTimestamp(),
       street: state.street,
       pot: state.pot,
-      sidePots: state.sidePots,
-      actions: state.actions,
-      seats: state.seats,
-      communityCards: state.communityCards,
+      sidePots: state.sidePots || [],
+      actions: state.actions || [],
+      seats: state.seats || [],
+      communityCards: state.communityCards || [],
     };
 
+    // Add optional fields
     if (state.handCards) {
       handData.handCards = state.handCards;
     }
@@ -253,6 +263,13 @@ export async function saveHand(sessionId: string, userId: string, state: HandSta
       handData.winners = state.winners;
     }
     
+    // Add denormalized session info
+    if (sessionInfo) {
+      if (sessionInfo.sessionName) handData.sessionName = sessionInfo.sessionName;
+      if (sessionInfo.stakes) handData.stakes = sessionInfo.stakes;
+      if (sessionInfo.location) handData.location = sessionInfo.location;
+    }
+    
     await setDoc(handRef, handData);
     return id;
   } catch (error) {
@@ -262,22 +279,63 @@ export async function saveHand(sessionId: string, userId: string, state: HandSta
 }
 
 /**
- * Delete hands from a single session
+ * Clear sessionId from hands when a session is deleted
+ * The hands become "orphaned" but are preserved
  */
-export async function deleteHands(
-  handIds: string[], 
-  userId: string, 
-  sessionId: string
-): Promise<void> {
+export async function clearSessionFromHands(userId: string, sessionId: string): Promise<void> {
   try {
-    const batch = writeBatch(db);
+    const handsRef = getHandsCollection(userId);
+    const q = query(handsRef, where('sessionId', '==', sessionId));
+    const snapshot = await getDocs(q);
     
-    handIds.forEach(id => {
-      const handRef = getHandDoc(userId, sessionId, id);
-      batch.delete(handRef);
-    });
+    if (snapshot.empty) {
+      console.log(`No hands found for session ${sessionId}`);
+      return;
+    }
     
-    await batch.commit();
+    // Split into chunks to respect Firestore batch limit
+    const docs = snapshot.docs;
+    for (let i = 0; i < docs.length; i += FIRESTORE_BATCH_LIMIT) {
+      const chunk = docs.slice(i, i + FIRESTORE_BATCH_LIMIT);
+      const batch = writeBatch(db);
+      
+      chunk.forEach(doc => {
+        batch.update(doc.ref, { sessionId: null });
+      });
+      
+      await batch.commit();
+    }
+    
+    console.log(`Cleared sessionId from ${docs.length} hands`);
+  } catch (error) {
+    console.error('Error clearing session from hands:', error);
+    throw error;
+  }
+}
+
+// ============================================
+// DELETE OPERATIONS
+// ============================================
+
+/**
+ * Delete specific hands by ID
+ */
+export async function deleteHands(handIds: string[], userId: string): Promise<void> {
+  if (!handIds.length) return;
+  
+  try {
+    // Split into chunks to respect Firestore batch limit
+    for (let i = 0; i < handIds.length; i += FIRESTORE_BATCH_LIMIT) {
+      const chunk = handIds.slice(i, i + FIRESTORE_BATCH_LIMIT);
+      const batch = writeBatch(db);
+      
+      chunk.forEach(id => {
+        const handRef = getHandDoc(userId, id);
+        batch.delete(handRef);
+      });
+      
+      await batch.commit();
+    }
   } catch (error) {
     console.error('Error deleting hands:', error);
     throw error;
@@ -285,8 +343,7 @@ export async function deleteHands(
 }
 
 /**
- * Delete hands across multiple sessions
- * Accepts an array of HandRecord objects and groups deletions by session
+ * Delete hands by HandRecord objects
  * Handles Firestore's 500 operation batch limit automatically
  */
 export async function deleteHandRecords(hands: HandRecord[]): Promise<void> {
@@ -299,7 +356,7 @@ export async function deleteHandRecords(hands: HandRecord[]): Promise<void> {
       const batch = writeBatch(db);
       
       chunk.forEach(hand => {
-        const handRef = getHandDoc(hand.userId, hand.sessionId, hand.id);
+        const handRef = getHandDoc(hand.userId, hand.id);
         batch.delete(handRef);
       });
       

@@ -210,6 +210,27 @@ export default function SavedHandsScreen() {
         )}
         
         <View style={styles.cardContent}>
+          {/* Session info row */}
+          {(item.sessionName || item.stakes || item.location) && (
+            <View style={styles.sessionInfoRow}>
+              {item.sessionName && (
+                <Text style={[styles.sessionNameText, { color: themeColors.tint }]} numberOfLines={1}>
+                  {item.sessionName}
+                </Text>
+              )}
+              {item.stakes && (
+                <Text style={[styles.stakesText, { color: themeColors.subText }]}>
+                  {item.stakes}
+                </Text>
+              )}
+              {item.location && (
+                <Text style={[styles.locationText, { color: themeColors.subText }]} numberOfLines={1}>
+                  @ {item.location}
+                </Text>
+              )}
+            </View>
+          )}
+          
           <View style={styles.handRow}>
             {/* Hero Cards */}
             <View style={styles.heroCardsContainer}>
@@ -228,7 +249,7 @@ export default function SavedHandsScreen() {
             {/* Board Cards */}
             <View style={styles.boardContainer}>
               <View style={styles.headerRow}>
-                 <Text style={[styles.potText, { color: themeColors.text }]}>${item.pot}</Text>
+                 <Text style={[styles.potText, { color: themeColors.text }]}>Pot: {item.pot}</Text>
                  <Text style={[styles.dateText, { color: themeColors.subText }]}> • {formatDate(item.timestamp, dateFormat)}</Text>
               </View>
               
@@ -373,6 +394,24 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 10,
     marginBottom: 4,
+  },
+  sessionInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  sessionNameText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  stakesText: {
+    fontSize: 11,
+  },
+  locationText: {
+    fontSize: 11,
+    flex: 1,
   },
   headerRow: {
     flexDirection: 'row',

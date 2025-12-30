@@ -2,6 +2,20 @@
   "indexes": [
     {
       "collectionGroup": "hands",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "sessionId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "hands",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
         {

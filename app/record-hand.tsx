@@ -6,7 +6,7 @@ import { usePlayers, useSession } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useHandRecorder } from '@/hooks/useHandRecorder';
-import { saveHand } from '@/services/firebase/hands';
+import { saveHand, SessionInfo } from '@/services/firebase/hands';
 import { getThemeColors, styles } from '@/styles/record-hand.styles';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -592,7 +592,15 @@ export default function RecordHandScreen() {
             winners
         };
         
-        await saveHand(sessionId, user.id, handStateToSave);
+        // Build session info for denormalization
+        const sessionInfo: SessionInfo | null = sessionId && session ? {
+          sessionId,
+          sessionName: session.name,
+          stakes: session.stakes,
+          location: session.location,
+        } : null;
+        
+        await saveHand(user.id, handStateToSave, sessionInfo);
         Alert.alert('Success', 'Hand saved!');
         router.back();
     } catch (e) {

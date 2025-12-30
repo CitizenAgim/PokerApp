@@ -3,7 +3,7 @@ import { PokerTable } from '@/components/table/PokerTable';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useCurrentSession, useCurrentUser, usePlayers, useSession, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { getHands, HandRecord } from '@/services/firebase/hands';
+import { getHandsBySession, HandRecord } from '@/services/firebase/hands';
 import { getThemeColors, styles } from '@/styles/sessions/[id].styles';
 import { formatDate } from '@/utils/text';
 import { Ionicons } from '@expo/vector-icons';
@@ -117,7 +117,7 @@ export default function SessionDetailScreen() {
 
         try {
           setLoadingHands(true);
-          const fetchedHands = await getHands(id, user.id);
+          const fetchedHands = await getHandsBySession(id, user.id);
           if (isActive) {
             setHands(fetchedHands);
           }
