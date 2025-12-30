@@ -142,8 +142,8 @@ export default function SavedHandsScreen() {
     if (isSelectionMode) {
       toggleSelection(id);
     } else {
-      // Navigate to hand details (to be implemented)
-      // router.push('/saved-hands/' + id);
+      // Navigate to hand replay
+      router.push(`/hand-replay/${id}`);
     }
   };
 

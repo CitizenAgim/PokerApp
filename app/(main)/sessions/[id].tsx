@@ -614,7 +614,7 @@ export default function SessionDetailScreen() {
                      <HandHistoryItem 
                        hand={item} 
                        onPress={(hand) => {
-                         console.log('Hand pressed:', hand.id);
+                         router.push(`/hand-replay/${hand.id}`);
                        }} 
                      />
                    </View>

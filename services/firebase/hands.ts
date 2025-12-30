@@ -4,6 +4,7 @@ import { HandAction, HandState, SidePot, Street } from '@/utils/hand-recording/t
 import {
     collection,
     doc,
+    getDoc,
     getDocs,
     limit,
     orderBy,
@@ -58,6 +59,7 @@ export interface HandRecord {
   communityCards: string[];
   handCards?: Record<number, string[]>; // Map of seat number to cards
   heroSeat?: number; // Seat number of the hero
+  buttonPosition: number; // Seat number with the button (1-9)
   winners?: number[]; // Seat numbers of winners
   
   // Denormalized session info (for display without fetching session)
@@ -98,6 +100,7 @@ function docToHandRecord(doc: any): HandRecord {
     communityCards: data.communityCards || [],
     handCards: data.handCards,
     heroSeat: data.heroSeat,
+    buttonPosition: data.buttonPosition || 1,
     winners: data.winners,
     // Denormalized session info
     sessionName: data.sessionName,
@@ -109,6 +112,30 @@ function docToHandRecord(doc: any): HandRecord {
 // ============================================
 // READ OPERATIONS
 // ============================================
+
+/**
+ * Get a single hand by ID
+ */
+export async function getHandById(handId: string, userId: string): Promise<HandRecord | null> {
+  try {
+    if (!userId || !handId) {
+      console.warn('getHandById called without userId or handId');
+      return null;
+    }
+
+    const handRef = getHandDoc(userId, handId);
+    const snapshot = await getDoc(handRef);
+    
+    if (!snapshot.exists()) {
+      return null;
+    }
+    
+    return docToHandRecord(snapshot);
+  } catch (error) {
+    console.error('Error fetching hand by id:', error);
+    throw error;
+  }
+}
 
 /**
  * Get hands for a specific session
@@ -248,6 +275,7 @@ export async function saveHand(
       actions: state.actions || [],
       seats: state.seats || [],
       communityCards: state.communityCards || [],
+      buttonPosition: state.buttonPosition || 1,
     };
 
     // Add optional fields
