@@ -4,7 +4,7 @@ import { Stack } from 'expo-router';
 export default function SessionPlayerDetailScreen() {
   return (
     <>
-      <Stack.Screen options={{ title: 'Player Details' }} />
+      <Stack.Screen options={{ headerShown: false }} />
       <PlayerDetailView />
     </>
   );

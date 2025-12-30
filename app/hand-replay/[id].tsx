@@ -10,7 +10,7 @@ import { Seat } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function HandReplayScreen() {
@@ -172,6 +172,35 @@ function HandReplayContent({ hand }: { hand: HandRecord }) {
   
   const winnerInfo = getWinnerInfo();
   
+  const handleSeatPress = (seatNumber: number) => {
+    const seat = replaySeats.find(s => {
+      const sNum = s.seatNumber ?? (s.index !== undefined ? s.index + 1 : 0);
+      return sNum === seatNumber;
+    });
+    
+    if (!seat) return;
+    
+    const playerId = seat.playerId || seat.player?.id;
+    const playerName = seat.player?.name || `Seat ${seatNumber}`;
+    
+    if (playerId) {
+      Alert.alert(
+        playerName,
+        'View player details?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Ranges & Notes',
+            onPress: () => router.push(`/player-details/${playerId}`),
+          },
+        ]
+      );
+    }
+  };
+
   return (
     <ThemedView style={[styles.container, { backgroundColor: themeColors.background }]}>
       {/* Header */}
@@ -247,7 +276,7 @@ function HandReplayContent({ hand }: { hand: HandRecord }) {
           buttonPosition={hand.buttonPosition}
           heroSeat={hand.heroSeat}
           activeSeat={state.activeSeat}
-          onSeatPress={() => {}} // No interaction in replay
+          onSeatPress={handleSeatPress}
           themeColors={{
             ...themeColors,
             seatBg: isDark ? '#2c2c2e' : '#fff',

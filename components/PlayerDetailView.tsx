@@ -20,6 +20,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LimitWarning, checkLimit } from './ui/LimitWarning';
 
 const POSITIONS: { id: Position; label: string; color: string }[] = [
@@ -40,7 +41,7 @@ const ACTIONS: { id: Action; label: string }[] = [
   { id: 'limp-reraise', label: 'Limp/Reraise' },
 ];
 
-export default function PlayerDetailView() {
+export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: string, position: Position, action: Action) => void }) {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { player, loading, error } = usePlayer(id);
@@ -48,6 +49,7 @@ export default function PlayerDetailView() {
   const { ranges } = usePlayerRanges(id);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const insets = useSafeAreaInsets();
 
   // Theme colors
   const themeColors = getThemeColors(isDark);
@@ -332,7 +334,11 @@ export default function PlayerDetailView() {
   };
 
   const handleEditRange = (position: Position, action: Action) => {
-    router.push(`/(main)/players/${id}/range?position=${position}&action=${action}`);
+    if (onEditRange) {
+      onEditRange(id, position, action);
+    } else {
+      router.push(`/(main)/players/${id}/range?position=${position}&action=${action}`);
+    }
   };
 
   const getRangePercentage = (position: Position, action: Action): string => {
@@ -379,7 +385,27 @@ export default function PlayerDetailView() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: themeColors.background }]} contentContainerStyle={styles.content}>
       {/* Player Header */}
-      <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
+      <View style={[
+        styles.header, 
+        { 
+          backgroundColor: themeColors.card, 
+          borderBottomColor: themeColors.border,
+          paddingTop: insets.top + 24 
+        }
+      ]}>
+        <TouchableOpacity 
+          onPress={() => router.back()} 
+          style={{ 
+            position: 'absolute', 
+            left: 16, 
+            top: insets.top + 16, 
+            zIndex: 10,
+            padding: 8
+          }}
+        >
+          <Ionicons name="arrow-back" size={24} color={themeColors.text} />
+        </TouchableOpacity>
+
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
             {player.name.charAt(0).toUpperCase()}
