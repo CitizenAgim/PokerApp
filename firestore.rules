@@ -14,28 +14,16 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
     
-    // Check if requester is a friend of the user
-    function isFriend(userId) {
-      return exists(/databases/$(database)/documents/users/$(userId)/friends/$(request.auth.uid));
-    }
-    
-    // Check if item is shared
-    function isShared() {
-      return resource.data.isShared == true;
-    }
-    
     // ============================================
     // VALIDATION FUNCTIONS
     // ============================================
     
     // Validate player document structure and limits
-    // Note: request.resource.data contains the full document after update
     function isValidPlayer(player) {
       return player.name != null 
         && player.name is string
         && player.name.size() >= 1
         && player.name.size() <= 100;
-      // Size limits enforced by request.resource.size < 500000
     }
     
     // Validate session document structure and limits
@@ -44,7 +32,6 @@ service cloud.firestore {
         && session.name is string
         && session.name.size() >= 1
         && session.name.size() <= 200;
-      // Size limits enforced by request.resource.size < 1000000
     }
 
     // ============================================
@@ -56,34 +43,23 @@ service cloud.firestore {
       allow write: if isOwner(userId);
       
       // ============================================
-      // PLAYERS SUBCOLLECTION (with sharing)
+      // PLAYERS SUBCOLLECTION
       // ============================================
       
       match /players/{playerId} {
         // Owner: full read/write access
-        // Note: Field validation done client-side in validation.ts
-        // Note: Size limits temporarily disabled for debugging
         allow read, write: if isOwner(userId);
-        
-        // Friends: read if shared
-        allow read: if isAuthenticated() && isFriend(userId) && isShared();
       }
       
       // ============================================
-      // SESSIONS SUBCOLLECTION (with sharing)
+      // SESSIONS SUBCOLLECTION
       // ============================================
       
       match /sessions/{sessionId} {
         // Owner: full read/write access
-        // Note: Field validation done client-side in validation.ts
-        // Note: Size limits temporarily disabled for debugging
         allow read, write: if isOwner(userId);
         
-        // Friends: read if shared
-        allow read: if isAuthenticated() && isFriend(userId) && isShared();
-        
-        // Legacy hands subcollection - read only for migration
-        match /hands/{handId} {
+        // Legacy hands subcollection - rea        && session.name.size()atch /hands/{handId} {
           allow read: if isOwner(userId);
           allow write: if false; // No new writes to legacy location
         }
@@ -96,48 +72,16 @@ service cloud.firestore {
       match /hands/{handId} {
         // Owner: full read/write access
         allow read, write: if isOwner(userId);
-        
-        // Friends: can read hands if the associated session is shared
-        // For standalone hands (no session), only owner can read
-        allow read: if isAuthenticated() && isFriend(userId) && 
-          resource.data.sessionId != null &&
-          get(/databases/$(database)/documents/users/$(userId)/sessions/$(resource.data.sessionId)).data.isShared == true;
       }
       
       // ============================================
-      // FRIENDS LIST
+      // IMPORTS
       // ============================================
       
-      match /friends/{friendId} {
-        allow read, write: if isOwner(userId);
-        // Friend can read their own entry (to see permissions granted)
-        allow read: if request.auth.uid == friendId;
+      match       }
+      
+      // ================= write: if isOwner(userId);
       }
-      
-      // ============================================
-      // IMPORTS (copied data from friends)
-      // ============================================
-      
-      match /imports/{importId} {
-        allow read, write: if isOwner(userId);
-      }
-    }
-
-    // ============================================
-    // FRIEND REQUESTS (global for discovery)
-    // ============================================
-    
-    match /friendRequests/{requestId} {
-      allow read: if isAuthenticated() && 
-        (resource.data.fromUserId == request.auth.uid || 
-         resource.data.toUserId == request.auth.uid);
-      allow create: if isAuthenticated() && 
-        request.resource.data.fromUserId == request.auth.uid;
-      allow update: if isAuthenticated() && 
-        resource.data.toUserId == request.auth.uid;
-      allow delete: if isAuthenticated() && 
-        (resource.data.fromUserId == request.auth.uid || 
-         resource.data.toUserId == request.auth.uid);
     }
 
     // ============================================
