@@ -578,6 +578,7 @@ export default function RecordHandScreen() {
             handCards,
             communityCards,
             buttonPosition,
+            heroSeat,
             isHandStarted,
             activeCardSeat: null,
             isPickingBoard,

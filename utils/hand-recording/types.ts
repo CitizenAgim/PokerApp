@@ -28,6 +28,7 @@ export interface HandState {
   handCards: Record<number, string[]>;
   communityCards: string[];
   buttonPosition: number;
+  heroSeat?: number; // Seat number of the hero
   isHandStarted: boolean;
   activeCardSeat: number | null;
   isPickingBoard: boolean;

@@ -54,6 +54,7 @@ export interface HandRecord {
   seats: Seat[]; // Snapshot of seats at end of hand
   communityCards: string[];
   handCards?: Record<number, string[]>; // Map of seat number to cards
+  heroSeat?: number; // Seat number of the hero
   winners?: number[]; // Seat numbers of winners
 }
 
@@ -77,6 +78,7 @@ function docToHandRecord(doc: any): HandRecord {
     seats: data.seats,
     communityCards: data.communityCards,
     handCards: data.handCards,
+    heroSeat: data.heroSeat,
     winners: data.winners
   };
 }
@@ -241,6 +243,10 @@ export async function saveHand(sessionId: string, userId: string, state: HandSta
 
     if (state.handCards) {
       handData.handCards = state.handCards;
+    }
+
+    if (state.heroSeat !== undefined) {
+      handData.heroSeat = state.heroSeat;
     }
     
     if (state.winners) {

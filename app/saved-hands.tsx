@@ -103,8 +103,13 @@ export default function SavedHandsScreen() {
   const getHeroCardsArray = (hand: HandRecord): string[] => {
     if (!hand.handCards) return [];
     
-    const heroSeat = hand.seats.find(s => s.playerId === user?.id);
+    // Use heroSeat directly if available (new format)
+    if (hand.heroSeat !== undefined) {
+      return hand.handCards[hand.heroSeat] || [];
+    }
     
+    // Fallback for old records: try to find hero by playerId
+    const heroSeat = hand.seats.find(s => s.playerId === user?.id);
     if (heroSeat) {
       const seatNum = heroSeat.seatNumber ?? (heroSeat.index !== undefined ? heroSeat.index + 1 : undefined);
       if (seatNum !== undefined) {
