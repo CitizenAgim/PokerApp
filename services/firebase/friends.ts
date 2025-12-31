@@ -9,24 +9,24 @@
  */
 
 import { db } from '@/config/firebase';
-import { Friend, FriendRequest, FRIEND_CODE_CONFIG } from '@/types/friends';
+import { Friend, FRIEND_CODE_CONFIG, FriendRequest } from '@/types/friends';
 import { User } from '@/types/poker';
 import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  increment,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  setDoc,
-  Timestamp,
-  updateDoc,
-  where,
-  writeBatch,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    increment,
+    onSnapshot,
+    orderBy,
+    query,
+    serverTimestamp,
+    setDoc,
+    Timestamp,
+    updateDoc,
+    where,
+    writeBatch,
 } from 'firebase/firestore';
 
 // ============================================

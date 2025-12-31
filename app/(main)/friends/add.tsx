@@ -1,20 +1,20 @@
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useFriends } from '@/hooks/useFriends';
 import * as friendsService from '@/services/firebase/friends';
-import { addFriendStyles as styles, getThemeColors } from '@/styles/friends/index.styles';
+import { getThemeColors, addFriendStyles as styles } from '@/styles/friends/index.styles';
 import { FRIEND_CODE_CONFIG } from '@/types/friends';
 import { User } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
