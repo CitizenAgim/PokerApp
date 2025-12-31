@@ -39,8 +39,16 @@ service cloud.firestore {
     // ============================================
     
     match /users/{userId} {
-      allow read: if isAuthenticated();  // Basic profile visible to all authenticated
+      // Anyone authenticated can read user profiles
+      allow read: if isAuthenticated();
+      
+      // Owner has full write access
       allow write: if isOwner(userId);
+      
+      // Allow other authenticated users to update ONLY friendsCount
+      // This is needed when accepting friend requests
+      allow update: if isAuthenticated() && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friendsCount']);
       
       // ============================================
       // PLAYERS SUBCOLLECTION
@@ -59,7 +67,8 @@ service cloud.firestore {
         // Owner: full read/write access
         allow read, write: if isOwner(userId);
         
-        // Legacy hands subcollection - rea        && session.name.size()atch /hands/{handId} {
+        // Legacy hands subcollection
+        match /hands/{handId} {
           allow read: if isOwner(userId);
           allow write: if false; // No new writes to legacy location
         }
@@ -75,12 +84,11 @@ service cloud.firestore {
       }
       
       // ============================================
-      // IMPORTS
+      // IMPORTS SUBCOLLECTION
       // ============================================
       
-      match       }
-      
-      // ================= write: if isOwner(userId);
+      match /imports/{importId} {
+        allow read, write: if isOwner(userId);
       }
       
       // ============================================
@@ -89,7 +97,16 @@ service cloud.firestore {
       
       match /friends/{friendId} {
         // Owner: full read/write access to their friends list
-        allow read, write: if isOwner(userId);
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+        
+        // Allow a user to add themselves as a friend to another user's list
+        // This happens when accepting a friend request - the accepter adds
+        // themselves to the requester's friends list
+        allow create: if isAuthenticated() && friendId == request.auth.uid;
+        
+        // Allow a user to remove themselves from another user's list (unfriend)
+        allow delete: if isAuthenticated() && friendId == request.auth.uid;
       }
     }
     
