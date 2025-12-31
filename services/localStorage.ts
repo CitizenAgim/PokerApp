@@ -7,14 +7,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // ============================================
 
 const KEYS = {
-  PLAYERS: '@pokerapp/players',
-  PLAYER_RANGES: '@pokerapp/playerRanges',
-  SESSIONS: '@pokerapp/sessions',
-  CURRENT_SESSION: '@pokerapp/currentSession',
-  PENDING_SYNC: '@pokerapp/pendingSync',
-  USER_PREFERENCES: '@pokerapp/preferences',
-  LOCATIONS: '@pokerapp/locations',
-  LAST_SESSION_CONFIG: '@pokerapp/lastSessionConfig',
+  PLAYERS: '@pokerfiles/players',
+  PLAYER_RANGES: '@pokerfiles/playerRanges',
+  SESSIONS: '@pokerfiles/sessions',
+  CURRENT_SESSION: '@pokerfiles/currentSession',
+  PENDING_SYNC: '@pokerfiles/pendingSync',
+  USER_PREFERENCES: '@pokerfiles/preferences',
+  LOCATIONS: '@pokerfiles/locations',
+  LAST_SESSION_CONFIG: '@pokerfiles/lastSessionConfig',
 } as const;
 
 // ============================================

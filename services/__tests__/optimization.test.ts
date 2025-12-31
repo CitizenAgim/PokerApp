@@ -58,8 +58,8 @@ describe('Data Optimization & Lean Sync', () => {
 
       // Mock getSessions to return empty array initially
       (AsyncStorage.getItem as jest.Mock).mockImplementation((key) => {
-        if (key === '@pokerapp/sessions') return Promise.resolve('[]');
-        if (key === '@pokerapp/pendingSync') return Promise.resolve('[]');
+        if (key === '@pokerfiles/sessions') return Promise.resolve('[]');
+        if (key === '@pokerfiles/pendingSync') return Promise.resolve('[]');
         return Promise.resolve(null);
       });
 
@@ -67,14 +67,14 @@ describe('Data Optimization & Lean Sync', () => {
 
       // Verify session was saved to storage
       expect(AsyncStorage.setItem).toHaveBeenCalledWith(
-        '@pokerapp/sessions',
+        '@pokerfiles/sessions',
         expect.stringContaining('session-1')
       );
 
       // Verify NO pending sync was added
       // The second call to setItem would be for pendingSync if it was called
       const setItemCalls = (AsyncStorage.setItem as jest.Mock).mock.calls;
-      const pendingSyncCall = setItemCalls.find(call => call[0] === '@pokerapp/pendingSync');
+      const pendingSyncCall = setItemCalls.find(call => call[0] === '@pokerfiles/pendingSync');
       expect(pendingSyncCall).toBeUndefined();
     });
 
@@ -89,8 +89,8 @@ describe('Data Optimization & Lean Sync', () => {
       };
 
       (AsyncStorage.getItem as jest.Mock).mockImplementation((key) => {
-        if (key === '@pokerapp/sessions') return Promise.resolve('[]');
-        if (key === '@pokerapp/pendingSync') return Promise.resolve('[]');
+        if (key === '@pokerfiles/sessions') return Promise.resolve('[]');
+        if (key === '@pokerfiles/pendingSync') return Promise.resolve('[]');
         return Promise.resolve(null);
       });
 
@@ -98,7 +98,7 @@ describe('Data Optimization & Lean Sync', () => {
 
       // Verify pending sync WAS added
       const setItemCalls = (AsyncStorage.setItem as jest.Mock).mock.calls;
-      const pendingSyncCall = setItemCalls.find(call => call[0] === '@pokerapp/pendingSync');
+      const pendingSyncCall = setItemCalls.find(call => call[0] === '@pokerfiles/pendingSync');
       expect(pendingSyncCall).toBeDefined();
       
       const pendingData = JSON.parse(pendingSyncCall[1]);
@@ -132,7 +132,7 @@ describe('Data Optimization & Lean Sync', () => {
 
       // Mock pending sync retrieval
       (AsyncStorage.getItem as jest.Mock).mockImplementation((key) => {
-        if (key === '@pokerapp/pendingSync') return Promise.resolve(JSON.stringify([pendingItem]));
+        if (key === '@pokerfiles/pendingSync') return Promise.resolve(JSON.stringify([pendingItem]));
         return Promise.resolve(null);
       });
 

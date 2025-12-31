@@ -35,7 +35,7 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title" style={styles.title}>PokerApp</ThemedText>
+      <ThemedText type="title" style={styles.title}>Poker Files</ThemedText>
       
       <View style={styles.menuContainer}>
         <TouchableOpacity 

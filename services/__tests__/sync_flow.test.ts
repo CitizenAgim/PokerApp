@@ -66,14 +66,14 @@ describe('Sync Flow Integration', () => {
     let storedPending: any[] = [];
 
     (AsyncStorage.getItem as jest.Mock).mockImplementation((key) => {
-      if (key === '@pokerapp/sessions') return Promise.resolve(JSON.stringify(storedSessions));
-      if (key === '@pokerapp/pendingSync') return Promise.resolve(JSON.stringify(storedPending));
+      if (key === '@pokerfiles/sessions') return Promise.resolve(JSON.stringify(storedSessions));
+      if (key === '@pokerfiles/pendingSync') return Promise.resolve(JSON.stringify(storedPending));
       return Promise.resolve(null);
     });
 
     (AsyncStorage.setItem as jest.Mock).mockImplementation((key, value) => {
-      if (key === '@pokerapp/sessions') storedSessions = JSON.parse(value);
-      if (key === '@pokerapp/pendingSync') storedPending = JSON.parse(value);
+      if (key === '@pokerfiles/sessions') storedSessions = JSON.parse(value);
+      if (key === '@pokerfiles/pendingSync') storedPending = JSON.parse(value);
       return Promise.resolve();
     });
 

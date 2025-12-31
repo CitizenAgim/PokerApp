@@ -61,7 +61,7 @@ export default function FriendsScreen() {
     if (friendCode) {
       try {
         await Share.share({
-          message: `Add me on PokerApp! My friend code is: ${friendCode}`,
+          message: `Add me on Poker Files! My friend code is: ${friendCode}`,
         });
       } catch (error) {
         console.error('Error sharing:', error);

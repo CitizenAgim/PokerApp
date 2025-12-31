@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "PokerApp",
-    "slug": "PokerApp",
+    "name": "Poker Files",
+    "slug": "poker-files",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "pokerapp",
+    "scheme": "pokerfiles",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.agim.pokerapp",
+      "bundleIdentifier": "com.agim.pokerfiles",
       "infoPlist": {
         "NSLocalNetworkUsageDescription": "This app uses the local network to connect to the development server during development.",
         "NSBonjourServices": [
@@ -25,7 +25,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.agim.pokerapp"
+      "package": "com.agim.pokerfiles"
     },
     "web": {
       "output": "static",

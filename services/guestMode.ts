@@ -8,7 +8,7 @@ import * as localStorage from './localStorage';
 // ============================================
 
 export const GUEST_USER_ID = 'guest_local';
-const GUEST_MODE_KEY = '@pokerapp/guestMode';
+const GUEST_MODE_KEY = '@pokerfiles/guestMode';
 
 // ============================================
 // GUEST MODE MANAGEMENT
