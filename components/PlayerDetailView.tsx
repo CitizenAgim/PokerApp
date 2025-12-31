@@ -453,6 +453,9 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
                 activeOpacity={0.7}
               >
                 <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 0 }]}>Notes</Text>
+                <Text style={{ color: themeColors.subText, fontSize: 16, fontWeight: '500' }}>
+                  ({player?.notesList?.length || 0})
+                </Text>
                 <Ionicons 
                   name={showNotes ? "chevron-up" : "chevron-down"} 
                   size={24} 
