@@ -82,6 +82,41 @@ service cloud.firestore {
       
       // ================= write: if isOwner(userId);
       }
+      
+      // ============================================
+      // FRIENDS SUBCOLLECTION
+      // ============================================
+      
+      match /friends/{friendId} {
+        // Owner: full read/write access to their friends list
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // ============================================
+    // FRIEND REQUESTS COLLECTION
+    // ============================================
+    
+    match /friendRequests/{requestId} {
+      // Users can read requests they sent or received
+      allow read: if isAuthenticated() && 
+        (resource.data.fromUserId == request.auth.uid || 
+         resource.data.toUserId == request.auth.uid);
+      
+      // Users can create requests only as sender with pending status
+      allow create: if isAuthenticated() && 
+        request.resource.data.fromUserId == request.auth.uid &&
+        request.resource.data.status == 'pending';
+      
+      // Only recipient can accept/decline
+      allow update: if isAuthenticated() && 
+        resource.data.toUserId == request.auth.uid &&
+        request.resource.data.status in ['accepted', 'declined'];
+      
+      // Only sender can delete their pending request
+      allow delete: if isAuthenticated() && 
+        resource.data.fromUserId == request.auth.uid &&
+        resource.data.status == 'pending';
     }
 
     // ============================================

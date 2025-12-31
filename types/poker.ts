@@ -166,7 +166,9 @@ export interface User {
   email: string;
   displayName: string;
   photoUrl?: string;
-  createdAt: number;      // Unix timestamp
+  friendCode?: string;      // Unique 6-char code for friend requests
+  friendsCount?: number;    // Track count for 100 friend limit
+  createdAt: number;        // Unix timestamp
 }
 
 // ============================================

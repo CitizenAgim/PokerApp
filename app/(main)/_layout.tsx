@@ -1,10 +1,12 @@
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { usePendingFriendRequestsCount } from '@/hooks/useFriends';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
 export default function MainLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const pendingFriendRequests = usePendingFriendRequestsCount();
 
   return (
     <Tabs
@@ -63,6 +65,18 @@ export default function MainLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="stats-chart" size={size} color={color} />
           ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="friends"
+        options={{
+          title: 'Friends',
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="people-circle" size={size} color={color} />
+          ),
+          tabBarBadge: pendingFriendRequests > 0 ? pendingFriendRequests : undefined,
         }}
       />
 
