@@ -29,10 +29,6 @@ export default function HomeScreen() {
     }
   };
 
-  const handleOpenRangeEditor = () => {
-    router.push('/range-editor');
-  };
-
   const handleOpenPlayers = () => {
     router.push('/(main)/players');
   };
@@ -42,16 +38,6 @@ export default function HomeScreen() {
       <ThemedText type="title" style={styles.title}>PokerApp</ThemedText>
       
       <View style={styles.menuContainer}>
-        <TouchableOpacity 
-          style={styles.menuButton} 
-          onPress={handleOpenRangeEditor}
-        >
-          <ThemedText style={styles.menuButtonText}>📊 Range Editor</ThemedText>
-          <ThemedText style={styles.menuDescription}>
-            Create and edit hand ranges
-          </ThemedText>
-        </TouchableOpacity>
-        
         <TouchableOpacity 
           style={styles.menuButton}
           onPress={handleOpenPlayers}

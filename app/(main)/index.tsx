@@ -115,20 +115,6 @@ export default function HomeScreen() {
 
         <TouchableOpacity
           style={[styles.actionCard, { backgroundColor: themeColors.card }]}
-          onPress={() => router.push('/range-editor')}
-        >
-          <View style={[styles.actionIcon, { backgroundColor: '#9b59b6' }]}>
-            <Ionicons name="grid" size={32} color="#fff" />
-          </View>
-          <View style={styles.actionContent}>
-            <Text style={[styles.actionTitle, { color: themeColors.text }]}>Range Editor</Text>
-            <Text style={[styles.actionDesc, { color: themeColors.subText }]}>Create hand ranges</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={24} color={themeColors.chevron} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: themeColors.card }]}
           onPress={() => router.push('/saved-hands')}
         >
           <View style={[styles.actionIcon, { backgroundColor: '#f39c12' }]}>
