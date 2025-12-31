@@ -292,7 +292,7 @@ function HandReplayContent({ hand }: { hand: HandRecord }) {
             ? [...state.visibleCommunityCards, ...Array(5 - state.visibleCommunityCards.length).fill('')]
             : ['', '', '', '', '']}
           foldedSeats={state.foldedSeats}
-          pot={state.currentPot + Object.values(state.currentBets).reduce((a, b) => a + b, 0)}
+          pot={state.currentPot}
           street={state.currentStreet}
           bets={state.currentBets}
         />

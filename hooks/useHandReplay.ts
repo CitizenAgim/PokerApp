@@ -104,6 +104,17 @@ export function formatAction(
   }
 }
 
+function findFirstActionAfterBlinds(actions: HandAction[]): number {
+  // Find the first action that isn't a post-blind
+  // This should be UTG or the player left of the last straddle
+  for (let i = 0; i < actions.length; i++) {
+    if (actions[i].type !== 'post-blind') {
+      return i;
+    }
+  }
+  return 0; // Fallback to first action if all are blinds (shouldn't happen)
+}
+
 function getInitialState(hand: HandRecord): ReplayState {
   // Reconstruct initial stacks by adding back all bets to final stacks
   const initialStacks = reconstructInitialStacks(hand.seats, hand.actions, hand.pot);
@@ -120,6 +131,26 @@ function getInitialState(hand: HandRecord): ReplayState {
     lastAction: null,
     isComplete: false,
   };
+}
+
+function getStateAfterBlinds(hand: HandRecord): ReplayState {
+  // Start with initial state
+  let state = getInitialState(hand);
+  
+  // Apply all post-blind actions to get to the state where action begins
+  for (const action of hand.actions) {
+    if (action.type !== 'post-blind') {
+      break;
+    }
+    state = applyAction(state, action, hand.communityCards);
+  }
+  
+  // Clear the lastAction and activeSeat since we want to show
+  // the state as "Blinds posted" rather than showing the last blind
+  state.lastAction = null;
+  state.activeSeat = null;
+  
+  return state;
 }
 
 function applyAction(
@@ -155,10 +186,11 @@ function applyAction(
     case 'bet':
     case 'post-blind':
       if (action.amount) {
+        // action.amount is the INCREMENTAL amount added to the pot
+        // So we ADD it to the current bet, not replace
         const currentBet = newState.currentBets[action.seatNumber] || 0;
-        const additionalBet = action.amount - currentBet;
-        newState.currentBets[action.seatNumber] = action.amount;
-        newState.currentStacks[action.seatNumber] = (newState.currentStacks[action.seatNumber] || 0) - additionalBet;
+        newState.currentBets[action.seatNumber] = currentBet + action.amount;
+        newState.currentStacks[action.seatNumber] = (newState.currentStacks[action.seatNumber] || 0) - action.amount;
       }
       break;
     case 'win':
@@ -185,20 +217,29 @@ function revertAction(
 }
 
 export function useHandReplay(hand: HandRecord) {
-  const [currentIndex, setCurrentIndex] = useState(-1);
+  // Find index of first non-blind action
+  const firstActionIndex = useMemo(() => findFirstActionAfterBlinds(hand.actions), [hand.actions]);
+  
+  const [currentIndex, setCurrentIndex] = useState(firstActionIndex - 1);
   const [showVillainCards, setShowVillainCards] = useState(false);
   const [showWinnerOverlay, setShowWinnerOverlay] = useState(false);
   
-  // Precompute all states from index -1 to actions.length - 1
+  // Precompute all states
+  // State at index i represents the state AFTER action[i] has been applied
+  // Index -1 represents state after blinds are posted (start of real action)
   const allStates = useMemo(() => {
     const states: ReplayState[] = [];
-    let state = getInitialState(hand);
-    states.push(state); // Index -1 maps to states[0]
     
-    hand.actions.forEach((action, i) => {
-      state = applyAction(state, action, hand.communityCards);
-      states.push(state); // Index i maps to states[i+1]
-    });
+    // Start with state after blinds
+    const stateAfterBlinds = getStateAfterBlinds(hand);
+    states.push(stateAfterBlinds); // This maps to index (firstActionIndex - 1)
+    
+    // Apply remaining actions (non-blind actions)
+    let state = stateAfterBlinds;
+    for (let i = firstActionIndex; i < hand.actions.length; i++) {
+      state = applyAction(state, hand.actions[i], hand.communityCards);
+      states.push(state);
+    }
     
     // Mark final state as complete
     if (states.length > 0) {
@@ -209,12 +250,17 @@ export function useHandReplay(hand: HandRecord) {
     }
     
     return states;
-  }, [hand]);
+  }, [hand, firstActionIndex]);
   
-  // Current state based on index
-  const state = allStates[currentIndex + 1] || allStates[0];
+  // Map currentIndex to states array index
+  // currentIndex = firstActionIndex - 1 maps to states[0]
+  // currentIndex = firstActionIndex maps to states[1]
+  // etc.
+  const stateArrayIndex = currentIndex - (firstActionIndex - 1);
+  const state = allStates[stateArrayIndex] || allStates[0];
   
   const totalActions = hand.actions.length;
+  const minIndex = firstActionIndex - 1; // Start position (after blinds)
   
   const nextAction = useCallback(() => {
     if (currentIndex < totalActions - 1) {
@@ -229,16 +275,16 @@ export function useHandReplay(hand: HandRecord) {
   }, [currentIndex, totalActions]);
   
   const prevAction = useCallback(() => {
-    if (currentIndex >= 0) {
+    if (currentIndex > minIndex) {
       setCurrentIndex(currentIndex - 1);
       setShowWinnerOverlay(false);
     }
-  }, [currentIndex]);
+  }, [currentIndex, minIndex]);
   
   const goToStart = useCallback(() => {
-    setCurrentIndex(-1);
+    setCurrentIndex(minIndex);
     setShowWinnerOverlay(false);
-  }, []);
+  }, [minIndex]);
   
   const goToEnd = useCallback(() => {
     setCurrentIndex(totalActions - 1);
@@ -255,22 +301,26 @@ export function useHandReplay(hand: HandRecord) {
 
   const jumpToStreet = useCallback((street: Street) => {
     if (street === 'preflop') {
-      setCurrentIndex(-1);
+      setCurrentIndex(minIndex);
       setShowWinnerOverlay(false);
       return;
     }
     
     const index = hand.actions.findIndex(a => a.street === street);
-    if (index !== -1) {
+    if (index !== -1 && index >= firstActionIndex) {
       setCurrentIndex(index);
       setShowWinnerOverlay(false);
     }
-  }, [hand.actions]);
+  }, [hand.actions, minIndex, firstActionIndex]);
   
-  const currentAction = currentIndex >= 0 ? hand.actions[currentIndex] : null;
+  const currentAction = currentIndex >= firstActionIndex ? hand.actions[currentIndex] : null;
   const actionText = currentAction 
     ? formatAction(currentAction, hand.seats, hand.heroSeat)
-    : 'Start of hand';
+    : 'Blinds posted';
+  
+  // Calculate progress: show relative to meaningful actions
+  const actionsAfterBlinds = totalActions - firstActionIndex;
+  const currentProgress = currentIndex - minIndex; // 0 means at start
   
   return {
     state,
@@ -289,7 +339,7 @@ export function useHandReplay(hand: HandRecord) {
     toggleVillainCards,
     dismissWinnerOverlay,
     canGoNext: currentIndex < totalActions - 1,
-    canGoPrev: currentIndex >= 0,
-    progress: `${currentIndex + 2} / ${totalActions + 1}`,
+    canGoPrev: currentIndex > minIndex,
+    progress: `${currentProgress + 1} / ${actionsAfterBlinds + 1}`,
   };
 }
