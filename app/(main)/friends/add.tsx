@@ -45,12 +45,15 @@ export default function AddFriendScreen() {
     if (cleanedText.length === FRIEND_CODE_CONFIG.LENGTH) {
       setSearching(true);
       try {
+        console.log('[AddFriend] Searching for friend code:', cleanedText);
         const user = await friendsService.findUserByFriendCode(cleanedText);
+        console.log('[AddFriend] Search result:', user);
         setFoundUser(user);
         if (!user) {
           setError('No user found with this code');
         }
       } catch (err) {
+        console.error('[AddFriend] Error searching for user:', err);
         setError('Error searching for user');
       } finally {
         setSearching(false);

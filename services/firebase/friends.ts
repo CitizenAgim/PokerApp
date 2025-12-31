@@ -115,13 +115,20 @@ export async function getOrCreateFriendCode(userId: string): Promise<string> {
 export async function findUserByFriendCode(friendCode: string): Promise<User | null> {
   const normalizedCode = friendCode.toUpperCase().trim();
   
+  console.log('[Friends] findUserByFriendCode called with:', normalizedCode);
+  
   if (normalizedCode.length !== FRIEND_CODE_CONFIG.LENGTH) {
+    console.log('[Friends] Code length invalid:', normalizedCode.length);
     return null;
   }
   
   const usersRef = collection(db, 'users');
   const q = query(usersRef, where('friendCode', '==', normalizedCode));
+  
+  console.log('[Friends] Executing query for friendCode:', normalizedCode);
   const snapshot = await getDocs(q);
+  
+  console.log('[Friends] Query returned', snapshot.size, 'results');
   
   if (snapshot.empty) {
     return null;
@@ -130,6 +137,18 @@ export async function findUserByFriendCode(friendCode: string): Promise<User | n
   const doc = snapshot.docs[0];
   const data = doc.data();
   
+  console.log('[Friends] Found user:', doc.id, data.displayName);
+  
+  // Handle createdAt in different formats (Timestamp, number, or undefined)
+  let createdAt = Date.now();
+  if (data.createdAt) {
+    if (typeof data.createdAt.toMillis === 'function') {
+      createdAt = data.createdAt.toMillis();
+    } else if (typeof data.createdAt === 'number') {
+      createdAt = data.createdAt;
+    }
+  }
+  
   return {
     id: doc.id,
     email: data.email || '',
@@ -137,7 +156,7 @@ export async function findUserByFriendCode(friendCode: string): Promise<User | n
     photoUrl: data.photoUrl,
     friendCode: data.friendCode,
     friendsCount: data.friendsCount || 0,
-    createdAt: data.createdAt?.toMillis() || Date.now(),
+    createdAt,
   };
 }
 
