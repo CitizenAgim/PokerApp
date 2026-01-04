@@ -12,23 +12,22 @@
 import { db } from '@/config/firebase';
 import { Range } from '@/types/poker';
 import {
-    PendingSharesSummary,
-    RANGE_SHARING_CONFIG,
-    RangeShare
+  PendingSharesSummary,
+  RangeShare
 } from '@/types/sharing';
 import {
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    onSnapshot,
-    orderBy,
-    query,
-    serverTimestamp,
-    setDoc,
-    Timestamp,
-    where,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  Timestamp,
+  where,
 } from 'firebase/firestore';
 import { getFriend } from './friends';
 
