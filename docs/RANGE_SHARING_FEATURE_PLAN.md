@@ -4,7 +4,26 @@
 
 Add the ability for users to share player ranges with their friends. This feature allows a user to send all ranges associated with a player profile to a friend. The recipient can then either copy the ranges to an existing player in their database or create a new player with the shared information.
 
-**Important**: Only ranges are shared, NOT notes (for privacy/sensitivity reasons).
+**Important**: Only ranges are shared, NOT notes or personal information.
+
+### Privacy & Compliance Rationale
+
+Notes are explicitly **excluded** from sharing to ensure compliance with:
+
+1. **GDPR (General Data Protection Regulation)**
+   - Notes may contain personal opinions, identifiable information about real people
+   - Sharing notes without consent could constitute unauthorized processing of personal data
+   - Ranges are abstract statistical data with no personal information
+
+2. **Apple App Store Guidelines**
+   - Section 5.1.1: Apps must protect user privacy and not share personal data without consent
+   - Notes could contain sensitive observations about individuals
+
+3. **Google Play Developer Policy**
+   - User Data policy: Apps must be transparent about data sharing
+   - Personal information requires explicit consent before sharing
+
+**By only sharing ranges (pure statistical/strategic data), we avoid any privacy concerns while still enabling valuable collaboration.**
 
 ---
 
@@ -217,6 +236,22 @@ When tapping a friend with pending shares:
 - [ ] Add pull-to-refresh on pending shares list
 - [ ] Consider adding share history (optional)
 
+### Phase 6: Legal & Compliance Updates
+
+- [ ] Update **Terms of Service** (`app/legal/terms.tsx` or equivalent):
+  - Add section about range sharing between friends
+  - Clarify that shared data is limited to statistical range data only
+  - Note that notes/personal observations are never shared
+  - User responsibility for ranges they choose to share
+
+- [ ] Update **Privacy Policy** (`app/legal/privacy.tsx` or equivalent):
+  - Add "Data Sharing with Friends" section
+  - Specify what data can be shared: ranges only (position/action hand selections)
+  - Specify what is NOT shared: notes, player colors, personal observations
+  - Explain that sharing requires explicit user action (not automatic)
+  - GDPR compliance: ranges contain no personal data about third parties
+  - Data retention: shared ranges are deleted after recipient accepts/declines
+
 ---
 
 ## Files to Create
@@ -260,6 +295,10 @@ services/firebase/index.ts              # Export rangeSharing service
 firestore.rules                         # Add rules for rangeShares collection
 
 firestore.indexes.json                  # Add index for rangeShares queries
+
+app/legal/terms.tsx                     # Update Terms of Service with range sharing
+
+app/legal/privacy.tsx                   # Update Privacy Policy with data sharing details
 ```
 
 ---
@@ -394,7 +433,7 @@ This feature enables collaborative poker study by allowing friends to share thei
 - Snapshots the range data (not linked) for simplicity
 - Shows notification badges on **both** Friends tab and individual friend items
 - **Fills empty slots only** - never overwrites user's existing observations
-- Only shares ranges (no notes, no color) for privacy
+- Only shares ranges (no notes, no color) for **GDPR/App Store compliance**
 - **Replaces** duplicate shares to same friend for same player
 - **Deletes** shares after action (no status tracking = less storage)
 - **Max 20** pending shares per user
