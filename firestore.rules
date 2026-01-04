@@ -137,6 +137,31 @@ service cloud.firestore {
     }
 
     // ============================================
+    // RANGE SHARES COLLECTION
+    // ============================================
+    
+    match /rangeShares/{shareId} {
+      // Users can read shares they sent or received
+      allow read: if isAuthenticated() && 
+        (resource.data.fromUserId == request.auth.uid || 
+         resource.data.toUserId == request.auth.uid);
+      
+      // Users can create shares only as sender
+      // Limit of max 20 pending shares per recipient is enforced in app layer
+      allow create: if isAuthenticated() && 
+        request.resource.data.fromUserId == request.auth.uid;
+      
+      // Sender can update (for duplicate replacement)
+      allow update: if isAuthenticated() && 
+        resource.data.fromUserId == request.auth.uid;
+      
+      // Sender can delete pending shares, recipient can delete any
+      allow delete: if isAuthenticated() && 
+        (resource.data.fromUserId == request.auth.uid || 
+         resource.data.toUserId == request.auth.uid);
+    }
+
+    // ============================================
     // LEGACY COLLECTIONS (Read-only for migration)
     // ============================================
     

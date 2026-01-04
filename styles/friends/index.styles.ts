@@ -270,6 +270,26 @@ export const styles = StyleSheet.create({
     padding: 8,
   },
   
+  // Share Badge (notification indicator on friend items)
+  friendShareBadgeContainer: {
+    position: 'relative',
+    marginRight: 8,
+  },
+  friendShareBadge: {
+    backgroundColor: '#0a7ea4',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  friendShareBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  
   // Empty States
   emptyState: {
     alignItems: 'center',

@@ -79,16 +79,6 @@
       ]
     },
     {
-      "collectionGroup": "friends",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "addedAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "players",
       "queryScope": "COLLECTION",
       "fields": [
@@ -131,6 +121,56 @@
         {
           "fieldPath": "startTime",
           "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rangeShares",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "toUserId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rangeShares",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "toUserId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fromUserId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rangeShares",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "fromUserId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "toUserId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "playerName",
+          "order": "ASCENDING"
         }
       ]
     }

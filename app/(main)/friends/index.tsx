@@ -1,6 +1,7 @@
 import { auth } from '@/config/firebase';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useFriends } from '@/hooks/useFriends';
+import { useFriends, usePendingRangeSharesPerFriend } from '@/hooks/useFriends';
+import { PendingSharesModal } from '@/components/sharing';
 import { getThemeColors, styles } from '@/styles/friends/index.styles';
 import { Friend, FriendRequest } from '@/types/friends';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,8 +39,11 @@ export default function FriendsScreen() {
     removeFriend,
   } = useFriends();
   
+  const { countByFriend, sharesByFriend } = usePendingRangeSharesPerFriend();
+  
   const [refreshing, setRefreshing] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [selectedFriendForShares, setSelectedFriendForShares] = useState<Friend | null>(null);
 
   const user = auth.currentUser;
 
@@ -138,6 +142,13 @@ export default function FriendsScreen() {
         },
       ]
     );
+  };
+
+  const handleFriendPress = (friend: Friend) => {
+    const shareCount = countByFriend.get(friend.odUserId) || 0;
+    if (shareCount > 0) {
+      setSelectedFriendForShares(friend);
+    }
   };
 
   const getInitials = (name: string) => {
@@ -331,30 +342,55 @@ export default function FriendsScreen() {
               </Text>
             </View>
           ) : (
-            friends.map((friend) => (
-              <View key={friend.odUserId} style={[styles.friendCard, { backgroundColor: themeColors.card }]}>
-                <View style={styles.friendAvatar}>
-                  <Text style={styles.friendAvatarText}>{getInitials(friend.displayName)}</Text>
-                </View>
-                <View style={styles.friendInfo}>
-                  <Text style={[styles.friendName, { color: themeColors.text }]}>
-                    {friend.displayName}
-                  </Text>
-                  <Text style={[styles.friendCode, { color: themeColors.subText }]}>
-                    {friend.friendCode}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.friendActions}
-                  onPress={() => handleRemoveFriend(friend)}
+            friends.map((friend) => {
+              const shareCount = countByFriend.get(friend.odUserId) || 0;
+              return (
+                <TouchableOpacity 
+                  key={friend.odUserId} 
+                  style={[styles.friendCard, { backgroundColor: themeColors.card }]}
+                  onPress={() => handleFriendPress(friend)}
+                  activeOpacity={shareCount > 0 ? 0.7 : 1}
                 >
-                  <Ionicons name="ellipsis-horizontal" size={20} color={themeColors.subText} />
+                  <View style={styles.friendAvatar}>
+                    <Text style={styles.friendAvatarText}>{getInitials(friend.displayName)}</Text>
+                  </View>
+                  <View style={styles.friendInfo}>
+                    <Text style={[styles.friendName, { color: themeColors.text }]}>
+                      {friend.displayName}
+                    </Text>
+                    <Text style={[styles.friendCode, { color: themeColors.subText }]}>
+                      {friend.friendCode}
+                    </Text>
+                  </View>
+                  {shareCount > 0 && (
+                    <View style={styles.friendShareBadgeContainer}>
+                      <View style={styles.friendShareBadge}>
+                        <Text style={styles.friendShareBadgeText}>{shareCount}</Text>
+                      </View>
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={styles.friendActions}
+                    onPress={() => handleRemoveFriend(friend)}
+                  >
+                    <Ionicons name="ellipsis-horizontal" size={20} color={themeColors.subText} />
+                  </TouchableOpacity>
                 </TouchableOpacity>
-              </View>
-            ))
+              );
+            })
           )}
         </View>
       </ScrollView>
+
+      {/* Pending Shares Modal */}
+      {selectedFriendForShares && (
+        <PendingSharesModal
+          visible={!!selectedFriendForShares}
+          onClose={() => setSelectedFriendForShares(null)}
+          friendId={selectedFriendForShares.odUserId}
+          friendName={selectedFriendForShares.displayName}
+        />
+      )}
     </SafeAreaView>
   );
 }

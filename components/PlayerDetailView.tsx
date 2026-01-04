@@ -22,6 +22,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LimitWarning, checkLimit } from './ui/LimitWarning';
+import { ShareRangesModal } from './sharing';
+import { auth } from '@/config/firebase';
 
 const POSITIONS: { id: Position; label: string; color: string }[] = [
   { id: 'early', label: 'Early', color: '#e74c3c' },
@@ -75,6 +77,12 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
   const [isAddingLocation, setIsAddingLocation] = useState(false);
   const [newLocation, setNewLocation] = useState('');
   const [addingLocation, setAddingLocation] = useState(false);
+
+  // Share modal state
+  const [showShareModal, setShowShareModal] = useState(false);
+
+  // Check if user is logged in (required for sharing)
+  const isLoggedIn = !!auth.currentUser;
 
   // Initialize edit form when player loads or modal opens
   useEffect(() => {
@@ -412,6 +420,15 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
           </Text>
         </View>
         <View style={styles.headerActions}>
+          {isLoggedIn && (
+            <TouchableOpacity 
+              style={[styles.editButton, { backgroundColor: themeColors.editButtonBg }]} 
+              onPress={() => setShowShareModal(true)}
+            >
+              <Ionicons name="share-outline" size={18} color="#0a7ea4" />
+              <Text style={styles.editButtonText}>Share</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={[styles.editButton, { backgroundColor: themeColors.editButtonBg }]} onPress={handleOpenEditModal}>
             <Ionicons name="pencil" size={18} color="#0a7ea4" />
             <Text style={styles.editButtonText}>Edit</Text>
@@ -839,6 +856,17 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Share Ranges Modal */}
+      <ShareRangesModal
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        playerName={player?.name || ''}
+        ranges={ranges?.ranges || {}}
+        onSuccess={() => {
+          // Optionally show success message or refresh
+        }}
+      />
     </ScrollView>
   );
 }

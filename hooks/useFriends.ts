@@ -6,9 +6,11 @@
 
 import { auth } from '@/config/firebase';
 import * as friendsService from '@/services/firebase/friends';
+import * as rangeSharingService from '@/services/firebase/rangeSharing';
 import { Friend, FriendRequest } from '@/types/friends';
+import { RangeShare } from '@/types/sharing';
 import { User } from '@/types/poker';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 // ============================================
 // USE FRIENDS HOOK
@@ -223,4 +225,86 @@ export function usePendingFriendRequestsCount(): number {
   }, [userId]);
 
   return count;
+}
+
+// ============================================
+// USE PENDING RANGE SHARES PER FRIEND HOOK
+// ============================================
+
+interface PendingSharesPerFriend {
+  /** Map of friendId to pending shares count */
+  countByFriend: Map<string, number>;
+  /** Map of friendId to their pending shares */
+  sharesByFriend: Map<string, RangeShare[]>;
+  /** Total count of pending range shares */
+  totalCount: number;
+  /** Whether data is loading */
+  loading: boolean;
+}
+
+export function usePendingRangeSharesPerFriend(): PendingSharesPerFriend {
+  const [shares, setShares] = useState<RangeShare[]>([]);
+  const [loading, setLoading] = useState(true);
+  const userId = auth.currentUser?.uid;
+
+  useEffect(() => {
+    if (!userId) {
+      setShares([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const unsubscribe = rangeSharingService.subscribeToPendingShares(
+      userId,
+      (pendingShares) => {
+        setShares(pendingShares);
+        setLoading(false);
+      }
+    );
+
+    return unsubscribe;
+  }, [userId]);
+
+  // Compute counts and shares by friend
+  const countByFriend = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const share of shares) {
+      const current = map.get(share.fromUserId) || 0;
+      map.set(share.fromUserId, current + 1);
+    }
+    return map;
+  }, [shares]);
+
+  const sharesByFriend = useMemo(() => {
+    const map = new Map<string, RangeShare[]>();
+    for (const share of shares) {
+      const existing = map.get(share.fromUserId) || [];
+      existing.push(share);
+      map.set(share.fromUserId, existing);
+    }
+    return map;
+  }, [shares]);
+
+  return {
+    countByFriend,
+    sharesByFriend,
+    totalCount: shares.length,
+    loading,
+  };
+}
+
+// ============================================
+// USE TOTAL PENDING COUNT (friend requests + range shares)
+// ============================================
+
+/**
+ * Combined count of pending friend requests AND pending range shares
+ * Use this for the Friends tab badge
+ */
+export function useTotalPendingCount(): number {
+  const friendRequestsCount = usePendingFriendRequestsCount();
+  const { totalCount: rangeSharesCount } = usePendingRangeSharesPerFriend();
+  
+  return friendRequestsCount + rangeSharesCount;
 }

@@ -1,12 +1,13 @@
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { usePendingFriendRequestsCount } from '@/hooks/useFriends';
+import { useTotalPendingCount } from '@/hooks/useFriends';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
 export default function MainLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const pendingFriendRequests = usePendingFriendRequestsCount();
+  // Combined count of pending friend requests AND pending range shares
+  const totalPendingCount = useTotalPendingCount();
 
   return (
     <Tabs
@@ -76,7 +77,7 @@ export default function MainLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people-circle" size={size} color={color} />
           ),
-          tabBarBadge: pendingFriendRequests > 0 ? pendingFriendRequests : undefined,
+          tabBarBadge: totalPendingCount > 0 ? totalPendingCount : undefined,
         }}
       />
 
