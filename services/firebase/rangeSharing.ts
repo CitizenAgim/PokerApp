@@ -96,11 +96,9 @@ export async function sendRangeShare(
     throw new Error('This player has no ranges to share');
   }
 
-  // Check recipient's pending share limit
-  const recipientShareCount = await getPendingSharesCount(toUserId);
-  if (recipientShareCount >= RANGE_SHARING_CONFIG.MAX_PENDING_SHARES_PER_USER) {
-    throw new Error('This friend has too many pending shares. Ask them to clear some first.');
-  }
+  // Note: We removed the recipient pending share limit check here because
+  // the sender cannot query the recipient's shares due to security rules.
+  // The limit is now a soft limit - enforced by app layer when receiving shares.
 
   // Check for existing share (same sender, recipient, player name) and replace it
   const existingShare = await findExistingShare(fromUserId, toUserId, playerName);
