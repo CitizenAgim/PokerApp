@@ -12,16 +12,16 @@ import { RangeShare } from '@/types/sharing';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Modal,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Modal,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import { SelectPlayerModal } from './SelectPlayerModal';
 import { CreatePlayerModal } from './CreatePlayerModal';
+import { SelectPlayerModal } from './SelectPlayerModal';
 
 interface PendingSharesModalProps {
   visible: boolean;

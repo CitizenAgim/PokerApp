@@ -1,3 +1,4 @@
+import { auth } from '@/config/firebase';
 import { HAND_MAP } from '@/constants/hands';
 import { usePlayer, usePlayerRanges, usePlayers } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -21,9 +22,8 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LimitWarning, checkLimit } from './ui/LimitWarning';
 import { ShareRangesModal } from './sharing';
-import { auth } from '@/config/firebase';
+import { LimitWarning, checkLimit } from './ui/LimitWarning';
 
 const POSITIONS: { id: Position; label: string; color: string }[] = [
   { id: 'early', label: 'Early', color: '#e74c3c' },

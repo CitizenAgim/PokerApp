@@ -8,8 +8,8 @@ import { auth } from '@/config/firebase';
 import * as friendsService from '@/services/firebase/friends';
 import * as rangeSharingService from '@/services/firebase/rangeSharing';
 import { Friend, FriendRequest } from '@/types/friends';
-import { RangeShare } from '@/types/sharing';
 import { User } from '@/types/poker';
+import { RangeShare } from '@/types/sharing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 // ============================================

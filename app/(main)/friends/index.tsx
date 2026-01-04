@@ -1,22 +1,22 @@
+import { PendingSharesModal } from '@/components/sharing';
 import { auth } from '@/config/firebase';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useFriends, usePendingRangeSharesPerFriend } from '@/hooks/useFriends';
-import { PendingSharesModal } from '@/components/sharing';
 import { getThemeColors, styles } from '@/styles/friends/index.styles';
 import { Friend, FriendRequest } from '@/types/friends';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Clipboard,
-  RefreshControl,
-  ScrollView,
-  Share,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Clipboard,
+    RefreshControl,
+    ScrollView,
+    Share,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 

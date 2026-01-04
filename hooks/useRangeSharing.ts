@@ -8,8 +8,8 @@
  */
 
 import { auth } from '@/config/firebase';
-import * as rangeSharingService from '@/services/firebase/rangeSharing';
 import * as playersService from '@/services/firebase/players';
+import * as rangeSharingService from '@/services/firebase/rangeSharing';
 import * as localStorage from '@/services/localStorage';
 import { Range } from '@/types/poker';
 import { ImportRangesResult, PendingSharesSummary, RangeShare } from '@/types/sharing';

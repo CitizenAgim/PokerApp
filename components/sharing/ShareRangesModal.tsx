@@ -13,13 +13,13 @@ import { Range } from '@/types/poker';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Modal,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Modal,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 interface ShareRangesModalProps {

@@ -9,18 +9,18 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { usePlayers } from '@/hooks/usePlayer';
 import { useRangeSharing } from '@/hooks/useRangeSharing';
 import { getThemeColors, styles } from '@/styles/sharing/index.styles';
-import { RangeShare, ImportRangesResult } from '@/types/sharing';
+import { ImportRangesResult, RangeShare } from '@/types/sharing';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Modal,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Modal,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 interface SelectPlayerModalProps {

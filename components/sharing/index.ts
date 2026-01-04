@@ -4,7 +4,8 @@
  * Components for the range sharing feature between friends.
  */
 
-export { ShareRangesModal } from './ShareRangesModal';
+export { CreatePlayerModal } from './CreatePlayerModal';
 export { PendingSharesModal } from './PendingSharesModal';
 export { SelectPlayerModal } from './SelectPlayerModal';
-export { CreatePlayerModal } from './CreatePlayerModal';
+export { ShareRangesModal } from './ShareRangesModal';
+
