@@ -118,6 +118,7 @@ export const useHandRecorder = (initialSeats: Seat[], initialButtonPosition: num
     minRaise: state.minRaise,
     foldedSeats: state.foldedSeats,
     handCards: state.handCards,
+    originalHandCards: state.originalHandCards,
     communityCards: state.communityCards,
     buttonPosition: state.buttonPosition,
     isHandStarted: state.isHandStarted,

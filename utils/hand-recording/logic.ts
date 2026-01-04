@@ -13,6 +13,7 @@ export const initialState: HandState = {
   minRaise: 0,
   foldedSeats: new Set<number>(),
   handCards: {},
+  originalHandCards: {}, // Preserved for saving (not cleared on fold)
   communityCards: ['', '', '', '', ''],
   buttonPosition: 1,
   isHandStarted: false,
@@ -45,7 +46,13 @@ export const startHand = (state: HandState): HandState => {
   const activeSeats = state.seats.filter(s => s.player || s.playerId);
   if (activeSeats.length < 2) return state;
   
-  const newState = { ...state, isHandStarted: true, actedSeats: new Set<number>() };
+  // Preserve original hand cards for saving (before any folds remove cards)
+  const newState = { 
+    ...state, 
+    isHandStarted: true, 
+    actedSeats: new Set<number>(),
+    originalHandCards: { ...state.handCards } // Snapshot of cards at hand start
+  };
   
   // Determine positions
   const occupiedSeats = activeSeats.sort((a, b) => {

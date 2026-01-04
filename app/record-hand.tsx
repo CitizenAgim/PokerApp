@@ -47,6 +47,7 @@ export default function RecordHandScreen() {
     history,
     handCards,
     setHandCards,
+    originalHandCards,
     communityCards,
     setCommunityCards,
     isHandStarted,
@@ -565,6 +566,13 @@ export default function RecordHandScreen() {
         return;
     }
     try {
+        // Use originalHandCards (preserved at hand start) to save all cards,
+        // even if hero or others folded during the hand.
+        // Fall back to handCards if hand wasn't started yet.
+        const cardsToSave = isHandStarted && Object.keys(originalHandCards).length > 0 
+            ? originalHandCards 
+            : handCards;
+        
         const handStateToSave: any = {
             seats,
             bets,
@@ -575,7 +583,7 @@ export default function RecordHandScreen() {
             currentBet,
             minRaise,
             foldedSeats,
-            handCards,
+            handCards: cardsToSave,
             communityCards,
             buttonPosition,
             heroSeat,

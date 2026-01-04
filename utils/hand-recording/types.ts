@@ -26,6 +26,7 @@ export interface HandState {
   minRaise: number;
   foldedSeats: Set<number>;
   handCards: Record<number, string[]>;
+  originalHandCards: Record<number, string[]>; // Preserved for saving (not cleared on fold)
   communityCards: string[];
   buttonPosition: number;
   heroSeat?: number; // Seat number of the hero
