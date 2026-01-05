@@ -11,7 +11,6 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
-    InputAccessoryView,
     Keyboard,
     KeyboardAvoidingView,
     Modal,
@@ -20,6 +19,7 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
+    TouchableWithoutFeedback,
     View,
 } from 'react-native';
 
@@ -37,7 +37,6 @@ export default function NewSessionScreen() {
 
   // Theme colors
   const themeColors = getThemeColors(isDark);
-  const inputAccessoryViewID = 'uniqueID';
 
   // Form State
   const [gameType, setGameType] = useState(GAME_TYPES[0]);
@@ -47,7 +46,7 @@ export default function NewSessionScreen() {
   const [thirdBlind, setThirdBlind] = useState('');
   const [ante, setAnte] = useState('');
   const [buyIn, setBuyIn] = useState('');
-  const [selectedCurrency, setSelectedCurrency] = useState(defaultCurrency);
+  const [selectedCurrency, setSelectedCurrency] = useState<string>(defaultCurrency);
   
   // Location Management
   const [locations, setLocations] = useState<string[]>([]);
@@ -165,17 +164,18 @@ export default function NewSessionScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: themeColors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={headerHeight}
-    >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-      >
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoidingView}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={headerHeight}
+        >
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+          >
         {/* Header Icon */}
         <View style={styles.iconContainer}>
           <View style={styles.iconCircle}>
@@ -252,7 +252,6 @@ export default function NewSessionScreen() {
                   keyboardType="numeric"
                   placeholder="1"
                   placeholderTextColor={themeColors.placeholder}
-                  inputAccessoryViewID={inputAccessoryViewID}
                 />
               </View>
               <View style={styles.halfInput}>
@@ -264,7 +263,6 @@ export default function NewSessionScreen() {
                   keyboardType="numeric"
                   placeholder="2"
                   placeholderTextColor={themeColors.placeholder}
-                  inputAccessoryViewID={inputAccessoryViewID}
                 />
               </View>
               <View style={styles.halfInput}>
@@ -276,7 +274,6 @@ export default function NewSessionScreen() {
                   keyboardType="numeric"
                   placeholder="-"
                   placeholderTextColor={themeColors.placeholder}
-                  inputAccessoryViewID={inputAccessoryViewID}
                 />
               </View>
             </View>
@@ -293,7 +290,6 @@ export default function NewSessionScreen() {
                 keyboardType="numeric"
                 placeholder="0"
                 placeholderTextColor={themeColors.placeholder}
-                inputAccessoryViewID={inputAccessoryViewID}
               />
             </View>
             <View style={[styles.inputGroup, { flex: 1 }]}>
@@ -305,42 +301,32 @@ export default function NewSessionScreen() {
                 keyboardType="numeric"
                 placeholder="100"
                 placeholderTextColor={themeColors.placeholder}
-                inputAccessoryViewID={inputAccessoryViewID}
               />
             </View>
           </View>
         </View>
-      </ScrollView>
+          </ScrollView>
 
-      {Platform.OS === 'ios' && (
-        <InputAccessoryView nativeID={inputAccessoryViewID}>
-          <View style={{ backgroundColor: themeColors.inputBg, borderTopWidth: 1, borderTopColor: themeColors.border, padding: 10, alignItems: 'flex-end' }}>
-            <TouchableOpacity onPress={() => Keyboard.dismiss()}>
-              <Text style={{ color: '#0a7ea4', fontWeight: 'bold', fontSize: 16 }}>Done</Text>
+          {/* Footer */}
+          <View style={[styles.footer, { backgroundColor: themeColors.card, borderTopColor: themeColors.border }]}>
+            <TouchableOpacity
+              style={styles.startButton}
+              onPress={handleSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="play" size={20} color="#fff" />
+                  <Text style={styles.startButtonText}>Start Session</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
-        </InputAccessoryView>
-      )}
+        </KeyboardAvoidingView>
 
-      {/* Footer */}
-      <View style={[styles.footer, { backgroundColor: themeColors.card, borderTopColor: themeColors.border }]}>
-        <TouchableOpacity
-          style={styles.startButton}
-          onPress={handleSave}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Ionicons name="play" size={20} color="#fff" />
-              <Text style={styles.startButtonText}>Start Session</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Location Modal */}
+        {/* Location Modal */}
       <Modal
         visible={showLocationModal}
         animationType="slide"
@@ -438,6 +424,7 @@ export default function NewSessionScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </KeyboardAvoidingView>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
