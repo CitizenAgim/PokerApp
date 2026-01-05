@@ -561,8 +561,8 @@ export default function RecordHandScreen() {
   };
 
   const handleSave = async () => {
-    if (!sessionId || !user) {
-        Alert.alert('Error', 'Missing session or user information.');
+    if (!user) {
+        Alert.alert('Error', 'Missing user information.');
         return;
     }
     try {
@@ -600,7 +600,7 @@ export default function RecordHandScreen() {
             winners
         };
         
-        // Build session info for denormalization
+        // Build session info for denormalization (null if standalone hand)
         const sessionInfo: SessionInfo | null = sessionId && session ? {
           sessionId,
           sessionName: session.name,
