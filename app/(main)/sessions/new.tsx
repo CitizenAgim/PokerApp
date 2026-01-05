@@ -347,7 +347,10 @@ export default function NewSessionScreen() {
         transparent={true}
         onRequestClose={() => setShowLocationModal(false)}
       >
-        <View style={[styles.modalOverlay, { backgroundColor: themeColors.modalOverlay }]}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={[styles.modalOverlay, { backgroundColor: themeColors.modalOverlay }]}
+        >
           <View style={[styles.modalContent, { backgroundColor: themeColors.modalBg }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: themeColors.text }]}>Select Location</Text>
@@ -375,6 +378,7 @@ export default function NewSessionScreen() {
             <FlatList
               data={locations}
               keyExtractor={(item) => item}
+              keyboardShouldPersistTaps="handled"
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={[styles.locationItem, { borderBottomColor: themeColors.border }]}
@@ -392,7 +396,7 @@ export default function NewSessionScreen() {
               }
             />
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Currency Modal */}
@@ -402,7 +406,10 @@ export default function NewSessionScreen() {
         transparent={true}
         onRequestClose={() => setShowCurrencyModal(false)}
       >
-        <View style={[styles.modalOverlay, { backgroundColor: themeColors.modalOverlay }]}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={[styles.modalOverlay, { backgroundColor: themeColors.modalOverlay }]}
+        >
           <View style={[styles.modalContent, { backgroundColor: themeColors.modalBg }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: themeColors.text }]}>Select Currency</Text>
@@ -414,6 +421,7 @@ export default function NewSessionScreen() {
             <FlatList
               data={CURRENCIES}
               keyExtractor={(item) => item}
+              keyboardShouldPersistTaps="handled"
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={[styles.locationItem, { borderBottomColor: themeColors.border }]}
@@ -428,7 +436,7 @@ export default function NewSessionScreen() {
               )}
             />
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </KeyboardAvoidingView>
   );
