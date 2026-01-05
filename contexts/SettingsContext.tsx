@@ -25,7 +25,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrencyState] = useState<'EUR' | 'USD' | 'GBP'>('USD');
   const [country, setCountryState] = useState('US');
   const [dateFormat, setDateFormatState] = useState<'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD'>('DD/MM/YYYY');
-  const [timeFormat, setTimeFormatState] = useState<'12h' | '24h'>('12h');
+  const [timeFormat, setTimeFormatState] = useState<'12h' | '24h'>('24h');
   const [loading, setLoading] = useState(true);
 
   const loadSettings = useCallback(async () => {
@@ -36,7 +36,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       setCurrencyState(prefs.currency || 'USD');
       setCountryState(prefs.country || 'US');
       setDateFormatState(prefs.dateFormat || 'DD/MM/YYYY');
-      setTimeFormatState(prefs.timeFormat || '12h');
+      setTimeFormatState(prefs.timeFormat || '24h');
     } catch (error) {
       console.error('Failed to load settings:', error);
     } finally {
