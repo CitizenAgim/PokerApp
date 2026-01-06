@@ -14,8 +14,10 @@
       "infoPlist": {
         "NSLocalNetworkUsageDescription": "This app uses the local network to connect to the development server during development.",
         "NSBonjourServices": [
+          "_http._tcp",
           "_http._tcp"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
