@@ -40,7 +40,7 @@ const PLAYER_COLORS = [
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { session, table, loading, updateButtonPosition, assignPlayerToSeat, updateSeatStack, endSession, updateSessionDetails, updateHeroSeat, clearTable } = useSession(id);
+  const { session, table, loading, updateButtonPosition, assignPlayerToSeat, updateSeatStack, movePlayer, endSession, updateSessionDetails, updateHeroSeat, clearTable } = useSession(id);
   const { user, loading: userLoading } = useCurrentUser();
   const { clearSession } = useCurrentSession();
   const { players, createPlayer, updatePlayer } = usePlayers();
@@ -801,6 +801,7 @@ export default function SessionDetailScreen() {
               buttonPosition={table.buttonPosition}
               heroSeat={table.heroSeatIndex}
               onSeatPress={handleSeatPress}
+              onMovePlayer={movePlayer}
               themeColors={themeColors}
               currency={session.currency}
               showCards={false}

@@ -178,6 +178,7 @@ interface UseSessionResult {
   updateButtonPosition: (position: number) => Promise<void>;
   assignPlayerToSeat: (seatNumber: number, playerId: string | null, initialStack?: number, playerDetails?: Partial<TablePlayer>) => Promise<void>;
   updateSeatStack: (seatNumber: number, stack: number, playerName?: string) => Promise<void>;
+  movePlayer: (fromSeat: number, toSeat: number) => Promise<void>;
   getPositionForSeat: (seatNumber: number) => Position | null;
   updateSessionDetails: (updates: { buyIn?: number; cashOut?: number; startTime?: number; endTime?: number }) => Promise<void>;
   updateHeroSeat: (seatIndex: number | undefined) => Promise<void>;
@@ -407,6 +408,71 @@ export function useSession(sessionId: string): UseSessionResult {
     }
   }, [table, session, sessionId]);
 
+  const movePlayer = useCallback(async (fromSeatNum: number, toSeatNum: number): Promise<void> => {
+    if (!table) return;
+
+    // Find source seat data
+    const sourceSeat = table.seats.find(s => {
+      const sNum = s.seatNumber ?? (typeof s.index === 'number' ? s.index + 1 : 0);
+      return sNum === fromSeatNum;
+    });
+
+    if (!sourceSeat || (!sourceSeat.playerId && !sourceSeat.player)) return;
+
+    // Check if target seat is empty
+    const targetSeat = table.seats.find(s => {
+      const sNum = s.seatNumber ?? (typeof s.index === 'number' ? s.index + 1 : 0);
+      return sNum === toSeatNum;
+    });
+
+    if (targetSeat?.playerId || targetSeat?.player) return; // Target seat is occupied
+
+    const updatedSeats = table.seats.map(seat => {
+      const sNum = seat.seatNumber ?? (typeof seat.index === 'number' ? seat.index + 1 : 0);
+      
+      if (sNum === toSeatNum) {
+        // Copy player to new seat
+        return {
+          ...seat,
+          playerId: sourceSeat.playerId,
+          player: sourceSeat.player,
+        };
+      }
+      
+      if (sNum === fromSeatNum) {
+        // Clear old seat
+        return {
+          ...seat,
+          playerId: undefined,
+          player: undefined,
+        };
+      }
+      
+      return seat;
+    });
+
+    // Update hero seat if needed
+    let newHeroSeatIndex = table.heroSeatIndex;
+    if (table.heroSeatIndex === fromSeatNum) {
+      newHeroSeatIndex = toSeatNum;
+    }
+
+    const updatedTable: Table = {
+      ...table,
+      seats: updatedSeats,
+      heroSeatIndex: newHeroSeatIndex,
+    };
+
+    setTable(updatedTable);
+
+    if (session) {
+      await localStorage.setCurrentSession({ session, table: updatedTable });
+      const updatedSession = { ...session, table: updatedTable };
+      await localStorage.saveSession(updatedSession);
+      setSession(updatedSession);
+    }
+  }, [table, session, sessionId]);
+
   const getPositionForSeat = useCallback((seatNumber: number): Position | null => {
     if (!table) return null;
     return calculatePosition(seatNumber, table.buttonPosition, 9);
@@ -485,6 +551,7 @@ export function useSession(sessionId: string): UseSessionResult {
     updateButtonPosition,
     assignPlayerToSeat,
     updateSeatStack,
+    movePlayer,
     getPositionForSeat,
     updateSessionDetails,
     updateHeroSeat,

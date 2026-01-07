@@ -2,8 +2,11 @@ import { Player, Seat, TablePlayer } from '@/types/poker';
 import { getCurrencySymbol } from '@/utils/currency';
 import { getPositionName } from '@/utils/positionCalculator';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import React from 'react';
+import * as Haptics from 'expo-haptics';
+import React, { useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { SEAT_SIZE, styles, TABLE_HEIGHT, TABLE_WIDTH } from './PokerTable.styles';
 
 // Responsive offsets based on table size
@@ -60,12 +63,13 @@ interface SeatViewProps {
   isHero: boolean;
   isActive: boolean;
   onPress: () => void;
+  onDragEnd?: (fromSeat: number, dropX: number, dropY: number) => void;
   buttonPosition: number;
   themeColors: any;
   currency?: string;
 }
 
-function SeatView({ seat, player, isButton, isHero, isActive, onPress, buttonPosition, themeColors, currency }: SeatViewProps) {
+function SeatView({ seat, player, isButton, isHero, isActive, onPress, onDragEnd, buttonPosition, themeColors, currency }: SeatViewProps) {
   const seatNum = seat.seatNumber ?? (typeof seat.index === 'number' ? seat.index + 1 : 1);
   const positionName = getPositionName(seatNum, buttonPosition);
   const currencySymbol = getCurrencySymbol(currency);
@@ -95,57 +99,117 @@ function SeatView({ seat, player, isButton, isHero, isActive, onPress, buttonPos
     borderWidth = 4;
   }
 
+  // Drag & Drop animation values
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const scale = useSharedValue(1);
+  const zIndex = useSharedValue(1);
+
+  const isDraggable = !!player && !!onDragEnd;
+
+  const triggerHaptic = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }, []);
+
+  const handleDragEnd = useCallback((dropX: number, dropY: number) => {
+    if (onDragEnd) {
+      onDragEnd(seatNum, dropX, dropY);
+    }
+  }, [onDragEnd, seatNum]);
+
+  const handleTap = useCallback(() => {
+    onPress();
+  }, [onPress]);
+
+  const panGesture = Gesture.Pan()
+    .enabled(isDraggable)
+    .onStart(() => {
+      scale.value = withSpring(1.15);
+      zIndex.value = 100;
+      runOnJS(triggerHaptic)();
+    })
+    .onUpdate((e) => {
+      translateX.value = e.translationX;
+      translateY.value = e.translationY;
+    })
+    .onEnd((e) => {
+      const dropX = x + e.translationX;
+      const dropY = y + e.translationY;
+      runOnJS(handleDragEnd)(dropX, dropY);
+      
+      translateX.value = withSpring(0);
+      translateY.value = withSpring(0);
+      scale.value = withSpring(1);
+      zIndex.value = 1;
+    });
+
+  const tapGesture = Gesture.Tap()
+    .onEnd(() => {
+      runOnJS(handleTap)();
+    });
+
+  const composedGesture = Gesture.Race(
+    Gesture.Exclusive(panGesture, tapGesture)
+  );
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: x + translateX.value },
+      { translateY: y + translateY.value },
+      { scale: scale.value },
+    ],
+    zIndex: zIndex.value,
+  }));
+
   return (
-    <TouchableOpacity
-      style={[
-        styles.seat,
-        {
-          transform: [
-            { translateX: x },
-            { translateY: y },
-          ],
-          backgroundColor,
-          borderColor,
-          borderWidth,
-        },
-      ]}
-      onPress={onPress}
-    >
-      {player ? (
-        <View style={styles.seatContent}>
-          <Text style={[styles.seatPosition, { color: themeColors.subText }]}>
-            {positionName}
-          </Text>
-          <Text style={[styles.seatPlayerName, { color: themeColors.text }]} numberOfLines={1}>
-            {player.name}
-          </Text>
-          {player.stack !== undefined && (
-            <Text style={[styles.seatStack, { color: themeColors.text }]}>
-              {currencySymbol}{player.stack}
+    <GestureDetector gesture={composedGesture}>
+      <Animated.View
+        style={[
+          styles.seat,
+          animatedStyle,
+          {
+            backgroundColor,
+            borderColor,
+            borderWidth,
+          },
+        ]}
+      >
+        {player ? (
+          <View style={styles.seatContent}>
+            <Text style={[styles.seatPosition, { color: themeColors.subText }]}>
+              {positionName}
             </Text>
-          )}
-        </View>
-      ) : (
-        <>
-          <Ionicons name="add" size={20} color={themeColors.icon} />
-          <Text style={[styles.seatNumber, { color: themeColors.subText }]}>Seat {seatNum}</Text>
-        </>
-      )}
-      
-      {/* Button indicator */}
-      {isButton && (
-        <View style={[styles.buttonIndicator, { borderColor: themeColors.text }]}>
-          <Text style={styles.buttonText}>D</Text>
-        </View>
-      )}
-      
-      {/* Hero indicator */}
-      {isHero && (
-        <View style={styles.heroIndicator}>
-          <Text style={styles.heroText}>★</Text>
-        </View>
-      )}
-    </TouchableOpacity>
+            <Text style={[styles.seatPlayerName, { color: themeColors.text }]} numberOfLines={1}>
+              {player.name}
+            </Text>
+            {player.stack !== undefined && (
+              <Text style={[styles.seatStack, { color: themeColors.text }]}>
+                {currencySymbol}{player.stack}
+              </Text>
+            )}
+          </View>
+        ) : (
+          <>
+            <Ionicons name="add" size={20} color={themeColors.icon} />
+            <Text style={[styles.seatNumber, { color: themeColors.subText }]}>Seat {seatNum}</Text>
+          </>
+        )}
+        
+        {/* Button indicator */}
+        {isButton && (
+          <View style={[styles.buttonIndicator, { borderColor: themeColors.text }]}>
+            <Text style={styles.buttonText}>D</Text>
+          </View>
+        )}
+        
+        {/* Hero indicator */}
+        {isHero && (
+          <View style={styles.heroIndicator}>
+            <Text style={styles.heroText}>★</Text>
+          </View>
+        )}
+      </Animated.View>
+    </GestureDetector>
   );
 }
 
@@ -156,6 +220,7 @@ interface PokerTableProps {
   heroSeat?: number;
   activeSeat?: number | null;
   onSeatPress: (seatNumber: number) => void;
+  onMovePlayer?: (fromSeat: number, toSeat: number) => void;
   themeColors: any;
   centerText?: string;
   currency?: string;
@@ -178,7 +243,8 @@ export function PokerTable({
   buttonPosition, 
   heroSeat, 
   activeSeat,
-  onSeatPress, 
+  onSeatPress,
+  onMovePlayer,
   themeColors, 
   centerText = "Tap seat to assign player",
   currency,
@@ -229,6 +295,45 @@ export function PokerTable({
   // Calculate total pot (main pot + current bets)
   const currentBetsTotal = Object.values(bets).reduce((sum, bet) => sum + (bet || 0), 0);
   const displayPot = pot + currentBetsTotal;
+
+  // Handle drag end - find closest empty seat
+  const handleDragEnd = useCallback((fromSeat: number, dropX: number, dropY: number) => {
+    if (!onMovePlayer) return;
+
+    let closestDist = Infinity;
+    let closestSeatNum = -1;
+
+    // Find closest seat to drop position
+    for (let i = 1; i <= 9; i++) {
+      if (i === fromSeat) continue;
+      
+      const { x, y } = getSeatPosition(i);
+      const dist = Math.sqrt(Math.pow(dropX - x, 2) + Math.pow(dropY - y, 2));
+      
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestSeatNum = i;
+      }
+    }
+
+    // Threshold for drop detection (slightly larger than seat size)
+    const THRESHOLD = SEAT_SIZE * 1.2;
+
+    if (closestDist < THRESHOLD && closestSeatNum !== -1) {
+      // Check if target seat is empty
+      const targetSeat = seats.find(s => {
+        const sNum = s.seatNumber ?? (typeof s.index === 'number' ? s.index + 1 : 0);
+        return sNum === closestSeatNum;
+      });
+
+      const isOccupied = targetSeat?.playerId || targetSeat?.player;
+
+      if (!isOccupied) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        onMovePlayer(fromSeat, closestSeatNum);
+      }
+    }
+  }, [onMovePlayer, seats]);
 
   return (
     <View style={styles.tableContainer}>
@@ -389,6 +494,7 @@ export function PokerTable({
                 isHero={seatNum === heroSeat}
                 isActive={seatNum === activeSeat}
                 onPress={() => onSeatPress(seatNum)}
+                onDragEnd={onMovePlayer ? handleDragEnd : undefined}
                 buttonPosition={buttonPosition}
                 themeColors={themeColors}
                 currency={currency}
