@@ -625,14 +625,6 @@ export default function SessionDetailScreen() {
           </View>
         )}
 
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={20} color="#fff" />
-          <Text style={styles.backButtonText}>Back to Sessions</Text>
-        </TouchableOpacity>
-
         {/* Edit Session Modal */}
         <Modal
           visible={showEditSessionModal}
