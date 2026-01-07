@@ -23,7 +23,7 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { RangePreviewSelector, formatRangeKey, sortRangeKeys } from './RangePreviewSelector';
+import { RangePreviewSelector, sortRangeKeys } from './RangePreviewSelector';
 
 // ============================================
 // TYPES
