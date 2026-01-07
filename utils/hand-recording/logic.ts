@@ -87,14 +87,15 @@ export const startHand = (state: HandState): HandState => {
   // Post SB
   if (sbSeatNum !== -1 && !initialBets[sbSeatNum]) {
     const sbSeat = newSeats.find(s => (s.seatNumber ?? (s.index + 1)) === sbSeatNum);
-    const stack = sbSeat?.player?.stack || 0;
-    const actualSb = Math.min(state.smallBlind, stack);
+    // Always post SB regardless of stack - stack is indicative only
+    const actualSb = state.smallBlind;
 
     initialBets[sbSeatNum] = actualSb;
+    // Only deduct from stack if stack exists
     newSeats = newSeats.map(s => {
         const sNum = s.seatNumber ?? (s.index + 1);
-        if (sNum === sbSeatNum && s.player && s.player.stack !== undefined) {
-            return { ...s, player: { ...s.player, stack: s.player.stack - actualSb } };
+        if (sNum === sbSeatNum && s.player && s.player.stack !== undefined && s.player.stack > 0) {
+            return { ...s, player: { ...s.player, stack: Math.max(0, s.player.stack - actualSb) } };
         }
         return s;
     });
@@ -111,14 +112,15 @@ export const startHand = (state: HandState): HandState => {
   // Post BB
   if (bbSeatNum !== -1 && !initialBets[bbSeatNum]) {
     const bbSeat = newSeats.find(s => (s.seatNumber ?? (s.index + 1)) === bbSeatNum);
-    const stack = bbSeat?.player?.stack || 0;
-    const actualBb = Math.min(state.bigBlind, stack);
+    // Always post BB regardless of stack - stack is indicative only
+    const actualBb = state.bigBlind;
 
     initialBets[bbSeatNum] = actualBb;
+    // Only deduct from stack if stack exists
     newSeats = newSeats.map(s => {
         const sNum = s.seatNumber ?? (s.index + 1);
-        if (sNum === bbSeatNum && s.player && s.player.stack !== undefined) {
-            return { ...s, player: { ...s.player, stack: s.player.stack - actualBb } };
+        if (sNum === bbSeatNum && s.player && s.player.stack !== undefined && s.player.stack > 0) {
+            return { ...s, player: { ...s.player, stack: Math.max(0, s.player.stack - actualBb) } };
         }
         return s;
     });
@@ -255,14 +257,15 @@ export const call = (state: HandState): HandState => {
   const amountToCall = state.currentBet;
   const amountNeeded = amountToCall - currentPlayerBet;
   
+  // No stack restrictions - deduct from stack if available, otherwise just record the bet
   const stack = seat.player.stack || 0;
-  const actualDeduction = Math.min(amountNeeded, stack);
-  const finalBet = currentPlayerBet + actualDeduction;
+  const actualDeduction = stack > 0 ? Math.min(amountNeeded, stack) : 0;
+  const finalBet = amountToCall; // Always match the current bet
 
   newState.seats = state.seats.map(s => {
       const sNum = s.seatNumber ?? (s.index + 1);
-      if (sNum === state.currentActionSeat && s.player && s.player.stack !== undefined) {
-          return { ...s, player: { ...s.player, stack: s.player.stack - actualDeduction } };
+      if (sNum === state.currentActionSeat && s.player && s.player.stack !== undefined && s.player.stack > 0) {
+          return { ...s, player: { ...s.player, stack: Math.max(0, s.player.stack - actualDeduction) } };
       }
       return s;
   });
@@ -272,7 +275,7 @@ export const call = (state: HandState): HandState => {
   newState.actions = [...state.actions, {
       seatNumber: state.currentActionSeat,
       type: 'call',
-      amount: actualDeduction,
+      amount: amountNeeded,
       street: state.street,
       timestamp: Date.now()
   }];
@@ -288,7 +291,7 @@ export const call = (state: HandState): HandState => {
   return withRoundCheck(newState);
 };
 
-export const bet = (state: HandState, amount: number): HandState => {
+export const bet = (state: HandState, amount: number, isAllIn: boolean = false): HandState => {
   if (state.currentActionSeat === null) return state;
   const seat = state.seats.find(s => (s.seatNumber ?? (s.index + 1)) === state.currentActionSeat);
   if (!seat || !seat.player) return state;
@@ -306,11 +309,25 @@ export const bet = (state: HandState, amount: number): HandState => {
 
   const currentPlayerBet = state.bets[state.currentActionSeat] || 0;
   const amountToDeduct = amount - currentPlayerBet;
+  const currentStack = seat.player.stack || 0;
+
+  // Silent stack adjustment for all-in or over-bet:
+  // If amount exceeds remaining stack, treat entered amount as their actual remaining stack
+  let adjustedStack = currentStack;
+  if (isAllIn || amountToDeduct > currentStack) {
+      // Silently adjust their original stack so it makes sense
+      // Their "original stack" = amountToDeduct (what they're betting now) + currentPlayerBet (already in pot this hand)
+      adjustedStack = amountToDeduct; // This will become 0 after deduction
+  }
 
   newState.seats = state.seats.map(s => {
       const sNum = s.seatNumber ?? (s.index + 1);
-      if (sNum === state.currentActionSeat && s.player && s.player.stack !== undefined) {
-          return { ...s, player: { ...s.player, stack: s.player.stack - amountToDeduct } };
+      if (sNum === state.currentActionSeat && s.player) {
+          const stackToDeduct = Math.min(amountToDeduct, adjustedStack);
+          const newStack = isAllIn || amountToDeduct > currentStack 
+              ? 0  // All-in or over-bet: stack goes to 0
+              : Math.max(0, currentStack - amountToDeduct);
+          return { ...s, player: { ...s.player, stack: newStack } };
       }
       return s;
   });
@@ -320,7 +337,7 @@ export const bet = (state: HandState, amount: number): HandState => {
   
   newState.actions = [...state.actions, {
       seatNumber: state.currentActionSeat,
-      type: 'bet',
+      type: isAllIn ? 'all-in' : 'bet',
       amount: amountToDeduct,
       street: state.street,
       timestamp: Date.now()

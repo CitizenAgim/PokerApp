@@ -33,6 +33,10 @@ export default function RecordHandScreen() {
   const { players: allPlayers } = usePlayers();
   const { user } = useCurrentUser();
 
+  // Calculate effective blinds (from session or standalone inputs)
+  const effectiveSB = sessionId ? (session?.smallBlind || 0) : parseFloat(standaloneSB) || 0;
+  const effectiveBB = sessionId ? (session?.bigBlind || 0) : parseFloat(standaloneBB) || 0;
+
   // Initialize Hook
   const {
     seats,
@@ -69,12 +73,13 @@ export default function RecordHandScreen() {
     winners,
     actions,
     sidePots,
-    handleDistributePot
+    handleDistributePot,
+    setBlinds
   } = useHandRecorder(
     Array(9).fill(null).map((_, i) => ({ index: i, seatNumber: i + 1 })),
     1,
-    session?.bigBlind || 0,
-    session?.smallBlind || 0
+    effectiveBB,
+    effectiveSB
   );
 
   // Local UI State
@@ -83,9 +88,18 @@ export default function RecordHandScreen() {
   const [activeCardSeat, setActiveCardSeat] = useState<number | null>(null);
   const [isPickingBoardUI, setIsPickingBoardUI] = useState(false); // Renamed to avoid conflict
 
+  // Standalone Mode State (SB/BB inputs when no session)
+  const isStandaloneMode = !sessionId;
+  const [standaloneSB, setStandaloneSB] = useState('1');
+  const [standaloneBB, setStandaloneBB] = useState('2');
+
   // Mississippi Modal State
   const [showMississippiModal, setShowMississippiModal] = useState(false);
   const [mississippiAmount, setMississippiAmount] = useState('');
+
+  // All-in Modal State
+  const [showAllInModal, setShowAllInModal] = useState(false);
+  const [allInAmount, setAllInAmount] = useState('');
   
   // Bet Modal State
   const [showBetModal, setShowBetModal] = useState(false);
@@ -327,10 +341,7 @@ export default function RecordHandScreen() {
       return;
     }
 
-    if (buttonSeat.player && buttonSeat.player.stack !== undefined && buttonSeat.player.stack < amount) {
-      Alert.alert('Error', 'Insufficient stack for Mississippi.');
-      return;
-    }
+    // No stack restriction - just record the bet
 
     // Update bets
     setBets({
@@ -338,15 +349,15 @@ export default function RecordHandScreen() {
       [buttonPosition]: (bets[buttonPosition] || 0) + amount
     });
 
-    // Update stack
+    // Update stack if available
     const newSeats = seats.map(s => {
       const sNum = s.seatNumber ?? (s.index + 1);
-      if (sNum === buttonPosition && s.player && s.player.stack !== undefined) {
+      if (sNum === buttonPosition && s.player && s.player.stack !== undefined && s.player.stack > 0) {
         return {
           ...s,
           player: {
             ...s.player,
-            stack: s.player.stack - amount
+            stack: Math.max(0, s.player.stack - amount)
           }
         };
       }
@@ -387,17 +398,14 @@ export default function RecordHandScreen() {
     const straddlerSeatNum = straddlerSeat.seatNumber ?? (straddlerSeat.index + 1);
 
     // Calculate amount: 2 * BB * (2 ^ straddleCount)
-    const bbAmount = session?.bigBlind || 0;
+    const bbAmount = effectiveBB;
     if (bbAmount <= 0) {
-       Alert.alert('Error', 'Big Blind not set for this session.');
+       Alert.alert('Error', 'Big Blind not set. Please enter SB/BB values.');
        return;
     }
     const amount = bbAmount * Math.pow(2, straddleCount + 1);
 
-    if (straddlerSeat.player && straddlerSeat.player.stack !== undefined && straddlerSeat.player.stack < amount) {
-      Alert.alert('Error', 'Stack too low to straddle.');
-      return;
-    }
+    // No stack restriction - just record the bet
 
     // Update bets
     setBets({
@@ -405,15 +413,15 @@ export default function RecordHandScreen() {
       [straddlerSeatNum]: (bets[straddlerSeatNum] || 0) + amount
     });
 
-    // Update stack
+    // Update stack if available
     const newSeats = seats.map(s => {
       const sNum = s.seatNumber ?? (s.index + 1);
-      if (sNum === straddlerSeatNum && s.player && s.player.stack !== undefined) {
+      if (sNum === straddlerSeatNum && s.player && s.player.stack !== undefined && s.player.stack > 0) {
         return {
           ...s,
           player: {
             ...s.player,
-            stack: s.player.stack - amount
+            stack: Math.max(0, s.player.stack - amount)
           }
         };
       }
@@ -457,37 +465,10 @@ export default function RecordHandScreen() {
     if (currentActionSeat === null) return;
     const amount = parseFloat(betAmount);
     
-    // Validation
-    if (isNaN(amount)) {
-        Alert.alert('Invalid Amount', 'Please enter a valid number.');
+    // Validation - only check for valid number, no stack restrictions
+    if (isNaN(amount) || amount <= 0) {
+        Alert.alert('Invalid Amount', 'Please enter a valid positive number.');
         return;
-    }
-
-    // Check stack
-    const seat = seats.find(s => (s.seatNumber ?? (s.index + 1)) === currentActionSeat);
-    if (!seat || !seat.player) return;
-    
-    const currentPlayerBet = bets[currentActionSeat] || 0;
-    const stack = seat.player.stack || 0;
-    const maxTotalBet = currentPlayerBet + stack;
-
-    if (amount > maxTotalBet) {
-        Alert.alert('Insufficient Stack', `You only have enough to bet/raise up to ${maxTotalBet}.`);
-        return;
-    }
-
-    if (currentBet === 0) {
-        // Opening bet
-        if (amount < (session?.bigBlind || 0)) {
-             Alert.alert('Invalid Bet', 'Bet must be at least the Big Blind.');
-             return;
-        }
-    } else {
-        // Raise
-        if (amount < currentBet + minRaise) {
-             Alert.alert('Invalid Raise', `Raise must be at least ${currentBet + minRaise} (Min Raise: ${minRaise}).`);
-             return;
-        }
     }
     
     handleBet(amount);
@@ -521,15 +502,22 @@ export default function RecordHandScreen() {
 
   const handleAllIn = () => {
     if (currentActionSeat === null) return;
+    setAllInAmount('');
+    setShowAllInModal(true);
+  };
+
+  const confirmAllIn = () => {
+    if (currentActionSeat === null) return;
+    const amount = parseFloat(allInAmount);
     
-    const player = seats.find(s => (s.seatNumber ?? (s.index + 1)) === currentActionSeat)?.player;
-    if (!player) return;
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid positive number.');
+      return;
+    }
     
-    const myBet = bets[currentActionSeat] || 0;
-    const stack = player.stack || 0;
-    const totalBet = myBet + stack;
-    
-    handleBet(totalBet);
+    // Pass amount with allIn flag to handle stack adjustment
+    handleBet(amount, true);
+    setShowAllInModal(false);
   };
 
   useEffect(() => {
@@ -592,8 +580,8 @@ export default function RecordHandScreen() {
             isPickingBoard,
             straddleCount,
             isMississippiActive,
-            smallBlind: session?.smallBlind || 0,
-            bigBlind: session?.bigBlind || 0,
+            smallBlind: effectiveSB,
+            bigBlind: effectiveBB,
             actedSeats: new Set(),
             actions,
             isHandComplete,
@@ -629,6 +617,8 @@ export default function RecordHandScreen() {
       return;
     }
 
+    // Sync blinds before starting (important for standalone mode)
+    setBlinds(effectiveSB, effectiveBB);
     handleStartHand();
   };
 
@@ -681,6 +671,45 @@ export default function RecordHandScreen() {
         <View style={styles.controls}>
           {!isHandStarted ? (
             <>
+              {/* SB/BB inputs for standalone mode */}
+              {isStandaloneMode && (
+                <View style={{ marginBottom: 16 }}>
+                  <ThemedText style={[styles.sectionTitle, { color: themeColors.text }]}>Stakes</ThemedText>
+                  <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <View style={{ flex: 1 }}>
+                      <ThemedText style={[styles.label, { color: themeColors.subText }]}>Small Blind</ThemedText>
+                      <TextInput
+                        style={[styles.input, { 
+                          backgroundColor: themeColors.inputBg, 
+                          color: themeColors.text, 
+                          borderColor: themeColors.border 
+                        }]}
+                        value={standaloneSB}
+                        onChangeText={setStandaloneSB}
+                        keyboardType="numeric"
+                        placeholder="1"
+                        placeholderTextColor={themeColors.subText}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <ThemedText style={[styles.label, { color: themeColors.subText }]}>Big Blind</ThemedText>
+                      <TextInput
+                        style={[styles.input, { 
+                          backgroundColor: themeColors.inputBg, 
+                          color: themeColors.text, 
+                          borderColor: themeColors.border 
+                        }]}
+                        value={standaloneBB}
+                        onChangeText={setStandaloneBB}
+                        keyboardType="numeric"
+                        placeholder="2"
+                        placeholderTextColor={themeColors.subText}
+                      />
+                    </View>
+                  </View>
+                </View>
+              )}
+
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
                 <TouchableOpacity 
                     style={[styles.actionButton, { backgroundColor: themeColors.actionButtonBg, flex: 1 }]} 
@@ -944,6 +973,51 @@ export default function RecordHandScreen() {
                 <ThemedText style={{ color: themeColors.subText, fontSize: 16 }}>Cancel</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity onPress={confirmBet} style={{ padding: 10, backgroundColor: '#2196f3', borderRadius: 8 }}>
+                <ThemedText style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Confirm</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* All-in Amount Modal */}
+      <Modal
+        visible={showAllInModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAllInModal(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}
+        >
+          <View style={{ backgroundColor: themeColors.card, borderRadius: 12, padding: 20, width: '100%', maxWidth: 400 }}>
+            <ThemedText style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16, color: themeColors.text }}>All-in Amount</ThemedText>
+            
+            <TextInput
+              style={{ 
+                borderWidth: 1, 
+                borderColor: themeColors.border, 
+                borderRadius: 8, 
+                padding: 12, 
+                fontSize: 16, 
+                color: themeColors.text,
+                marginBottom: 20,
+                backgroundColor: themeColors.inputBg
+              }}
+              placeholder="Enter all-in amount"
+              placeholderTextColor={themeColors.subText}
+              keyboardType="numeric"
+              value={allInAmount}
+              onChangeText={setAllInAmount}
+              autoFocus
+            />
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+              <TouchableOpacity onPress={() => setShowAllInModal(false)} style={{ padding: 10 }}>
+                <ThemedText style={{ color: themeColors.subText, fontSize: 16 }}>Cancel</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={confirmAllIn} style={{ padding: 10, backgroundColor: '#2196f3', borderRadius: 8 }}>
                 <ThemedText style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Confirm</ThemedText>
               </TouchableOpacity>
             </View>

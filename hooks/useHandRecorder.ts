@@ -63,15 +63,19 @@ export const useHandRecorder = (initialSeats: Seat[], initialButtonPosition: num
     setState(prev => call(prev));
   }, [saveState]);
 
-  const handleBet = useCallback((amount: number) => {
+  const handleBet = useCallback((amount: number, isAllIn: boolean = false) => {
     saveState();
-    setState(prev => bet(prev, amount));
+    setState(prev => bet(prev, amount, isAllIn));
   }, [saveState]);
 
   const handleDistributePot = useCallback((results: { potIndex: number, winnerSeats: number[] }[]) => {
     saveState();
     setState(prev => distributePot(prev, results));
   }, [saveState]);
+
+  const setBlinds = (smallBlind: number, bigBlind: number) => {
+    setState(prev => ({ ...prev, smallBlind, bigBlind }));
+  };
 
   // Expose state setters for UI-specific things (like card picking) that might not be in pure logic yet
   // Or better, add them to logic or handle them here if they are "UI state"
@@ -147,6 +151,7 @@ export const useHandRecorder = (initialSeats: Seat[], initialButtonPosition: num
     setBets,
     setStraddleCount,
     setIsMississippiActive,
+    setBlinds,
     
     // History
     history,
