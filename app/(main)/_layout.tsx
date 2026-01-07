@@ -1,9 +1,10 @@
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTotalPendingCount } from '@/hooks/useFriends';
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 
 export default function MainLayout() {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   // Combined count of pending friend requests AND pending range shares
@@ -55,6 +56,14 @@ export default function MainLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="game-controller" size={size} color={color} />
           ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            // Prevent default behavior
+            e.preventDefault();
+            // Navigate to sessions index, resetting the stack
+            router.replace('/(main)/sessions');
+          },
         }}
       />
 
