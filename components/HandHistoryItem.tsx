@@ -10,13 +10,22 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 interface HandHistoryItemProps {
   hand: HandRecord;
   onPress: (hand: HandRecord) => void;
+  onLongPress?: (hand: HandRecord) => void;
+  isSelected?: boolean;
+  isSelectionMode?: boolean;
 }
 
-export function HandHistoryItem({ hand, onPress }: HandHistoryItemProps) {
+export function HandHistoryItem({ hand, onPress, onLongPress, isSelected, isSelectionMode }: HandHistoryItemProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = isDark ? Colors.dark : Colors.light;
   const { user } = useCurrentUser();
+
+  const themeColors = {
+    selectedBackground: isDark ? 'rgba(33, 150, 243, 0.2)' : 'rgba(33, 150, 243, 0.1)',
+    selectedBorder: '#2196f3',
+    tint: '#2196f3',
+  };
 
   const formatTime = (timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -57,59 +66,81 @@ export function HandHistoryItem({ hand, onPress }: HandHistoryItemProps) {
 
   return (
     <TouchableOpacity 
-      style={[styles.container, { backgroundColor: theme.card, borderColor: theme.border }]} 
+      style={[
+        styles.container, 
+        { 
+          backgroundColor: isSelected ? themeColors.selectedBackground : theme.card, 
+          borderColor: isSelected ? themeColors.selectedBorder : theme.border,
+          flexDirection: 'row',
+          alignItems: 'center',
+        }
+      ]} 
       onPress={() => onPress(hand)}
+      onLongPress={() => onLongPress?.(hand)}
+      delayLongPress={500}
     >
-      <View style={styles.header}>
-        <Text style={[styles.time, { color: theme.subText }]}>{formatTime(hand.timestamp)}</Text>
-        <View style={[styles.streetBadge, { backgroundColor: theme.tabActiveBg }]}>
-          <Text style={[styles.streetText, { color: theme.text }]}>{getStreetLabel(hand.street)}</Text>
+      {isSelectionMode && (
+        <View style={{ marginRight: 12 }}>
+          <Ionicons 
+            name={isSelected ? "checkbox" : "square-outline"} 
+            size={24} 
+            color={themeColors.tint} 
+          />
         </View>
-      </View>
+      )}
 
-      <View style={styles.content}>
-        <View style={styles.handRow}>
-          {/* Hero Cards */}
-          <View style={styles.heroCardsContainer}>
-            <Text style={[styles.sectionLabel, { color: theme.subText }]}>Hero</Text>
-            <View style={styles.cardsRow}>
-              {heroCards.length > 0 ? (
-                heroCards.map((card, index) => (
-                  <PokerCard key={index} card={card} style={index > 0 ? { marginLeft: -5, zIndex: index } : { zIndex: index }} />
-                ))
-              ) : (
-                <Text style={{ color: theme.subText, fontSize: 12 }}>No cards</Text>
-              )}
-            </View>
-          </View>
-
-          {/* Board Cards */}
-          <View style={styles.boardContainer}>
-            <View style={styles.potInfo}>
-              <Text style={[styles.potLabel, { color: theme.subText }]}>Pot: </Text>
-              <Text style={[styles.potValue, { color: theme.text }]}>{hand.pot}</Text>
-            </View>
-            
-            <View style={styles.cardsRow}>
-              {hand.communityCards && hand.communityCards.length > 0 ? (
-                hand.communityCards.map((card, index) => (
-                  <PokerCard key={index} card={card} style={{ marginRight: 4 }} />
-                ))
-              ) : (
-                <Text style={{ color: theme.subText, fontSize: 12 }}>No board</Text>
-              )}
-            </View>
+      <View style={{ flex: 1 }}>
+        <View style={styles.header}>
+          <Text style={[styles.time, { color: theme.subText }]}>{formatTime(hand.timestamp)}</Text>
+          <View style={[styles.streetBadge, { backgroundColor: theme.tabActiveBg }]}>
+            <Text style={[styles.streetText, { color: theme.text }]}>{getStreetLabel(hand.street)}</Text>
           </View>
         </View>
-      </View>
 
-      <View style={styles.footer}>
-        <Text style={[styles.winnerLabel, { color: theme.subText }]}>
-          {hand.winners && hand.winners.length > 0 
-            ? `${hand.winners.length} Winner${hand.winners.length > 1 ? 's' : ''}`
-            : 'No Showdown'}
-        </Text>
-        <Ionicons name="chevron-forward" size={16} color={theme.subText} />
+        <View style={styles.content}>
+          <View style={styles.handRow}>
+            {/* Hero Cards */}
+            <View style={styles.heroCardsContainer}>
+              <Text style={[styles.sectionLabel, { color: theme.subText }]}>Hero</Text>
+              <View style={styles.cardsRow}>
+                {heroCards.length > 0 ? (
+                  heroCards.map((card, index) => (
+                    <PokerCard key={index} card={card} style={index > 0 ? { marginLeft: -5, zIndex: index } : { zIndex: index }} />
+                  ))
+                ) : (
+                  <Text style={{ color: theme.subText, fontSize: 12 }}>No cards</Text>
+                )}
+              </View>
+            </View>
+
+            {/* Board Cards */}
+            <View style={styles.boardContainer}>
+              <View style={styles.potInfo}>
+                <Text style={[styles.potLabel, { color: theme.subText }]}>Pot: </Text>
+                <Text style={[styles.potValue, { color: theme.text }]}>{hand.pot}</Text>
+              </View>
+              
+              <View style={styles.cardsRow}>
+                {hand.communityCards && hand.communityCards.length > 0 ? (
+                  hand.communityCards.map((card, index) => (
+                    <PokerCard key={index} card={card} style={{ marginRight: 4 }} />
+                  ))
+                ) : (
+                  <Text style={{ color: theme.subText, fontSize: 12 }}>No board</Text>
+                )}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.footer}>
+          <Text style={[styles.winnerLabel, { color: theme.subText }]}>
+            {hand.winners && hand.winners.length > 0 
+              ? `${hand.winners.length} Winner${hand.winners.length > 1 ? 's' : ''}`
+              : 'No Showdown'}
+          </Text>
+          { !isSelectionMode && <Ionicons name="chevron-forward" size={16} color={theme.subText} /> }
+        </View>
       </View>
     </TouchableOpacity>
   );

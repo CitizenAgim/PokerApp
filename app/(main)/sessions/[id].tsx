@@ -3,7 +3,7 @@ import { PokerTable } from '@/components/table/PokerTable';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useCurrentSession, useCurrentUser, usePlayers, useSession, useSettings } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { getHandsBySession, HandRecord } from '@/services/firebase/hands';
+import { deleteHandRecords, getHandsBySession, HandRecord } from '@/services/firebase/hands';
 import { getThemeColors, styles } from '@/styles/sessions/[id].styles';
 import { formatDate } from '@/utils/text';
 import { Ionicons } from '@expo/vector-icons';
@@ -71,6 +71,64 @@ export default function SessionDetailScreen() {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerNotes, setNewPlayerNotes] = useState('');
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
+  
+  // Selection State
+  const [selectedHandIds, setSelectedHandIds] = useState<Set<string>>(new Set());
+  const isSelectionMode = selectedHandIds.size > 0;
+
+  const toggleSelection = (handId: string) => {
+    const newSelection = new Set(selectedHandIds);
+    if (newSelection.has(handId)) {
+      newSelection.delete(handId);
+    } else {
+      newSelection.add(handId);
+    }
+    setSelectedHandIds(newSelection);
+  };
+
+  const handleHandLongPress = (hand: HandRecord) => {
+    if (!isSelectionMode) {
+      const newSelection = new Set<string>();
+      newSelection.add(hand.id);
+      setSelectedHandIds(newSelection);
+    }
+  };
+
+  const handleHandPress = (hand: HandRecord) => {
+    if (isSelectionMode) {
+      toggleSelection(hand.id);
+    } else {
+      router.push(`/hand-replay/${hand.id}`);
+    }
+  };
+
+  const cancelSelection = () => {
+    setSelectedHandIds(new Set());
+  };
+
+  const handleDeleteHands = () => {
+    Alert.alert(
+      'Delete Hands',
+      'Are you sure you want to delete ' + selectedHandIds.size + ' hand' + (selectedHandIds.size > 1 ? 's' : '') + '?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const handsToDelete = hands.filter(h => selectedHandIds.has(h.id));
+              await deleteHandRecords(handsToDelete);
+              setHands(prev => prev.filter(h => !selectedHandIds.has(h.id)));
+              setSelectedHandIds(new Set());
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete hands');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   // Edit Buy-in State
   const [showEditBuyInModal, setShowEditBuyInModal] = useState(false);
@@ -601,6 +659,32 @@ export default function SessionDetailScreen() {
           </View>
         ) : (
           <View style={{ flex: 1 }}>
+             {/* Selection Header */}
+             {isSelectionMode && (
+                <View style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  paddingHorizontal: 16, 
+                  paddingVertical: 12, 
+                  backgroundColor: themeColors.card, 
+                  borderBottomWidth: 1, 
+                  borderBottomColor: themeColors.border 
+                }}>
+                  <TouchableOpacity onPress={cancelSelection} style={{ padding: 4 }}>
+                    <Text style={{ color: themeColors.text, fontSize: 16 }}>Cancel</Text>
+                  </TouchableOpacity>
+                  <Text style={{ fontSize: 18, fontWeight: 'bold', color: themeColors.text }}>
+                    {selectedHandIds.size} Selected
+                  </Text>
+                  <TouchableOpacity onPress={handleDeleteHands} style={{ padding: 4 }}>
+                    <Text style={{ color: '#ff3b30', fontSize: 16, fontWeight: '600' }}>
+                      Delete ({selectedHandIds.size})
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+             )}
+
              {hands.length === 0 ? (
                <View style={[styles.graphContainer, { backgroundColor: themeColors.card }]}>
                  <Text style={[styles.placeholderText, { color: themeColors.subText }]}>No hands recorded for this session.</Text>
@@ -609,13 +693,15 @@ export default function SessionDetailScreen() {
                <FlatList
                  data={hands}
                  keyExtractor={item => item.id}
+                 extraData={selectedHandIds}
                  renderItem={({ item }) => (
                    <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
                      <HandHistoryItem 
                        hand={item} 
-                       onPress={(hand) => {
-                         router.push(`/hand-replay/${hand.id}`);
-                       }} 
+                       onPress={handleHandPress}
+                       onLongPress={handleHandLongPress}
+                       isSelected={selectedHandIds.has(item.id)}
+                       isSelectionMode={isSelectionMode}
                      />
                    </View>
                  )}
