@@ -136,14 +136,15 @@ export const styles = StyleSheet.create({
   },
   heroIndicator: {
     position: 'absolute',
-    top: -SEAT_SIZE * 0.12,
-    left: -SEAT_SIZE * 0.12,
+    top: SEAT_SIZE * 0.05,
+    left: SEAT_SIZE * 0.05,
     width: SEAT_SIZE * 0.3,
     height: SEAT_SIZE * 0.3,
     borderRadius: (SEAT_SIZE * 0.3) / 2,
     backgroundColor: '#ff9800',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
   },
   heroText: {
     fontSize: Math.max(8, SEAT_SIZE * 0.18),
