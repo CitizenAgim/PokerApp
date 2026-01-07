@@ -39,13 +39,15 @@ interface UseRangeSharingResult {
   
   importToExistingPlayer: (
     shareId: string,
-    playerId: string
+    playerId: string,
+    selectedKeys?: string[]
   ) => Promise<ImportRangesResult>;
   
   importToNewPlayer: (
     shareId: string,
     playerName: string,
-    playerColor?: string
+    playerColor?: string,
+    selectedKeys?: string[]
   ) => Promise<string>; // Returns new player ID
   
   dismissShare: (shareId: string) => Promise<void>;
@@ -147,7 +149,8 @@ export function useRangeSharing(): UseRangeSharingResult {
   // Import shared ranges to an existing player (fill empty slots only)
   const importToExistingPlayer = useCallback(async (
     shareId: string,
-    playerId: string
+    playerId: string,
+    selectedKeys?: string[]
   ): Promise<ImportRangesResult> => {
     if (!userId) {
       throw new Error('You must be logged in to import ranges');
@@ -172,7 +175,12 @@ export function useRangeSharing(): UseRangeSharingResult {
 
     const newRanges: Record<string, Range> = { ...existingRanges };
 
-    for (const [key, sharedRange] of Object.entries(share.ranges)) {
+    // Filter to only selected keys if provided
+    const rangesToProcess = selectedKeys 
+      ? Object.entries(share.ranges).filter(([key]) => selectedKeys.includes(key))
+      : Object.entries(share.ranges);
+
+    for (const [key, sharedRange] of rangesToProcess) {
       const existingRange = existingRanges[key];
       
       // Check if existing range has any non-unselected hands
@@ -216,7 +224,8 @@ export function useRangeSharing(): UseRangeSharingResult {
   const importToNewPlayer = useCallback(async (
     shareId: string,
     playerName: string,
-    playerColor?: string
+    playerColor?: string,
+    selectedKeys?: string[]
   ): Promise<string> => {
     if (!userId) {
       throw new Error('You must be logged in to import ranges');
@@ -235,15 +244,22 @@ export function useRangeSharing(): UseRangeSharingResult {
       createdBy: userId,
     });
 
+    // Filter ranges to only selected keys if provided
+    const rangesToImport = selectedKeys 
+      ? Object.fromEntries(
+          Object.entries(share.ranges).filter(([key]) => selectedKeys.includes(key))
+        )
+      : share.ranges;
+
     // Save ranges to the new player
-    if (Object.keys(share.ranges).length > 0) {
-      await playersService.updatePlayerRanges(userId, newPlayer.id, share.ranges);
+    if (Object.keys(rangesToImport).length > 0) {
+      await playersService.updatePlayerRanges(userId, newPlayer.id, rangesToImport);
     }
 
     // Also save to local storage
     await localStorage.savePlayerRanges({
       playerId: newPlayer.id,
-      ranges: share.ranges,
+      ranges: rangesToImport,
       lastObserved: Date.now(),
       handsObserved: 0,
     });

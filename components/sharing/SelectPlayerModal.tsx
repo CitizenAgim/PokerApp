@@ -28,6 +28,7 @@ interface SelectPlayerModalProps {
   onClose: () => void;
   share: RangeShare;
   onSuccess: () => void;
+  selectedKeys?: string[];  // Optional: only import these range keys
 }
 
 export function SelectPlayerModal({
@@ -35,6 +36,7 @@ export function SelectPlayerModal({
   onClose,
   share,
   onSuccess,
+  selectedKeys,
 }: SelectPlayerModalProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -47,6 +49,10 @@ export function SelectPlayerModal({
   const [importing, setImporting] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [result, setResult] = useState<ImportRangesResult | null>(null);
+  
+  // Use selectedKeys if provided, otherwise import all ranges
+  const keysToImport = selectedKeys || share.rangeKeys;
+  const rangeCount = keysToImport.length;
 
   // Filter players by search query
   const filteredPlayers = players.filter(player =>
@@ -58,7 +64,7 @@ export function SelectPlayerModal({
     setImporting(true);
     
     try {
-      const importResult = await importToExistingPlayer(share.id, playerId);
+      const importResult = await importToExistingPlayer(share.id, playerId, selectedKeys);
       setResult(importResult);
       
       // Show appropriate message based on result
@@ -241,7 +247,7 @@ export function SelectPlayerModal({
               Copy to Player
             </Text>
             <Text style={[styles.modalSubtitle, { color: themeColors.subText }]}>
-              "{share.playerName}" • {share.rangeCount} ranges
+              "{share.playerName}" • {rangeCount} range{rangeCount !== 1 ? 's' : ''}
             </Text>
           </View>
           <TouchableOpacity

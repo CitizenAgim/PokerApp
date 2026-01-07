@@ -21,6 +21,7 @@ import {
     View,
 } from 'react-native';
 import { CreatePlayerModal } from './CreatePlayerModal';
+import { RangePreviewModal } from './RangePreviewModal';
 import { SelectPlayerModal } from './SelectPlayerModal';
 
 interface PendingSharesModalProps {
@@ -83,6 +84,12 @@ export function PendingSharesModal({
   const [selectPlayerModalVisible, setSelectPlayerModalVisible] = useState(false);
   const [createPlayerModalVisible, setCreatePlayerModalVisible] = useState(false);
   const [selectedShare, setSelectedShare] = useState<RangeShare | null>(null);
+  const [selectedKeysForImport, setSelectedKeysForImport] = useState<string[] | undefined>(undefined);
+  
+  // Preview modal state
+  const [previewModalVisible, setPreviewModalVisible] = useState(false);
+  const [previewShare, setPreviewShare] = useState<RangeShare | null>(null);
+  const [previewMode, setPreviewMode] = useState<'view' | 'select'>('view');
 
   // Load shares when modal opens
   useEffect(() => {
@@ -103,13 +110,56 @@ export function PendingSharesModal({
     }
   };
 
+  const handlePreview = (share: RangeShare) => {
+    setPreviewShare(share);
+    setPreviewMode('view');
+    setPreviewModalVisible(true);
+  };
+
+  const handleSelectAndImport = (share: RangeShare) => {
+    setPreviewShare(share);
+    setPreviewMode('select');
+    setPreviewModalVisible(true);
+  };
+
+  const handleAcceptSelected = (selectedKeys: string[]) => {
+    if (!previewShare) return;
+    
+    setPreviewModalVisible(false);
+    setSelectedShare(previewShare);
+    setSelectedKeysForImport(selectedKeys);
+    setPreviewShare(null);
+    
+    // Show action choice alert
+    Alert.alert(
+      'Import Ranges',
+      `Import ${selectedKeys.length} range${selectedKeys.length !== 1 ? 's' : ''} to:`,
+      [
+        { text: 'Cancel', style: 'cancel', onPress: () => {
+          setSelectedShare(null);
+          setSelectedKeysForImport(undefined);
+        }},
+        { 
+          text: 'Existing Player', 
+          onPress: () => setSelectPlayerModalVisible(true)
+        },
+        { 
+          text: 'New Player', 
+          onPress: () => setCreatePlayerModalVisible(true)
+        },
+      ]
+    );
+  };
+
   const handleCopyToPlayer = (share: RangeShare) => {
     setSelectedShare(share);
+    setSelectedKeysForImport(undefined); // Import all ranges
     setSelectPlayerModalVisible(true);
   };
 
   const handleCreateNew = (share: RangeShare) => {
     setSelectedShare(share);
+    setSelectedKeysForImport(undefined); // Import all ranges
     setCreatePlayerModalVisible(true);
   };
 
@@ -146,6 +196,7 @@ export function PendingSharesModal({
   const handleImportSuccess = (shareId: string) => {
     setShares(prev => prev.filter(s => s.id !== shareId));
     setSelectedShare(null);
+    setSelectedKeysForImport(undefined);
     setSelectPlayerModalVisible(false);
     setCreatePlayerModalVisible(false);
     
@@ -193,6 +244,42 @@ export function PendingSharesModal({
           Sent: {formatDate(item.createdAt)}
         </Text>
         
+        {/* Preview button */}
+        <TouchableOpacity
+          style={[styles.shareActionButton, { 
+            backgroundColor: isDark ? '#3a3a3c' : '#e8e8e8',
+            marginTop: 12,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            gap: 6,
+          }]}
+          onPress={() => handlePreview(item)}
+          disabled={isDismissing}
+        >
+          <Ionicons name="eye-outline" size={16} color={themeColors.subText} />
+          <Text style={[styles.shareActionText, { color: themeColors.subText }]}>
+            Preview
+          </Text>
+        </TouchableOpacity>
+        
+        {/* Select & Import button */}
+        <TouchableOpacity
+          style={[styles.shareActionButton, { 
+            backgroundColor: themeColors.accent,
+            marginTop: 8,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            gap: 6,
+          }]}
+          onPress={() => handleSelectAndImport(item)}
+          disabled={isDismissing}
+        >
+          <Ionicons name="checkbox-outline" size={16} color="#fff" />
+          <Text style={[styles.shareActionText, { color: '#fff', fontWeight: '600' }]}>
+            Select & Import Ranges
+          </Text>
+        </TouchableOpacity>
+        
         {/* Action buttons */}
         <View style={styles.shareActions}>
           <TouchableOpacity
@@ -201,7 +288,7 @@ export function PendingSharesModal({
             disabled={isDismissing}
           >
             <Text style={[styles.shareActionText, styles.shareActionTextLight]}>
-              Copy to Player
+              Import All
             </Text>
           </TouchableOpacity>
           
@@ -211,7 +298,7 @@ export function PendingSharesModal({
             disabled={isDismissing}
           >
             <Text style={[styles.shareActionText, styles.shareActionTextLight]}>
-              Create New
+              New Player
             </Text>
           </TouchableOpacity>
         </View>
@@ -318,9 +405,11 @@ export function PendingSharesModal({
           onClose={() => {
             setSelectPlayerModalVisible(false);
             setSelectedShare(null);
+            setSelectedKeysForImport(undefined);
           }}
           share={selectedShare}
           onSuccess={() => handleImportSuccess(selectedShare.id)}
+          selectedKeys={selectedKeysForImport}
         />
       )}
 
@@ -331,9 +420,26 @@ export function PendingSharesModal({
           onClose={() => {
             setCreatePlayerModalVisible(false);
             setSelectedShare(null);
+            setSelectedKeysForImport(undefined);
           }}
           share={selectedShare}
           onSuccess={() => handleImportSuccess(selectedShare.id)}
+          selectedKeys={selectedKeysForImport}
+        />
+      )}
+
+      {/* Range Preview Modal */}
+      {previewShare && (
+        <RangePreviewModal
+          visible={previewModalVisible}
+          onClose={() => {
+            setPreviewModalVisible(false);
+            setPreviewShare(null);
+          }}
+          playerName={previewShare.playerName}
+          ranges={previewShare.ranges}
+          rangeKeys={previewShare.rangeKeys}
+          onAcceptSelected={previewMode === 'select' ? handleAcceptSelected : undefined}
         />
       )}
     </>

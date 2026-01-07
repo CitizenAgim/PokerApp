@@ -29,6 +29,7 @@ interface CreatePlayerModalProps {
   onClose: () => void;
   share: RangeShare;
   onSuccess: () => void;
+  selectedKeys?: string[];  // Optional: only import these range keys
 }
 
 // Available player colors
@@ -52,12 +53,17 @@ export function CreatePlayerModal({
   onClose,
   share,
   onSuccess,
+  selectedKeys,
 }: CreatePlayerModalProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const themeColors = getThemeColors(isDark);
   
   const { importToNewPlayer } = useRangeSharing();
+  
+  // Use selectedKeys if provided, otherwise import all ranges
+  const keysToImport = selectedKeys || share.rangeKeys;
+  const rangeCount = keysToImport.length;
   
   const [playerName, setPlayerName] = useState(share.playerName);
   const [selectedColor, setSelectedColor] = useState(PLAYER_COLORS[0]);
@@ -74,7 +80,7 @@ export function CreatePlayerModal({
     setCreating(true);
     
     try {
-      const playerId = await importToNewPlayer(share.id, playerName.trim(), selectedColor);
+      const playerId = await importToNewPlayer(share.id, playerName.trim(), selectedColor, selectedKeys);
       setNewPlayerId(playerId);
       setSuccess(true);
     } catch (error) {
@@ -139,7 +145,7 @@ export function CreatePlayerModal({
                 Player Created!
               </Text>
               <Text style={[styles.resultText, { color: themeColors.subText }]}>
-                "{playerName}" with {share.rangeCount} ranges
+                "{playerName}" with {rangeCount} range{rangeCount !== 1 ? 's' : ''}
               </Text>
               <Text style={[styles.resultText, { color: themeColors.subText }]}>
                 From {share.fromUserName}
@@ -159,7 +165,7 @@ export function CreatePlayerModal({
                     Ranges imported:
                   </Text>
                   <Text style={[styles.resultStatValue, { color: themeColors.success }]}>
-                    {share.rangeCount}
+                    {rangeCount}
                   </Text>
                 </View>
                 <View style={styles.resultStatRow}>
@@ -204,7 +210,7 @@ export function CreatePlayerModal({
                 Create New Player
               </Text>
               <Text style={[styles.modalSubtitle, { color: themeColors.subText }]}>
-                {share.rangeCount} ranges from {share.fromUserName}
+                {rangeCount} range{rangeCount !== 1 ? 's' : ''} from {share.fromUserName}
               </Text>
             </View>
             <TouchableOpacity
