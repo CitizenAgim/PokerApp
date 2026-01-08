@@ -419,19 +419,11 @@ export function useSession(sessionId: string): UseSessionResult {
 
     if (!sourceSeat || (!sourceSeat.playerId && !sourceSeat.player)) return;
 
-    // Check if target seat is empty
-    const targetSeat = table.seats.find(s => {
-      const sNum = s.seatNumber ?? (typeof s.index === 'number' ? s.index + 1 : 0);
-      return sNum === toSeatNum;
-    });
-
-    if (targetSeat?.playerId || targetSeat?.player) return; // Target seat is occupied
-
     const updatedSeats = table.seats.map(seat => {
       const sNum = seat.seatNumber ?? (typeof seat.index === 'number' ? seat.index + 1 : 0);
       
       if (sNum === toSeatNum) {
-        // Copy player to new seat
+        // Copy player to new seat (replacing any existing player)
         return {
           ...seat,
           playerId: sourceSeat.playerId,

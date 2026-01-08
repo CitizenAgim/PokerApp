@@ -320,18 +320,9 @@ export function PokerTable({
     const THRESHOLD = SEAT_SIZE * 1.2;
 
     if (closestDist < THRESHOLD && closestSeatNum !== -1) {
-      // Check if target seat is empty
-      const targetSeat = seats.find(s => {
-        const sNum = s.seatNumber ?? (typeof s.index === 'number' ? s.index + 1 : 0);
-        return sNum === closestSeatNum;
-      });
-
-      const isOccupied = targetSeat?.playerId || targetSeat?.player;
-
-      if (!isOccupied) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        onMovePlayer(fromSeat, closestSeatNum);
-      }
+      // Allow dropping on any seat, including occupied ones
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onMovePlayer(fromSeat, closestSeatNum);
     }
   }, [onMovePlayer, seats]);
 
