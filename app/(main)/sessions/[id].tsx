@@ -1535,6 +1535,7 @@ export default function SessionDetailScreen() {
                 placeholderTextColor={themeColors.placeholder}
                 keyboardType="numeric"
                 autoFocus
+                selectTextOnFocus
               />
               <View style={{ height: 20 }} />
             </View>
