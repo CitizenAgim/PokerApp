@@ -246,7 +246,7 @@ export const styles = StyleSheet.create({
     marginTop: -TABLE_HEIGHT * 0.22, // Position above community cards
     marginLeft: -TABLE_WIDTH * 0.15,
     width: TABLE_WIDTH * 0.3,
-    height: TABLE_HEIGHT * 0.1,
+    height: TABLE_HEIGHT * 0.12,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 2,
