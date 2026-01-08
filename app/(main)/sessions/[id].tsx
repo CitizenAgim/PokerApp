@@ -72,6 +72,10 @@ export default function SessionDetailScreen() {
   const [newPlayerNotes, setNewPlayerNotes] = useState('');
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
   
+  // Unknown Player State
+  const [showUnknownPlayerModal, setShowUnknownPlayerModal] = useState(false);
+  const [unknownPlayerStack, setUnknownPlayerStack] = useState('');
+  
   // Selection State
   const [selectedHandIds, setSelectedHandIds] = useState<Set<string>>(new Set());
   const isSelectionMode = selectedHandIds.size > 0;
@@ -290,37 +294,30 @@ export default function SessionDetailScreen() {
   const handleAssignUnknownPlayer = async () => {
     if (selectedSeat === null) return;
     
-    // Prompt for stack size first
-    Alert.prompt(
-      'Unknown Player',
-      'Enter initial stack size:',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Add Player',
-          onPress: async (stack?: string) => {
-            const initialStack = stack ? parseFloat(stack) : 0;
-            if (isNaN(initialStack)) {
-              Alert.alert('Error', 'Invalid stack size');
-              return;
-            }
-            
-            await assignPlayerToSeat(selectedSeat, null, initialStack, {
-              name: 'Unknown',
-              isTemp: true,
-            });
-            setShowPlayerPicker(false);
-            setSelectedSeat(null);
-          },
-        },
-      ],
-      'plain-text',
-      '',
-      'numeric'
-    );
+    // Close player picker and show unknown player modal
+    setShowPlayerPicker(false);
+    setUnknownPlayerStack('');
+    setTimeout(() => {
+      setShowUnknownPlayerModal(true);
+    }, 300);
+  };
+  
+  const handleConfirmUnknownPlayer = async () => {
+    if (selectedSeat === null) return;
+    
+    const initialStack = unknownPlayerStack ? parseFloat(unknownPlayerStack) : 0;
+    if (isNaN(initialStack)) {
+      Alert.alert('Error', 'Invalid stack size');
+      return;
+    }
+    
+    await assignPlayerToSeat(selectedSeat, null, initialStack, {
+      name: 'Unknown',
+      isTemp: true,
+    });
+    setShowUnknownPlayerModal(false);
+    setSelectedSeat(null);
+    setUnknownPlayerStack('');
   };
 
   const handleSaveStack = async () => {
@@ -1123,6 +1120,56 @@ export default function SessionDetailScreen() {
                 ) : (
                   <Text style={styles.confirmButtonText}>Create & Assign</Text>
                 )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Unknown Player Modal */}
+      <Modal
+        visible={showUnknownPlayerModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowUnknownPlayerModal(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={[styles.centeredModalOverlay, { backgroundColor: themeColors.modalOverlay }]}
+        >
+          <View style={[styles.centeredModalContent, { backgroundColor: themeColors.modalBg, width: '80%' }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: themeColors.border }]}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Unknown Player</Text>
+              <TouchableOpacity onPress={() => setShowUnknownPlayerModal(false)}>
+                <Ionicons name="close" size={24} color={themeColors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={[styles.formContent, { paddingHorizontal: 20, paddingVertical: 20 }]}>
+              <Text style={[styles.label, { color: themeColors.text }]}>Initial Stack Size</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: themeColors.modalInputBg, color: themeColors.text, borderColor: themeColors.border }]}
+                value={unknownPlayerStack}
+                onChangeText={setUnknownPlayerStack}
+                placeholder="0"
+                placeholderTextColor={themeColors.placeholder}
+                keyboardType="numeric"
+                autoFocus
+              />
+            </View>
+
+            <View style={[styles.modalFooter, { backgroundColor: themeColors.modalFooterBg, borderTopColor: themeColors.border }]}>
+              <TouchableOpacity 
+                style={[styles.cancelButton, { borderColor: themeColors.border }]}
+                onPress={() => setShowUnknownPlayerModal(false)}
+              >
+                <Text style={[styles.cancelButtonText, { color: themeColors.text }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.confirmButton}
+                onPress={handleConfirmUnknownPlayer}
+              >
+                <Text style={styles.confirmButtonText}>Add Player</Text>
               </TouchableOpacity>
             </View>
           </View>
