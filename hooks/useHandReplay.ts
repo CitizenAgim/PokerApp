@@ -222,7 +222,6 @@ export function useHandReplay(hand: HandRecord) {
   
   const [currentIndex, setCurrentIndex] = useState(firstActionIndex - 1);
   const [showVillainCards, setShowVillainCards] = useState(false);
-  const [showWinnerOverlay, setShowWinnerOverlay] = useState(false);
   
   // Precompute all states
   // State at index i represents the state AFTER action[i] has been applied
@@ -264,52 +263,37 @@ export function useHandReplay(hand: HandRecord) {
   
   const nextAction = useCallback(() => {
     if (currentIndex < totalActions - 1) {
-      const newIndex = currentIndex + 1;
-      setCurrentIndex(newIndex);
-      
-      // Show winner overlay at the end
-      if (newIndex === totalActions - 1) {
-        setShowWinnerOverlay(true);
-      }
+      setCurrentIndex(currentIndex + 1);
     }
   }, [currentIndex, totalActions]);
   
   const prevAction = useCallback(() => {
     if (currentIndex > minIndex) {
       setCurrentIndex(currentIndex - 1);
-      setShowWinnerOverlay(false);
     }
   }, [currentIndex, minIndex]);
   
   const goToStart = useCallback(() => {
     setCurrentIndex(minIndex);
-    setShowWinnerOverlay(false);
   }, [minIndex]);
   
   const goToEnd = useCallback(() => {
     setCurrentIndex(totalActions - 1);
-    setShowWinnerOverlay(true);
   }, [totalActions]);
   
   const toggleVillainCards = useCallback(() => {
     setShowVillainCards(prev => !prev);
   }, []);
-  
-  const dismissWinnerOverlay = useCallback(() => {
-    setShowWinnerOverlay(false);
-  }, []);
 
   const jumpToStreet = useCallback((street: Street) => {
     if (street === 'preflop') {
       setCurrentIndex(minIndex);
-      setShowWinnerOverlay(false);
       return;
     }
     
     const index = hand.actions.findIndex(a => a.street === street);
     if (index !== -1 && index >= firstActionIndex) {
       setCurrentIndex(index);
-      setShowWinnerOverlay(false);
     }
   }, [hand.actions, minIndex, firstActionIndex]);
   
@@ -327,7 +311,6 @@ export function useHandReplay(hand: HandRecord) {
     currentIndex,
     totalActions,
     showVillainCards,
-    showWinnerOverlay,
     actionText,
     currentAction,
     hand,
@@ -337,7 +320,6 @@ export function useHandReplay(hand: HandRecord) {
     goToEnd,
     jumpToStreet,
     toggleVillainCards,
-    dismissWinnerOverlay,
     canGoNext: currentIndex < totalActions - 1,
     canGoPrev: currentIndex > minIndex,
     progress: `${currentProgress + 1} / ${actionsAfterBlinds + 1}`,

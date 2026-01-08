@@ -106,7 +106,6 @@ function HandReplayContent({ hand }: { hand: HandRecord }) {
     currentIndex,
     totalActions,
     showVillainCards,
-    showWinnerOverlay,
     actionText,
     progress,
     nextAction,
@@ -115,7 +114,6 @@ function HandReplayContent({ hand }: { hand: HandRecord }) {
     goToEnd,
     jumpToStreet,
     toggleVillainCards,
-    dismissWinnerOverlay,
     canGoNext,
     canGoPrev,
   } = useHandReplay(hand);
@@ -150,27 +148,6 @@ function HandReplayContent({ hand }: { hand: HandRecord }) {
       // Otherwise hide villain cards
     });
   }
-  
-  // Get winner info
-  const getWinnerInfo = () => {
-    if (!hand.winners || hand.winners.length === 0) return null;
-    
-    const winnerNames = hand.winners.map(seatNum => {
-      if (seatNum === hand.heroSeat) return 'Hero';
-      const seat = hand.seats.find(s => {
-        const sNum = s.seatNumber ?? (s.index !== undefined ? s.index + 1 : 0);
-        return sNum === seatNum;
-      });
-      return seat?.player?.name || `Seat ${seatNum}`;
-    });
-    
-    return {
-      names: winnerNames,
-      pot: hand.pot,
-    };
-  };
-  
-  const winnerInfo = getWinnerInfo();
   
   const handleSeatPress = (seatNumber: number) => {
     const seat = replaySeats.find(s => {
@@ -344,28 +321,6 @@ function HandReplayContent({ hand }: { hand: HandRecord }) {
           </TouchableOpacity>
         </View>
       </View>
-      
-      {/* Winner Overlay */}
-      {showWinnerOverlay && winnerInfo && (
-        <View style={styles.winnerOverlay}>
-          <View style={[styles.winnerCard, { backgroundColor: themeColors.card }]}>
-            <Ionicons name="trophy" size={48} color={themeColors.warning} />
-            <Text style={[styles.winnerTitle, { color: themeColors.text }]}>Winner!</Text>
-            <Text style={[styles.winnerName, { color: themeColors.text }]}>
-              {winnerInfo.names.join(', ')}
-            </Text>
-            <Text style={[styles.winnerAmount, { color: themeColors.success }]}>
-              Pot: {winnerInfo.pot}
-            </Text>
-            <TouchableOpacity 
-              style={[styles.dismissButton, { backgroundColor: themeColors.tint }]}
-              onPress={dismissWinnerOverlay}
-            >
-              <Text style={styles.dismissButtonText}>Continue</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
     </ThemedView>
   );
 }
