@@ -704,4 +704,50 @@ export const styles = StyleSheet.create({
     color: '#999',
     fontStyle: 'italic',
   },
+  // Action Sheet Styles
+  actionSheetContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    maxHeight: '70%',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  actionSheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  actionSheetTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  actionSheetSubtitle: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  actionSheetOptions: {
+    maxHeight: 400,
+  },
+  actionSheetOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    gap: 16,
+  },
+  actionSheetOptionText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
 });

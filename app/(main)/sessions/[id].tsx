@@ -76,6 +76,10 @@ export default function SessionDetailScreen() {
   const [showUnknownPlayerModal, setShowUnknownPlayerModal] = useState(false);
   const [unknownPlayerStack, setUnknownPlayerStack] = useState('');
   
+  // Player Action Sheet State (for Android)
+  const [showPlayerActionSheet, setShowPlayerActionSheet] = useState(false);
+  const [actionSheetSeat, setActionSheetSeat] = useState<number | null>(null);
+  
   // Selection State
   const [selectedHandIds, setSelectedHandIds] = useState<Set<string>>(new Set());
   const isSelectionMode = selectedHandIds.size > 0;
@@ -242,47 +246,54 @@ export default function SessionDetailScreen() {
     if (!seat) return;
     
     if (seat.playerId || seat.player) {
-      // Show options for occupied seat
-      Alert.alert(
-        `Seat ${seatNumber} - ${seat.player?.name || 'Player'}`,
-        `Stack: ${seat.player?.stack || 0}`,
-        [
-          {
-            text: 'Edit Stack',
-            onPress: () => {
-              setEditingSeat(seatNumber);
-              setStackAmount(seat.player?.stack?.toString() || '');
-              setShowStackEditor(true);
-            }
-          },
-          {
-            text: 'Set Color',
-            onPress: () => {
-              setEditingPlayerId(seat.playerId || seat.player?.id || null);
-              setColorPickerSeat(seatNumber);
-              setShowColorPicker(true);
-            }
-          },
-          {
-            text: 'Ranges & Notes',
-            onPress: () => seat.playerId ? router.push(`/(main)/sessions/player/${seat.playerId}`) : Alert.alert('Info', 'Cannot view details for unknown player'),
-          },
-          {
-            text: 'Set as Button',
-            onPress: () => updateButtonPosition(seatNumber),
-          },
-          {
-            text: table?.heroSeatIndex === seatNumber ? 'Remove as Hero' : 'Set as Hero',
-            onPress: () => updateHeroSeat(table?.heroSeatIndex === seatNumber ? undefined : seatNumber),
-          },
-          {
-            text: 'Remove Player',
-            style: 'destructive',
-            onPress: () => assignPlayerToSeat(seatNumber, null),
-          },
-          { text: 'Cancel', style: 'cancel' },
-        ]
-      );
+      // On Android, use custom action sheet to show all options
+      if (Platform.OS === 'android') {
+        setActionSheetSeat(seatNumber);
+        setShowPlayerActionSheet(true);
+      } else {
+        // iOS uses native Alert
+        Alert.alert(
+          `Seat ${seatNumber} - ${seat.player?.name || 'Player'}`,
+          `Stack: ${seat.player?.stack || 0}`,
+          [
+            {
+              text: 'Ranges & Notes',
+              onPress: () => seat.playerId ? router.push(`/(main)/sessions/player/${seat.playerId}`) : Alert.alert('Info', 'Cannot view details for unknown player'),
+            },
+            {
+              text: 'Set Color',
+              onPress: () => {
+                setEditingPlayerId(seat.playerId || seat.player?.id || null);
+                setColorPickerSeat(seatNumber);
+                setShowColorPicker(true);
+              }
+            },
+            {
+              text: 'Edit Stack',
+              onPress: () => {
+                setEditingSeat(seatNumber);
+                setStackAmount(seat.player?.stack?.toString() || '');
+                setShowStackEditor(true);
+              }
+            },
+            {
+              text: 'Set as Button',
+              onPress: () => updateButtonPosition(seatNumber),
+            },
+            {
+              text: table?.heroSeatIndex === seatNumber ? 'Remove as Hero' : 'Set as Hero',
+              onPress: () => updateHeroSeat(table?.heroSeatIndex === seatNumber ? undefined : seatNumber),
+            },
+            {
+              text: 'Remove Player',
+              style: 'destructive',
+              onPress: () => assignPlayerToSeat(seatNumber, null),
+            },
+            { text: 'Cancel', style: 'cancel' },
+          ],
+          { cancelable: true }
+        );
+      }
     } else {
       // Assign player to empty seat
       setSelectedSeat(seatNumber);
@@ -1174,6 +1185,142 @@ export default function SessionDetailScreen() {
             </View>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Player Action Sheet Modal (Android) */}
+      <Modal
+        visible={showPlayerActionSheet}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowPlayerActionSheet(false)}
+      >
+        <TouchableOpacity 
+          style={[styles.centeredModalOverlay, { backgroundColor: themeColors.modalOverlay }]}
+          activeOpacity={1}
+          onPress={() => setShowPlayerActionSheet(false)}
+        >
+          <TouchableOpacity 
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={[styles.actionSheetContent, { backgroundColor: themeColors.modalBg }]}
+          >
+            {actionSheetSeat && table?.seats.find((s, i) => {
+              const sNum = s.seatNumber ?? (typeof s.index === 'number' ? s.index + 1 : i + 1);
+              return sNum === actionSheetSeat;
+            }) && (() => {
+              const seat = table.seats.find((s, i) => {
+                const sNum = s.seatNumber ?? (typeof s.index === 'number' ? s.index + 1 : i + 1);
+                return sNum === actionSheetSeat;
+              })!;
+              
+              return (
+                <>
+                  <View style={[styles.actionSheetHeader, { borderBottomColor: themeColors.border }]}>
+                    <View>
+                      <Text style={[styles.actionSheetTitle, { color: themeColors.text }]}>
+                        Seat {actionSheetSeat} - {seat.player?.name || 'Player'}
+                      </Text>
+                      <Text style={[styles.actionSheetSubtitle, { color: themeColors.subText }]}>
+                        Stack: {seat.player?.stack || 0}
+                      </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setShowPlayerActionSheet(false)}>
+                      <Ionicons name="close" size={24} color={themeColors.text} />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <ScrollView style={styles.actionSheetOptions}>
+                    <TouchableOpacity
+                      style={[styles.actionSheetOption, { borderBottomColor: themeColors.border }]}
+                      onPress={() => {
+                        setShowPlayerActionSheet(false);
+                        if (seat.playerId) {
+                          router.push(`/(main)/sessions/player/${seat.playerId}`);
+                        } else {
+                          Alert.alert('Info', 'Cannot view details for unknown player');
+                        }
+                      }}
+                    >
+                      <Ionicons name="document-text-outline" size={24} color={themeColors.icon} />
+                      <Text style={[styles.actionSheetOptionText, { color: themeColors.text }]}>
+                        Ranges & Notes
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={[styles.actionSheetOption, { borderBottomColor: themeColors.border }]}
+                      onPress={() => {
+                        setShowPlayerActionSheet(false);
+                        setEditingPlayerId(seat.playerId || seat.player?.id || null);
+                        setColorPickerSeat(actionSheetSeat);
+                        setShowColorPicker(true);
+                      }}
+                    >
+                      <Ionicons name="color-palette-outline" size={24} color={themeColors.icon} />
+                      <Text style={[styles.actionSheetOptionText, { color: themeColors.text }]}>
+                        Set Color
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={[styles.actionSheetOption, { borderBottomColor: themeColors.border }]}
+                      onPress={() => {
+                        setShowPlayerActionSheet(false);
+                        setEditingSeat(actionSheetSeat);
+                        setStackAmount(seat.player?.stack?.toString() || '');
+                        setShowStackEditor(true);
+                      }}
+                    >
+                      <Ionicons name="cash-outline" size={24} color={themeColors.icon} />
+                      <Text style={[styles.actionSheetOptionText, { color: themeColors.text }]}>
+                        Edit Stack
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={[styles.actionSheetOption, { borderBottomColor: themeColors.border }]}
+                      onPress={() => {
+                        setShowPlayerActionSheet(false);
+                        updateButtonPosition(actionSheetSeat);
+                      }}
+                    >
+                      <Ionicons name="radio-button-on-outline" size={24} color={themeColors.icon} />
+                      <Text style={[styles.actionSheetOptionText, { color: themeColors.text }]}>
+                        Set as Button
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={[styles.actionSheetOption, { borderBottomColor: themeColors.border }]}
+                      onPress={() => {
+                        setShowPlayerActionSheet(false);
+                        updateHeroSeat(table?.heroSeatIndex === actionSheetSeat ? undefined : actionSheetSeat);
+                      }}
+                    >
+                      <Ionicons name="star-outline" size={24} color={themeColors.icon} />
+                      <Text style={[styles.actionSheetOptionText, { color: themeColors.text }]}>
+                        {table?.heroSeatIndex === actionSheetSeat ? 'Remove as Hero' : 'Set as Hero'}
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={[styles.actionSheetOption, { borderBottomColor: 'transparent' }]}
+                      onPress={() => {
+                        setShowPlayerActionSheet(false);
+                        assignPlayerToSeat(actionSheetSeat, null);
+                      }}
+                    >
+                      <Ionicons name="trash-outline" size={24} color="#e74c3c" />
+                      <Text style={[styles.actionSheetOptionText, { color: '#e74c3c' }]}>
+                        Remove Player
+                      </Text>
+                    </TouchableOpacity>
+                  </ScrollView>
+                </>
+              );
+            })()}
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       {/* End Session Modal */}
