@@ -2,9 +2,9 @@
 
 ## Overview
 
-Enable friends to **link their local player profiles** to create automatic range synchronization. When User A updates ranges for a linked player, User B receives a notification to accept/reject the changes—without User A needing to manually share each time.
+Enable friends to **link their local player profiles** to create **bidirectional** automatic range synchronization. When either User A or User B updates ranges for their linked player, the other friend can see and accept the changes—without manually sharing each time.
 
-**Key Principle**: The data owner (User A) controls what's shared. The receiver (User B) always has the choice to accept or reject changes.
+**Key Principle**: Links are **bidirectional**. Both parties share updates with each other and both always have the choice to accept or reject incoming changes (no auto-overwrite).
 
 ---
 
@@ -26,20 +26,21 @@ Currently, range sharing works like this:
 
 ### Concept
 
-Friends can establish a **persistent link** between player profiles in their respective databases. Once linked:
-- Updates from the **link owner** (source) automatically create notifications for the **link subscriber** (receiver)
-- The receiver always manually approves/rejects incoming changes (no auto-overwrite)
-- Links are bidirectional-capable (either party can be the source for different players)
+Friends can establish a **persistent bidirectional link** between player profiles in their respective databases. Once linked:
+- **Both users** can update their local copy of the linked player
+- **Both users** see when the other has made changes (on refresh)
+- **Both users** can accept or reject incoming changes (no auto-overwrite)
+- One link = two-way sync between two player profiles
 
 ### Terminology
 
 | Term | Definition |
 |------|------------|
-| **Source Player** | The player profile that broadcasts changes |
-| **Linked Player** | The player profile that receives update notifications |
-| **Link Owner** | The user who owns the source player |
-| **Link Subscriber** | The user who subscribes to receive updates |
-| **Link** | The connection record between source and linked player |
+| **Linked Players** | Two player profiles (one from each user) connected via a link |
+| **Link** | The bidirectional connection between two player profiles |
+| **Link Initiator** | The user who sends the link invite |
+| **Link Acceptor** | The user who accepts the link invite |
+| **Local Player** | Each user's own copy of the linked player profile |
 
 ---
 
@@ -47,42 +48,49 @@ Friends can establish a **persistent link** between player profiles in their res
 
 ### Flow A: Creating a Link (Invite)
 
-1. **User A** navigates to a player profile they want to share
+1. **User A** navigates to a player profile they want to link
 2. User A taps **"Share Ranges"** → selects a friend (User B)
 3. **New option** appears: **"Create Link"** (in addition to "Share Once")
-4. User A confirms: *"Link this player with [Friend]? They'll receive notifications when you update ranges."*
-5. A **link invite** is sent to User B
+4. User A confirms: *"Create a two-way link with [Friend]? You'll both see each other's updates to this player."*
+5. A **link invite** is sent to User B (includes User A's current ranges)
 
 ### Flow B: Accepting a Link Invite
 
 1. **User B** sees a notification badge on Friends tab (or in pending shares)
-2. User B opens the invite: *"[User A] wants to link player '[Player Name]' with you. You'll receive notifications when they update ranges."*
+2. User B opens the invite: *"[User A] wants to create a two-way link for player '[Player Name]'. You'll both see each other's range updates."*
 3. User B can:
-   - **Accept & Create New Player**: Creates a new player locally, linked to User A's player
-   - **Accept & Link to Existing Player**: Select an existing player to link
+   - **Accept & Create New Player**: Creates a new local player, linked to User A's player
+   - **Accept & Link to Existing Player**: Select an existing local player to link
    - **Decline**: Reject the link invite
-4. On accept, the link is established
+4. On accept, the **bidirectional link is established** - both users can now see each other's updates
 
-### Flow C: Receiving Range Updates (Ongoing)
+### Flow C: Receiving Range Updates (Ongoing - Bidirectional)
 
-1. **User A** updates ranges for the linked player (normal editing workflow)
-2. On save, the `rangeVersion` on the player document is incremented (no fan-out)
-3. **User B** refreshes their Friends/Linked Players page (pull-to-refresh or manual)
-4. System compares `rangeVersion` vs `lastSyncedVersion` on each link
-5. If version mismatch, User B sees: *"Update available for [Player Name]"*
-6. User B can:
-   - **Preview Changes**: Fetch and view the updated ranges
-   - **Accept All**: Apply all changes to their linked player
-   - **Accept Selected**: Choose which range updates to apply
-   - **Dismiss**: Ignore this update (link stays active for future updates)
+**When User A updates their local player:**
+1. User A edits ranges for the linked player (normal editing workflow)
+2. On save, the `rangeVersion` on User A's player document is incremented
+3. **User B** refreshes their Friends/Linked Players page
+4. System compares User A's `rangeVersion` vs User B's `lastSyncedVersionFromA`
+5. If version mismatch, User B sees: *"Update available from [User A]"*
+
+**When User B updates their local player:**
+1. User B edits ranges for the linked player (normal editing workflow)
+2. On save, the `rangeVersion` on User B's player document is incremented
+3. **User A** refreshes their Friends/Linked Players page
+4. System compares User B's `rangeVersion` vs User A's `lastSyncedVersionFromB`
+5. If version mismatch, User A sees: *"Update available from [User B]"*
+
+**Both users can:**
+- **Preview Changes**: Fetch and view the other's updated ranges
+- **Accept All**: Apply all changes to their local player
+- **Accept Selected**: Choose which range updates to apply
+- **Dismiss**: Ignore this update (link stays active for future updates)
 
 ### Flow D: Managing Links
 
 1. Either user can view their active links in Settings or Player Detail screen
-2. **Unlink** option available for both:
-   - Link Owner can revoke the link (stops broadcasting)
-   - Subscriber can unsubscribe (stops receiving)
-3. Unlinking does NOT delete any local player data
+2. **Unlink** option available for both users (either can break the link)
+3. Unlinking does NOT delete any local player data - each user keeps their copy
 
 ---
 
@@ -130,16 +138,22 @@ users/{userId}/players/{playerId}
 
 playerLinks/{linkId}
 ├── id: string
-├── sourceUserId: string           // Link owner
-├── sourceUserName: string
-├── sourcePlayerId: string
-├── sourcePlayerName: string
-├── subscriberUserId: string       // Link subscriber
-├── subscriberUserName: string
-├── subscriberPlayerId: string     // Their local player (after linking)
-├── subscriberPlayerName: string
 ├── status: 'pending' | 'active'   // pending = invite, active = linked
-├── lastSyncedVersion: number      // Version subscriber last accepted
+│
+├── // User A (link initiator)
+├── userAId: string
+├── userAName: string
+├── userAPlayerId: string          // User A's local player
+├── userAPlayerName: string
+├── userALastSyncedVersion: number // Version User A last accepted from User B
+│
+├── // User B (link acceptor)
+├── userBId: string
+├── userBName: string
+├── userBPlayerId: string | null   // null until User B accepts and maps player
+├── userBPlayerName: string | null
+├── userBLastSyncedVersion: number // Version User B last accepted from User A
+│
 ├── createdAt: Timestamp
 ├── acceptedAt: Timestamp | null
 ```
@@ -217,29 +231,28 @@ interface Player {
 }
 ```
 
-### New Collection: `playerLinks`
+### New Collection: `playerLinks` (Bidirectional)
 
 ```typescript
 interface PlayerLink {
   id: string;
   
-  // Source (broadcaster)
-  sourceUserId: string;
-  sourceUserName: string;
-  sourcePlayerId: string;
-  sourcePlayerName: string;
+  // Link status
+  status: 'pending' | 'active';  // pending = invite sent, active = both connected
   
-  // Subscriber (receiver)
-  subscriberUserId: string;
-  subscriberUserName: string;
-  subscriberPlayerId: string | null;  // null until subscriber maps to local player
-  subscriberPlayerName: string | null;
+  // User A (link initiator)
+  userAId: string;
+  userAName: string;
+  userAPlayerId: string;            // User A's local player ID
+  userAPlayerName: string;
+  userALastSyncedVersion: number;   // Version User A last accepted from User B (0 = never)
   
-  // State
-  status: 'pending' | 'active' | 'revoked';
-  
-  // Version tracking (pull-based sync)
-  lastSyncedVersion: number;   // Version subscriber last accepted (0 = never synced)
+  // User B (link acceptor)
+  userBId: string;
+  userBName: string;
+  userBPlayerId: string | null;     // null until User B accepts
+  userBPlayerName: string | null;
+  userBLastSyncedVersion: number;   // Version User B last accepted from User A (0 = never)
   
   // Timestamps
   createdAt: number;
@@ -247,41 +260,47 @@ interface PlayerLink {
 }
 ```
 
+### How Bidirectional Sync Works
+
+1. **User A updates their player** → `userA.player.rangeVersion` increments
+2. **User B refreshes** → Compare `userA.player.rangeVersion` vs `link.userBLastSyncedVersion`
+3. **If different** → Show "Update from User A" badge
+4. **User B accepts** → Update `link.userBLastSyncedVersion` to match
+
+Same flow works in reverse for User B → User A updates.
+
 ### RangeShare Collection (unchanged)
 
 The existing `rangeShares` collection remains for **manual one-time shares**.
-Linked players use pull-based sync and do NOT create rangeShare documents.
+Linked players use pull-based bidirectional sync and do NOT create rangeShare documents.
 
 ---
 
 ## Security Rules Updates
 
 ```javascript
-// Player Links collection
+// Player Links collection (bidirectional)
 match /playerLinks/{linkId} {
-  // Users can read links they're part of
+  // Users can read links they're part of (either User A or User B)
   allow read: if request.auth != null && 
-    (resource.data.sourceUserId == request.auth.uid || 
-     resource.data.subscriberUserId == request.auth.uid);
+    (resource.data.userAId == request.auth.uid || 
+     resource.data.userBId == request.auth.uid);
   
-  // Source owner can create links (as invites)
+  // User A (initiator) can create links
   allow create: if request.auth != null && 
-    request.resource.data.sourceUserId == request.auth.uid &&
+    request.resource.data.userAId == request.auth.uid &&
     request.resource.data.status == 'pending';
   
-  // Subscriber can accept (update status to 'active' and set their player)
-  // Source can revoke (update status to 'revoked')
-  // Either party can update lastSyncedVersion
+  // User B can accept (update status to 'active' and set their player)
+  // Either user can update their own lastSyncedVersion
   allow update: if request.auth != null && 
-    ((resource.data.subscriberUserId == request.auth.uid && 
-      request.resource.data.status in ['active', 'pending']) ||
-     (resource.data.sourceUserId == request.auth.uid && 
-      request.resource.data.status == 'revoked'));
+    (resource.data.userAId == request.auth.uid || 
+     resource.data.userBId == request.auth.uid);
   
   // Either party can delete (unlink)
   allow delete: if request.auth != null && 
-    (resource.data.sourceUserId == request.auth.uid || 
-     resource.data.subscriberUserId == request.auth.uid);
+    (resource.data.userAId == request.auth.uid || 
+     resource.data.userBId == request.auth.uid);
 }
 
 // UPDATED: Players subcollection - allow linked friends to read
@@ -289,9 +308,7 @@ match /users/{userId}/players/{playerId} {
   // Owner: full read/write access
   allow read, write: if request.auth.uid == userId;
   
-  // NEW: Allow reading if requester has an active link to this player
-  // This is checked via a custom function or client-side validation
-  // For simplicity, we allow friends to read player docs:
+  // NEW: Allow reading if requester is a friend (for linked player sync)
   allow read: if request.auth != null && 
     exists(/databases/$(database)/documents/users/$(userId)/friends/$(request.auth.uid));
 }
@@ -308,18 +325,17 @@ match /users/{userId}/players/{playerId} {
 
 ### Phase 1: Foundation (Backend)
 
-- [ ] Create `PlayerLink` TypeScript type in `types/sharing.ts`
+- [ ] Create `PlayerLink` TypeScript type in `types/sharing.ts` (bidirectional model)
 - [ ] Add `rangeVersion` and `rangeUpdatedAt` fields to Player type
 - [ ] Create `services/firebase/playerLinks.ts` with:
-  - `createLinkInvite(sourceUser, sourcePlayer, subscriberUserId)` - creates pending link
-  - `acceptLinkInvite(linkId, subscriberPlayerId, subscriberPlayerName)` - activates link
+  - `createLinkInvite(userA, userAPlayer, userBId)` - creates pending link
+  - `acceptLinkInvite(linkId, userBPlayerId, userBPlayerName)` - activates bidirectional link
   - `declineLinkInvite(linkId)` - deletes pending link
-  - `getActiveLinksAsSubscriber(userId)` - links where user is subscriber
-  - `getPendingLinkInvites(userId)` - invites waiting for acceptance
-  - `revokeLink(linkId)` - source revokes
-  - `unsubscribeLink(linkId)` - subscriber unsubscribes
-  - `updateLastSyncedVersion(linkId, version)` - after subscriber accepts an update
-  - `checkForUpdates(links)` - compare versions, return links with updates
+  - `getActiveLinks(userId)` - all links where user is either User A or User B
+  - `getPendingLinkInvites(userId)` - invites waiting for acceptance (where user is User B)
+  - `deleteLink(linkId)` - either user can break the link
+  - `updateLastSyncedVersion(linkId, userId, version)` - after accepting an update
+  - `checkForUpdates(links, userId)` - compare versions for both directions
 - [ ] Add Firestore security rules for `playerLinks` collection
 - [ ] Update security rules to allow friends to read player documents
 - [ ] Add Firestore indexes for efficient queries
@@ -522,7 +538,7 @@ Add to `firestore.indexes.json`:
   "collectionGroup": "playerLinks",
   "queryScope": "COLLECTION",
   "fields": [
-    { "fieldPath": "sourceUserId", "order": "ASCENDING" },
+    { "fieldPath": "userAId", "order": "ASCENDING" },
     { "fieldPath": "status", "order": "ASCENDING" }
   ]
 },
@@ -530,20 +546,13 @@ Add to `firestore.indexes.json`:
   "collectionGroup": "playerLinks",
   "queryScope": "COLLECTION",
   "fields": [
-    { "fieldPath": "subscriberUserId", "order": "ASCENDING" },
-    { "fieldPath": "status", "order": "ASCENDING" }
-  ]
-},
-{
-  "collectionGroup": "playerLinks",
-  "queryScope": "COLLECTION",
-  "fields": [
-    { "fieldPath": "sourceUserId", "order": "ASCENDING" },
-    { "fieldPath": "sourcePlayerId", "order": "ASCENDING" },
+    { "fieldPath": "userBId", "order": "ASCENDING" },
     { "fieldPath": "status", "order": "ASCENDING" }
   ]
 }
 ```
+
+**Note:** To query all links for a user (as either User A or User B), we need two queries and merge results client-side, or use an array field `userIds: [userAId, userBId]` with `array-contains`.
 
 ---
 
@@ -734,18 +743,17 @@ With 5-minute cache TTL, actual Firestore reads are reduced by ~80%:
 
 ## Open Questions for Discussion
 
-1. **Should links be bidirectional?**
-   - Current design: One-way (A broadcasts to B). B would need to create a separate link to broadcast to A.
-   - Alternative: Bidirectional links (both parties share updates automatically)
-   - **Recommendation**: Keep one-way for simplicity and explicit control
+1. ~~**Should links be bidirectional?**~~ ✅ **DECIDED: Yes, bidirectional**
+   - Links are two-way: both User A and User B share updates with each other
+   - One link document tracks both directions
 
 2. **Conflict resolution?**
-   - What if subscriber has made changes to the same range position?
-   - **Recommendation**: Show preview and let user choose which ranges to accept (like current fill-empty-only approach)
+   - What if both users update the same range position at the same time?
+   - **Recommendation**: Show preview and let user choose which ranges to accept (like current fill-empty-only approach). Last-write-wins for individual range slots.
 
 3. **Maximum links per player?**
-   - Should we limit how many subscribers a player can have?
-   - **Recommendation**: No hard limit needed (pull-based doesn't create per-subscriber cost)
+   - Should we limit how many links a player can have?
+   - **Recommendation**: No hard limit needed (pull-based doesn't create per-link cost)
 
 4. **Link expiration?**
    - Should inactive links auto-expire?
@@ -802,14 +810,15 @@ firestore.indexes.json                  # Add indexes for playerLinks
 
 ## Summary
 
-This feature enables automatic range synchronization between friends through a **linking** system with **pull-based updates**:
+This feature enables **bidirectional** automatic range synchronization between friends through a **linking** system with **pull-based updates**:
 
-1. **Link Owner updates**: Range saves increment a version number (no fan-out)
-2. **Subscriber refreshes**: Check for version mismatches on Friends page
-3. **Pull-based architecture**: Cost scales with refresh frequency, not update volume
-4. **Client-side caching**: 5-minute cache TTL reduces Firestore reads by ~80%
-5. **Visual feedback**: "Last checked" timestamp sets user expectations
-6. **Privacy-first**: Both parties have full control over their data
+1. **Bidirectional links**: Both users share updates with each other via a single link
+2. **Either user updates**: Range saves increment a version number (no fan-out)
+3. **Either user refreshes**: Check for version mismatches from the other user
+4. **Pull-based architecture**: Cost scales with refresh frequency, not update volume
+5. **Client-side caching**: 5-minute cache TTL reduces Firestore reads by ~80%
+6. **Visual feedback**: "Last checked" timestamp sets user expectations
+7. **Privacy-first**: Both parties always choose to accept or reject incoming changes
 
 **Estimated cost impact**: ~$1.50/month at 10,000 users (with caching, even with 100 links/player, 300 updates/month)
 
