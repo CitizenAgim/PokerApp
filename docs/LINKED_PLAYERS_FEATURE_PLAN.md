@@ -351,10 +351,13 @@ match /users/{userId}/players/{playerId} {
 ### Phase 5: Linked Players Page & Update Checking
 
 - [ ] Create "Linked Players" section on Friends page
-- [ ] On page load/refresh, fetch subscriber's active links
-- [ ] For each link, read source player's `rangeVersion`
+- [ ] Implement client-side cache for version check results (5-min TTL)
+- [ ] On page load/refresh, check cache first before Firestore
+- [ ] For each link, read source player's `rangeVersion` (if cache miss)
 - [ ] Compare with `lastSyncedVersion` → show "Update available" badge if different
-- [ ] Add pull-to-refresh functionality
+- [ ] Display "Last checked: X min ago" timestamp
+- [ ] Add pull-to-refresh functionality (respects cache TTL)
+- [ ] Add long-press force refresh option (bypasses cache)
 - [ ] Add "View Update" action to fetch and preview source ranges
 - [ ] Implement "Accept All" / "Accept Selected" / "Dismiss" actions
 - [ ] On accept, update `lastSyncedVersion` on the link document
@@ -440,6 +443,7 @@ match /users/{userId}/players/{playerId} {
 │  Friends                    [↻]   │  ← Pull to refresh
 ├────────────────────────────────────┤
 │  🔗 Linked Players                 │
+│     Last checked: 3 min ago        │  ← Cache status indicator
 │                                    │
 │  ┌──────────────────────────────┐  │
 │  │ Villain1 (from Mike T.)      │  │
@@ -456,6 +460,8 @@ match /users/{userId}/players/{playerId} {
 │  │ RegularJoe (from Mike T.)    │  │
 │  │ ✓ Up to date                 │  │
 │  └──────────────────────────────┘  │
+│                                    │
+│  ℹ️ Hold refresh to force check   │  ← Hint for force refresh
 └────────────────────────────────────┘
 ```
 
@@ -625,6 +631,107 @@ With pull-based sync, cost is driven by **check frequency**, NOT by **updates ×
 
 ---
 
+## Refresh Throttling (Cost Optimization)
+
+To prevent excessive Firestore reads from users refreshing too frequently, we implement **client-side caching with visual feedback**.
+
+### Strategy: Caching + Visual Feedback
+
+#### 1. Client-Side Cache with TTL
+
+- Cache version check results in local storage/memory
+- **Cache TTL: 5 minutes** (configurable)
+- Subsequent refreshes within TTL return cached data (no Firestore reads)
+- Cache key: `linkedPlayers_lastCheck_{userId}`
+
+```typescript
+interface LinkedPlayersCache {
+  lastCheckedAt: number;          // Timestamp of last Firestore fetch
+  links: PlayerLinkWithStatus[];  // Cached link data with version status
+  cacheTTL: number;               // TTL in milliseconds (default: 5 min)
+}
+```
+
+#### 2. Visual Feedback ("Last Checked" Timestamp)
+
+- Display when data was last fetched from server
+- Sets user expectations and reduces unnecessary refreshes
+- Shows cache status: "Checking..." → "Last checked: X min ago"
+
+#### 3. Refresh Behavior
+
+| Scenario | Action | Firestore Reads |
+|----------|--------|----------------|
+| First load | Fetch from Firestore | Yes |
+| Refresh within 5 min | Return cached data | **No** |
+| Refresh after 5 min | Fetch from Firestore | Yes |
+| Force refresh (hold) | Fetch from Firestore | Yes |
+
+#### 4. Force Refresh Option
+
+- Long-press on refresh button bypasses cache
+- Shows confirmation: "Force refresh? This will check for updates now."
+- Useful when user knows friend just made changes
+
+### Implementation Details
+
+```typescript
+// Check if cache is still valid
+function shouldFetchFromServer(cache: LinkedPlayersCache | null): boolean {
+  if (!cache) return true;
+  const now = Date.now();
+  const cacheAge = now - cache.lastCheckedAt;
+  return cacheAge > cache.cacheTTL;
+}
+
+// On refresh action
+async function refreshLinkedPlayers(forceRefresh = false) {
+  const cache = await getCache();
+  
+  if (!forceRefresh && !shouldFetchFromServer(cache)) {
+    // Return cached data, update UI with "Last checked: X min ago"
+    return cache.links;
+  }
+  
+  // Fetch from Firestore
+  const links = await fetchLinkedPlayersFromFirestore();
+  await saveCache({ lastCheckedAt: Date.now(), links, cacheTTL: 5 * 60 * 1000 });
+  return links;
+}
+```
+
+### Cost Impact with Caching
+
+With 5-minute cache TTL, actual Firestore reads are reduced by ~80%:
+
+| Metric | Without Cache | With 5-min Cache |
+|--------|---------------|------------------|
+| Refreshes/day (user) | 90 | 90 |
+| Actual Firestore calls | 90 | ~18 |
+| Reads/month (10K users) | 9M | **1.8M** |
+| Monthly cost | $3.24 | **$0.65** |
+
+### Updated Total Monthly Cost (with caching)
+
+| Component | Cost |
+|-----------|------|
+| Version checks (with cache) | $0.65 |
+| Range fetches + accepts | $0.50 |
+| Link document management | $0.26 |
+| **Total at 10K users** | **~$1.50/month** |
+
+### Yearly Cost Projection (with caching)
+
+| Users | Monthly | Yearly |
+|-------|---------|--------|
+| 1,000 | ~$0.15 | ~$2 |
+| 10,000 | ~$1.50 | ~$18 |
+| 100,000 | ~$15 | ~$180 |
+
+**Result**: 70% additional cost reduction from caching alone!
+
+---
+
 ## Open Questions for Discussion
 
 1. **Should links be bidirectional?**
@@ -700,10 +807,11 @@ This feature enables automatic range synchronization between friends through a *
 1. **Link Owner updates**: Range saves increment a version number (no fan-out)
 2. **Subscriber refreshes**: Check for version mismatches on Friends page
 3. **Pull-based architecture**: Cost scales with refresh frequency, not update volume
-4. **Privacy-first**: Both parties have full control over their data
-5. **Natural UX**: Users refresh to check for updates (like email, social feeds)
+4. **Client-side caching**: 5-minute cache TTL reduces Firestore reads by ~80%
+5. **Visual feedback**: "Last checked" timestamp sets user expectations
+6. **Privacy-first**: Both parties have full control over their data
 
-**Estimated cost impact**: ~$5/month at 10,000 users (even with 100 links/player, 300 updates/month)
+**Estimated cost impact**: ~$1.50/month at 10,000 users (with caching, even with 100 links/player, 300 updates/month)
 
 **Development effort**: Medium (~2-3 weeks for full implementation)
 
