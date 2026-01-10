@@ -16,7 +16,9 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     StyleSheet,
     Text,
     TextInput,
@@ -43,13 +45,18 @@ export function AcceptLinkModal({
   const isDark = colorScheme === 'dark';
   const themeColors = getThemeColors(isDark);
   
-  const { players, loading: playersLoading } = usePlayers();
-  const { acceptLink, declineLink, linkCountInfo } = usePlayerLinks();
+  const { players, loading: playersLoading, createPlayer } = usePlayers();
+  const { acceptLink, declineLink, linkCountInfo, syncFromLink } = usePlayerLinks();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [accepting, setAccepting] = useState(false);
   const [declining, setDeclining] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  
+  // Create new player state
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newPlayerName, setNewPlayerName] = useState('');
+  const [creating, setCreating] = useState(false);
 
   // Filter players by search query
   const filteredPlayers = players.filter(player =>
@@ -71,13 +78,45 @@ export function AcceptLinkModal({
             try {
               await acceptLink(link.id, playerId, playerName);
               
+              // Offer to sync ranges immediately
               Alert.alert(
                 'Link Established!',
-                `Your players are now linked. You can sync ranges from ${link.userAName} anytime.`,
-                [{ text: 'OK', onPress: () => {
-                  onSuccess?.();
-                  onClose();
-                }}]
+                `Your players are now linked. Would you like to sync ${link.userAName}'s ranges now?`,
+                [
+                  { 
+                    text: 'Later', 
+                    style: 'cancel',
+                    onPress: () => {
+                      onSuccess?.();
+                      onClose();
+                    }
+                  },
+                  {
+                    text: 'Sync Now',
+                    onPress: async () => {
+                      try {
+                        const result = await syncFromLink(link.id);
+                        Alert.alert(
+                          'Sync Complete!',
+                          `Added ${result.added} range${result.added !== 1 ? 's' : ''}${result.skipped > 0 ? `, skipped ${result.skipped} (you already had data)` : ''}.`,
+                          [{ text: 'OK', onPress: () => {
+                            onSuccess?.();
+                            onClose();
+                          }}]
+                        );
+                      } catch (syncError) {
+                        Alert.alert(
+                          'Sync Failed',
+                          syncError instanceof Error ? syncError.message : 'Failed to sync ranges. You can try again from the player detail screen.',
+                          [{ text: 'OK', onPress: () => {
+                            onSuccess?.();
+                            onClose();
+                          }}]
+                        );
+                      }
+                    },
+                  },
+                ]
               );
             } catch (error) {
               Alert.alert(
@@ -124,10 +163,83 @@ export function AcceptLinkModal({
     );
   };
 
+  const handleCreateAndLink = async () => {
+    if (!newPlayerName.trim()) {
+      Alert.alert('Error', 'Please enter a player name');
+      return;
+    }
+
+    setCreating(true);
+    
+    try {
+      // Create the new player
+      const newPlayer = await createPlayer({
+        name: newPlayerName.trim(),
+      });
+      
+      if (!newPlayer?.id) {
+        throw new Error('Failed to create player');
+      }
+
+      // Now accept the link with the new player
+      await acceptLink(link.id, newPlayer.id, newPlayerName.trim());
+      
+      // Offer to sync ranges immediately
+      Alert.alert(
+        'Link Established!',
+        `Created "${newPlayerName.trim()}" and linked with ${link.userAName}'s "${link.userAPlayerName}". Would you like to sync their ranges now?`,
+        [
+          { 
+            text: 'Later', 
+            style: 'cancel',
+            onPress: () => {
+              onSuccess?.();
+              onClose();
+            }
+          },
+          {
+            text: 'Sync Now',
+            onPress: async () => {
+              try {
+                const result = await syncFromLink(link.id);
+                Alert.alert(
+                  'Sync Complete!',
+                  `Added ${result.added} range${result.added !== 1 ? 's' : ''}${result.skipped > 0 ? `, skipped ${result.skipped} (you already had data)` : ''}.`,
+                  [{ text: 'OK', onPress: () => {
+                    onSuccess?.();
+                    onClose();
+                  }}]
+                );
+              } catch (syncError) {
+                Alert.alert(
+                  'Sync Failed',
+                  syncError instanceof Error ? syncError.message : 'Failed to sync ranges. You can try again from the player detail screen.',
+                  [{ text: 'OK', onPress: () => {
+                    onSuccess?.();
+                    onClose();
+                  }}]
+                );
+              }
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        error instanceof Error ? error.message : 'Failed to create player and link'
+      );
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const handleClose = () => {
-    if (!accepting && !declining) {
+    if (!accepting && !declining && !creating) {
       setSearchQuery('');
       setSelectedPlayerId(null);
+      setShowCreateForm(false);
+      setNewPlayerName('');
       onClose();
     }
   };
@@ -245,26 +357,112 @@ export function AcceptLinkModal({
           )}
 
           {/* Search */}
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={[
-                styles.searchInput,
-                { 
-                  backgroundColor: isDark ? '#2c2c2e' : '#f5f5f5',
-                  color: themeColors.text,
-                  borderColor: themeColors.border,
-                }
-              ]}
-              placeholder="Search your players..."
-              placeholderTextColor={themeColors.subText}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              editable={!accepting && !declining}
-            />
-          </View>
+          {!showCreateForm && (
+            <View style={styles.searchContainer}>
+              <TextInput
+                style={[
+                  styles.searchInput,
+                  { 
+                    backgroundColor: isDark ? '#2c2c2e' : '#f5f5f5',
+                    color: themeColors.text,
+                    borderColor: themeColors.border,
+                  }
+                ]}
+                placeholder="Search your players..."
+                placeholderTextColor={themeColors.subText}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                editable={!accepting && !declining}
+              />
+            </View>
+          )}
+
+          {/* Create New Player Option */}
+          {!showCreateForm ? (
+            <TouchableOpacity
+              style={[localStyles.createPlayerButton, { 
+                backgroundColor: themeColors.accent,
+                opacity: accepting || declining ? 0.5 : 1,
+              }]}
+              onPress={() => setShowCreateForm(true)}
+              disabled={accepting || declining}
+            >
+              <Ionicons name="add-circle-outline" size={22} color="#fff" />
+              <Text style={localStyles.createPlayerButtonText}>
+                Create New Player
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
+              <View style={[localStyles.createForm, { 
+                backgroundColor: isDark ? '#2c2c2e' : '#f8f9fa',
+                borderColor: themeColors.border,
+              }]}>
+                <View style={localStyles.createFormHeader}>
+                  <Text style={[localStyles.createFormTitle, { color: themeColors.text }]}>
+                    New Player
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowCreateForm(false);
+                      setNewPlayerName('');
+                    }}
+                    disabled={creating}
+                  >
+                    <Ionicons name="close-circle" size={24} color={themeColors.subText} />
+                  </TouchableOpacity>
+                </View>
+                <TextInput
+                  style={[localStyles.createFormInput, {
+                    backgroundColor: isDark ? '#1c1c1e' : '#fff',
+                    color: themeColors.text,
+                    borderColor: themeColors.border,
+                  }]}
+                  placeholder="Enter player name..."
+                  placeholderTextColor={themeColors.subText}
+                  value={newPlayerName}
+                  onChangeText={setNewPlayerName}
+                  autoFocus
+                  editable={!creating}
+                />
+                <TouchableOpacity
+                  style={[localStyles.createFormButton, { 
+                    backgroundColor: themeColors.accent,
+                    opacity: !newPlayerName.trim() || creating ? 0.5 : 1,
+                  }]}
+                  onPress={handleCreateAndLink}
+                  disabled={!newPlayerName.trim() || creating}
+                >
+                  {creating ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+                      <Text style={localStyles.createFormButtonText}>
+                        Create & Link
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </KeyboardAvoidingView>
+          )}
+
+          {/* Divider */}
+          {!showCreateForm && (
+            <View style={localStyles.dividerContainer}>
+              <View style={[localStyles.divider, { backgroundColor: themeColors.border }]} />
+              <Text style={[localStyles.dividerText, { color: themeColors.subText }]}>
+                or select existing player
+              </Text>
+              <View style={[localStyles.divider, { backgroundColor: themeColors.border }]} />
+            </View>
+          )}
 
           {/* Player list */}
-          {playersLoading ? (
+          {!showCreateForm && (playersLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={themeColors.accent} />
             </View>
@@ -277,7 +475,7 @@ export function AcceptLinkModal({
               ListEmptyComponent={renderEmptyState}
               showsVerticalScrollIndicator={false}
             />
-          )}
+          ))}
         </View>
 
         {/* Footer */}
@@ -360,5 +558,70 @@ const localStyles = StyleSheet.create({
   declineButtonText: {
     fontWeight: '600',
     fontSize: 16,
+  },
+  createPlayerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  createPlayerButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  createForm: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  createFormHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  createFormTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  createFormInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    marginBottom: 12,
+  },
+  createFormButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  createFormButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    paddingHorizontal: 12,
+    fontSize: 13,
   },
 });

@@ -460,9 +460,11 @@ interface UpdateInfo {
 export function usePlayerLinkStatus(playerId: string): {
   linkStatus: LinkStatus;
   linkedFriendNames: string[];
+  linkViews: PlayerLinkView[];
   hasUpdates: boolean;
   loading: boolean;
   checkForUpdates: () => Promise<UpdateInfo[] | null>;
+  getLinkViewById: (linkId: string) => PlayerLinkView | null;
   refresh: () => Promise<void>;
 } {
   const { 
@@ -545,12 +547,19 @@ export function usePlayerLinkStatus(playerId: string): {
     return updates.length > 0 ? updates : null;
   }, [userId, playerLinkViews, activeLinks, checkLinkForUpdates]);
   
+  // Get link view by ID
+  const getLinkViewById = useCallback((linkId: string): PlayerLinkView | null => {
+    return playerLinkViews.find(view => view.link.id === linkId) || null;
+  }, [playerLinkViews]);
+  
   return {
     linkStatus,
     linkedFriendNames,
+    linkViews: playerLinkViews,
     hasUpdates,
     loading,
     checkForUpdates,
+    getLinkViewById,
     refresh: refreshLinks,
   };
 }

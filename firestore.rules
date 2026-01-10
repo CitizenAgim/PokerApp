@@ -186,7 +186,11 @@ service cloud.firestore {
       }
       
       // Users can read links they are part of
-      allow read: if isAuthenticated() && isLinkParticipant();
+      // This supports queries like where('userAId', '==', userId) or where('userBId', '==', userId)
+      allow read: if isAuthenticated() && (
+        resource.data.userAId == request.auth.uid || 
+        resource.data.userBId == request.auth.uid
+      );
       
       // Users can create links only as User A (creator)
       // Must be creating a link with a friend (friendship validated in app layer)

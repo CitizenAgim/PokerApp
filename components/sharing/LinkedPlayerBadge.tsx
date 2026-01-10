@@ -134,19 +134,24 @@ export function LinkedPlayerBadge({
  * Compact inline badge for list items
  */
 interface LinkedPlayerInlineBadgeProps {
-  linkCount: number;
+  linkCount?: number;
   hasUpdates?: boolean;
+  // Alternative prop
+  friendNames?: string[];
 }
 
 export function LinkedPlayerInlineBadge({
   linkCount,
   hasUpdates = false,
+  friendNames = [],
 }: LinkedPlayerInlineBadgeProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const themeColors = getThemeColors(isDark);
 
-  if (linkCount === 0) {
+  const effectiveLinkCount = linkCount ?? friendNames.length;
+
+  if (effectiveLinkCount === 0) {
     return null;
   }
 
@@ -173,21 +178,32 @@ export function LinkedPlayerInlineBadge({
  * Badge showing sync status with text
  */
 interface LinkedPlayerStatusBadgeProps {
-  linkCount: number;
+  linkCount?: number;
   hasUpdates?: boolean;
   lastSyncedAt?: number;
+  // Alternative props for use with usePlayerLinkStatus
+  status?: 'none' | 'pending' | 'linked' | 'has-updates';
+  linkedFriendNames?: string[];
+  onCheckUpdates?: () => void;
 }
 
 export function LinkedPlayerStatusBadge({
   linkCount,
   hasUpdates = false,
   lastSyncedAt,
+  status,
+  linkedFriendNames = [],
+  onCheckUpdates,
 }: LinkedPlayerStatusBadgeProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const themeColors = getThemeColors(isDark);
 
-  if (linkCount === 0) {
+  // If using status-based props, derive linkCount and hasUpdates
+  const effectiveLinkCount = linkCount ?? linkedFriendNames.length;
+  const effectiveHasUpdates = hasUpdates || status === 'has-updates';
+
+  if (effectiveLinkCount === 0 && status !== 'pending') {
     return null;
   }
 
@@ -205,15 +221,37 @@ export function LinkedPlayerStatusBadge({
     return `${days}d ago`;
   };
 
-  return (
+  // Show pending status
+  if (status === 'pending') {
+    return (
+      <View
+        style={[
+          styles.statusContainer,
+          {
+            backgroundColor: isDark ? '#3a3a1a' : '#fff8e1',
+            borderColor: themeColors.warning,
+          },
+        ]}
+      >
+        <View style={styles.statusHeader}>
+          <Ionicons name="time-outline" size={16} color={themeColors.warning} />
+          <Text style={[styles.statusTitle, { color: themeColors.warning }]}>
+            Link Pending
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  const content = (
     <View
       style={[
         styles.statusContainer,
         {
-          backgroundColor: hasUpdates 
+          backgroundColor: effectiveHasUpdates 
             ? (isDark ? '#1a3a2a' : '#e8f5e9') 
             : (isDark ? '#2c2c2e' : '#f5f5f5'),
-          borderColor: hasUpdates 
+          borderColor: effectiveHasUpdates 
             ? themeColors.success 
             : themeColors.border,
         },
@@ -223,17 +261,19 @@ export function LinkedPlayerStatusBadge({
         <Ionicons 
           name="link" 
           size={16} 
-          color={hasUpdates ? themeColors.success : themeColors.accent} 
+          color={effectiveHasUpdates ? themeColors.success : themeColors.accent} 
         />
         <Text
           style={[
             styles.statusTitle,
-            { color: hasUpdates ? themeColors.success : themeColors.text },
+            { color: effectiveHasUpdates ? themeColors.success : themeColors.text },
           ]}
         >
-          {linkCount} Link{linkCount !== 1 ? 's' : ''}
+          {linkedFriendNames.length > 0 
+            ? `Linked with ${linkedFriendNames.join(', ')}`
+            : `${effectiveLinkCount} Link${effectiveLinkCount !== 1 ? 's' : ''}`}
         </Text>
-        {hasUpdates && (
+        {effectiveHasUpdates && (
           <View style={[styles.statusUpdateBadge, { backgroundColor: themeColors.success }]}>
             <Text style={styles.statusUpdateText}>Updates</Text>
           </View>
@@ -245,8 +285,24 @@ export function LinkedPlayerStatusBadge({
           Last synced: {formatLastSynced(lastSyncedAt)}
         </Text>
       )}
+      
+      {onCheckUpdates && (
+        <Text style={[styles.statusSubtext, { color: themeColors.accent, marginTop: 4 }]}>
+          Tap to check for updates
+        </Text>
+      )}
     </View>
   );
+
+  if (onCheckUpdates) {
+    return (
+      <TouchableOpacity onPress={onCheckUpdates} activeOpacity={0.7}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return content;
 }
 
 const styles = StyleSheet.create({

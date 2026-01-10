@@ -55,7 +55,7 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
   const insets = useSafeAreaInsets();
   
   // Player link status
-  const { linkStatus, linkedFriendNames, checkForUpdates, refresh: refreshLinkStatus } = usePlayerLinkStatus(id);
+  const { linkStatus, linkedFriendNames, linkViews, checkForUpdates, getLinkViewById, refresh: refreshLinkStatus } = usePlayerLinkStatus(id);
 
   // Theme colors
   const themeColors = getThemeColors(isDark);
@@ -87,10 +87,7 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
   
   // Link update preview state
   const [showLinkUpdatePreview, setShowLinkUpdatePreview] = useState(false);
-  const [selectedLinkForUpdate, setSelectedLinkForUpdate] = useState<{
-    linkId: string;
-    friendName: string;
-  } | null>(null);
+  const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
 
   // Check if user is logged in (required for sharing)
   const isLoggedIn = !!auth.currentUser;
@@ -101,6 +98,18 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
       setEditName(player.name);
     }
   }, [player, showEditModal]);
+
+  // Auto-check for updates when viewing a linked player (only once on mount)
+  const [hasCheckedForUpdates, setHasCheckedForUpdates] = useState(false);
+  useEffect(() => {
+    if (!hasCheckedForUpdates && linkStatus === 'linked' && linkedFriendNames.length > 0) {
+      setHasCheckedForUpdates(true);
+      // Check for updates in the background
+      checkForUpdates().catch(err => {
+        console.warn('Failed to auto-check for link updates:', err);
+      });
+    }
+  }, [linkStatus, linkedFriendNames.length, checkForUpdates, hasCheckedForUpdates]);
 
   const handleOpenEditModal = () => {
     if (player) {
@@ -441,10 +450,7 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
               if (linkedFriendNames.length > 0) {
                 const updates = await checkForUpdates();
                 if (updates && updates.length > 0) {
-                  setSelectedLinkForUpdate({
-                    linkId: updates[0].linkId,
-                    friendName: updates[0].friendName,
-                  });
+                  setSelectedLinkId(updates[0].linkId);
                   setShowLinkUpdatePreview(true);
                 } else {
                   Alert.alert('Up to Date', 'All linked ranges are up to date.');
@@ -906,21 +912,20 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
       />
 
       {/* Link Update Preview Modal */}
-      {selectedLinkForUpdate && (
+      {selectedLinkId && getLinkViewById(selectedLinkId) && (
         <LinkUpdatePreview
           visible={showLinkUpdatePreview}
           onClose={() => {
             setShowLinkUpdatePreview(false);
-            setSelectedLinkForUpdate(null);
+            setSelectedLinkId(null);
           }}
-          linkId={selectedLinkForUpdate.linkId}
-          friendName={selectedLinkForUpdate.friendName}
-          onSyncComplete={() => {
+          linkView={getLinkViewById(selectedLinkId)!}
+          onSuccess={() => {
             // Refresh ranges and link status after sync
             refreshRanges();
             refreshLinkStatus();
             setShowLinkUpdatePreview(false);
-            setSelectedLinkForUpdate(null);
+            setSelectedLinkId(null);
           }}
         />
       )}
