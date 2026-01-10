@@ -10,32 +10,31 @@
 import { db } from '@/config/firebase';
 import { Range } from '@/types/poker';
 import {
-  AcceptPlayerLink,
-  CreatePlayerLink,
-  PlayerLink,
-  PlayerLinkView,
-  PLAYER_LINKS_CONFIG,
-  SyncRangesResult,
+    AcceptPlayerLink,
+    CreatePlayerLink,
+    PLAYER_LINKS_CONFIG,
+    PlayerLink,
+    PlayerLinkView,
+    SyncRangesResult,
 } from '@/types/sharing';
 import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  or,
-  query,
-  serverTimestamp,
-  setDoc,
-  Timestamp,
-  updateDoc,
-  where,
-  writeBatch,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    onSnapshot,
+    or,
+    query,
+    serverTimestamp,
+    setDoc,
+    Timestamp,
+    updateDoc,
+    where
 } from 'firebase/firestore';
 import { checkRateLimit } from '../rateLimit';
-import { getPlayer, updatePlayerRanges, getPlayerRanges } from './players';
 import { getFriend } from './friends';
+import { getPlayer, getPlayerRanges, updatePlayerRanges } from './players';
 
 // ============================================
 // COLLECTION HELPERS

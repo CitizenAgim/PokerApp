@@ -10,14 +10,13 @@
 
 import { auth } from '@/config/firebase';
 import * as playerLinksService from '@/services/firebase/playerLinks';
-import { Player } from '@/types/poker';
 import {
-  AcceptPlayerLink,
-  CreatePlayerLink,
-  PlayerLink,
-  PlayerLinkView,
-  PLAYER_LINKS_CONFIG,
-  SyncRangesResult,
+    AcceptPlayerLink,
+    CreatePlayerLink,
+    PLAYER_LINKS_CONFIG,
+    PlayerLink,
+    PlayerLinkView,
+    SyncRangesResult,
 } from '@/types/sharing';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
