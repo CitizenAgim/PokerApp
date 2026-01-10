@@ -42,6 +42,7 @@ interface UsePlayerLinksResult {
   links: PlayerLink[];
   activeLinks: PlayerLink[];
   pendingLinks: PlayerLink[];
+  pendingInvites: PlayerLinkView[];  // Pending links as views (for UI)
   pendingLinksCount: number;
   linkViews: PlayerLinkView[];
   loading: boolean;
@@ -116,13 +117,19 @@ export function usePlayerLinks(): UsePlayerLinksResult {
   
   const pendingLinksCount = pendingLinks.length;
   
-  // Convert links to views for the current user
+  // Convert active links to views for the current user
   const linkViews = useMemo<PlayerLinkView[]>(() => {
     if (!userId) return [];
     return links
       .filter(link => link.status === 'active')
       .map(link => playerLinksService.toPlayerLinkView(link, userId));
   }, [links, userId]);
+  
+  // Convert pending links to views for the current user (for UI display)
+  const pendingInvites = useMemo<PlayerLinkView[]>(() => {
+    if (!userId) return [];
+    return pendingLinks.map(link => playerLinksService.toPlayerLinkView(link, userId));
+  }, [pendingLinks, userId]);
   
   // Subscribe to real-time updates
   useEffect(() => {
@@ -387,6 +394,7 @@ export function usePlayerLinks(): UsePlayerLinksResult {
     links,
     activeLinks,
     pendingLinks,
+    pendingInvites,
     pendingLinksCount,
     linkViews,
     loading,
@@ -436,26 +444,71 @@ export function usePendingLinksCount(): number {
 // USE PLAYER LINK STATUS HOOK
 // ============================================
 
+type LinkStatus = 'none' | 'pending' | 'linked' | 'has-updates';
+
+interface UpdateInfo {
+  linkId: string;
+  friendName: string;
+  hasUpdates: boolean;
+  theirVersion: number;
+}
+
 /**
  * Hook to get link status for a specific player
- * Returns whether the player has links and if updates are available
+ * Returns link status, friend names, and update check functionality
  */
 export function usePlayerLinkStatus(playerId: string): {
-  hasLinks: boolean;
-  linkCount: number;
+  linkStatus: LinkStatus;
+  linkedFriendNames: string[];
   hasUpdates: boolean;
   loading: boolean;
+  checkForUpdates: () => Promise<UpdateInfo[] | null>;
+  refresh: () => Promise<void>;
 } {
-  const { linkViews, loading } = usePlayerLinks();
+  const { 
+    linkViews, 
+    activeLinks,
+    pendingLinks,
+    loading, 
+    checkForUpdates: checkLinkForUpdates,
+    refresh: refreshLinks 
+  } = usePlayerLinks();
   const [hasUpdates, setHasUpdates] = useState(false);
+  const userId = auth.currentUser?.uid;
   
+  // Get active link views for this player
   const playerLinkViews = useMemo(
     () => linkViews.filter(view => view.myPlayerId === playerId),
     [linkViews, playerId]
   );
   
-  const hasLinks = playerLinkViews.length > 0;
-  const linkCount = playerLinkViews.length;
+  // Get pending links for this player
+  const playerPendingLinks = useMemo(
+    () => pendingLinks.filter(link => {
+      if (!userId) return false;
+      const isUserA = link.userAId === userId;
+      const myPlayerId = isUserA ? link.userAPlayerId : link.userBPlayerId;
+      return myPlayerId === playerId;
+    }),
+    [pendingLinks, playerId, userId]
+  );
+  
+  // Get linked friend names
+  const linkedFriendNames = useMemo(
+    () => playerLinkViews.map(view => view.theirUserName),
+    [playerLinkViews]
+  );
+  
+  // Determine link status
+  const linkStatus = useMemo<LinkStatus>(() => {
+    if (playerLinkViews.length > 0) {
+      return hasUpdates ? 'has-updates' : 'linked';
+    }
+    if (playerPendingLinks.length > 0) {
+      return 'pending';
+    }
+    return 'none';
+  }, [playerLinkViews.length, playerPendingLinks.length, hasUpdates]);
   
   // Check for updates whenever link views change
   useEffect(() => {
@@ -463,10 +516,41 @@ export function usePlayerLinkStatus(playerId: string): {
     setHasUpdates(hasAnyUpdates);
   }, [playerLinkViews]);
   
+  // Function to check for updates across all links for this player
+  const checkForUpdates = useCallback(async (): Promise<UpdateInfo[] | null> => {
+    if (!userId || playerLinkViews.length === 0) return null;
+    
+    const updates: UpdateInfo[] = [];
+    
+    for (const view of playerLinkViews) {
+      const link = activeLinks.find(l => l.id === view.link.id);
+      if (!link) continue;
+      
+      try {
+        const result = await checkLinkForUpdates(link);
+        if (result.hasUpdates) {
+          updates.push({
+            linkId: view.link.id,
+            friendName: view.theirUserName,
+            hasUpdates: result.hasUpdates,
+            theirVersion: result.theirVersion,
+          });
+        }
+      } catch (err) {
+        console.error(`Failed to check updates for link ${view.link.id}:`, err);
+      }
+    }
+    
+    setHasUpdates(updates.length > 0);
+    return updates.length > 0 ? updates : null;
+  }, [userId, playerLinkViews, activeLinks, checkLinkForUpdates]);
+  
   return {
-    hasLinks,
-    linkCount,
+    linkStatus,
+    linkedFriendNames,
     hasUpdates,
     loading,
+    checkForUpdates,
+    refresh: refreshLinks,
   };
 }

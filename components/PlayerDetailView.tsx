@@ -24,7 +24,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinkedPlayerStatusBadge, LinkUpdatePreview, ShareRangesModal } from './sharing';
-import { LimitWarning, checkLimit } from './ui/LimitWarning';
+import { checkLimit, LimitWarning } from './ui/LimitWarning';
 
 const POSITIONS: { id: Position; label: string; color: string }[] = [
   { id: 'early', label: 'Early', color: '#e74c3c' },

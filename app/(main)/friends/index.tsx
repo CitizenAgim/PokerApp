@@ -304,11 +304,11 @@ export default function FriendsScreen() {
                 {pendingInvites.length}
               </Text>
             </View>
-            {pendingInvites.map((link) => (
+            {pendingInvites.map((linkView) => (
               <TouchableOpacity
-                key={link.id}
+                key={linkView.link.id}
                 style={[localStyles.linkCard, { backgroundColor: themeColors.card }]}
-                onPress={() => setSelectedLinkInvite(link)}
+                onPress={() => setSelectedLinkInvite(linkView)}
               >
                 <View style={localStyles.linkInfo}>
                   <View style={[localStyles.linkIcon, { backgroundColor: isDark ? '#1a3a4a' : '#e3f2fd' }]}>
@@ -316,10 +316,10 @@ export default function FriendsScreen() {
                   </View>
                   <View style={localStyles.linkDetails}>
                     <Text style={[styles.requestName, { color: themeColors.text }]}>
-                      {link.initiatorName}
+                      {linkView.theirUserName}
                     </Text>
                     <Text style={[localStyles.linkDescription, { color: themeColors.subText }]}>
-                      wants to link "{link.initiatorPlayerName}"
+                      wants to link "{linkView.theirPlayerName || 'a player'}"
                     </Text>
                   </View>
                 </View>
@@ -447,8 +447,8 @@ export default function FriendsScreen() {
         <AcceptLinkModal
           visible={!!selectedLinkInvite}
           onClose={() => setSelectedLinkInvite(null)}
-          linkInvite={selectedLinkInvite}
-          onAccepted={() => {
+          link={selectedLinkInvite.link}
+          onSuccess={() => {
             refreshLinks();
             setSelectedLinkInvite(null);
           }}
