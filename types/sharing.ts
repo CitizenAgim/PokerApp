@@ -21,6 +21,110 @@ export interface RangeShare {
   createdAt: number;
 }
 
+// ============================================
+// PLAYER LINKS TYPES & INTERFACES
+// ============================================
+
+/**
+ * Status of a player link
+ * - pending: Link created, waiting for recipient to select their player
+ * - active: Both parties have linked players, syncing enabled
+ */
+export type PlayerLinkStatus = 'pending' | 'active';
+
+/**
+ * Represents a bidirectional link between two users' player profiles.
+ * When active, both users can sync ranges from each other's linked player.
+ * 
+ * User A creates the link → User B accepts and selects their player
+ * Once active, both can pull updates from the other's player.
+ */
+export interface PlayerLink {
+  id: string;
+  status: PlayerLinkStatus;
+  
+  // User A (link creator)
+  userAId: string;
+  userAName: string;
+  userAPlayerId: string;
+  userAPlayerName: string;
+  userALastSyncedVersion: number;  // Last version User A synced from User B
+  
+  // User B (link acceptor)
+  userBId: string;
+  userBName: string;
+  userBPlayerId: string | null;     // Null until accepted
+  userBPlayerName: string | null;   // Null until accepted
+  userBLastSyncedVersion: number;   // Last version User B synced from User A
+  
+  createdAt: number;
+  acceptedAt: number | null;
+}
+
+/**
+ * Data required to create a new player link
+ */
+export interface CreatePlayerLink {
+  userAId: string;
+  userAName: string;
+  userAPlayerId: string;
+  userAPlayerName: string;
+  userBId: string;
+  userBName: string;
+}
+
+/**
+ * Data required to accept a player link
+ */
+export interface AcceptPlayerLink {
+  userBPlayerId: string;
+  userBPlayerName: string;
+}
+
+/**
+ * Player link with computed properties for the current user's perspective
+ */
+export interface PlayerLinkView {
+  link: PlayerLink;
+  isUserA: boolean;               // True if current user is User A (creator)
+  myPlayerId: string;
+  myPlayerName: string;
+  theirUserId: string;
+  theirUserName: string;
+  theirPlayerId: string | null;
+  theirPlayerName: string | null;
+  myLastSyncedVersion: number;
+  theirRangeVersion: number | null;  // Fetched separately, null if not loaded
+  hasUpdates: boolean | null;        // True if theirRangeVersion > myLastSyncedVersion
+}
+
+/**
+ * Summary of updates available from linked players
+ */
+export interface LinkUpdatesSummary {
+  linkId: string;
+  theirPlayerName: string;
+  theirUserName: string;
+  updatesAvailable: number;  // Number of new range updates (theirVersion - myLastSynced)
+}
+
+/**
+ * Result of syncing ranges from a linked player
+ */
+export interface SyncRangesResult {
+  added: number;       // Number of ranges added (empty slots filled)
+  skipped: number;     // Number of ranges skipped (user already has observations)
+  newVersion: number;  // The version that was synced
+  rangeKeysAdded: string[];
+  rangeKeysSkipped: string[];
+}
+
+// Player links configuration
+export const PLAYER_LINKS_CONFIG = {
+  MAX_LINKS_PER_PLAYER: 250,
+  CACHE_TTL_MS: 5 * 60 * 1000,  // 5 minutes
+} as const;
+
 /**
  * Data required to create a new range share
  */

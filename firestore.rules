@@ -55,8 +55,15 @@ service cloud.firestore {
       // ============================================
       
       match /players/{playerId} {
+        // Helper function to check if requester is a friend
+        function isFriend() {
+          return exists(/databases/$(database)/documents/users/$(userId)/friends/$(request.auth.uid));
+        }
+        
         // Owner: full read/write access
-        allow read, write: if isOwner(userId);
+        // Friends: read-only access (for linked player sync)
+        allow read: if isOwner(userId) || (isAuthenticated() && isFriend());
+        allow write: if isOwner(userId);
       }
       
       // ============================================
@@ -159,6 +166,52 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && 
         (resource.data.fromUserId == request.auth.uid || 
          resource.data.toUserId == request.auth.uid);
+    }
+
+    // ============================================
+    // PLAYER LINKS COLLECTION
+    // ============================================
+    
+    match /playerLinks/{linkId} {
+      // Helper function to check if user is part of the link
+      function isLinkParticipant() {
+        return resource.data.userAId == request.auth.uid || 
+               resource.data.userBId == request.auth.uid;
+      }
+      
+      // Helper function to check if users are friends
+      // Checks if userB exists in userA's friends subcollection
+      function areFriends(userAId, userBId) {
+        return exists(/databases/$(database)/documents/users/$(userAId)/friends/$(userBId));
+      }
+      
+      // Users can read links they are part of
+      allow read: if isAuthenticated() && isLinkParticipant();
+      
+      // Users can create links only as User A (creator)
+      // Must be creating a link with a friend (friendship validated in app layer)
+      allow create: if isAuthenticated() && 
+        request.resource.data.userAId == request.auth.uid &&
+        request.resource.data.status == 'pending' &&
+        areFriends(request.auth.uid, request.resource.data.userBId);
+      
+      // User B can accept a pending link (update status to active, set their player)
+      // User A or B can update their lastSyncedVersion
+      allow update: if isAuthenticated() && isLinkParticipant() && (
+        // User B accepting the link
+        (resource.data.userBId == request.auth.uid && 
+         resource.data.status == 'pending' &&
+         request.resource.data.status == 'active') ||
+        // Either user updating their sync version (active links only)
+        (resource.data.status == 'active' && 
+         request.resource.data.status == 'active' &&
+         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userALastSyncedVersion']) ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userBLastSyncedVersion'])))
+      );
+      
+      // Either participant can delete the link
+      // User A can cancel pending, either can remove active
+      allow delete: if isAuthenticated() && isLinkParticipant();
     }
 
     // ============================================

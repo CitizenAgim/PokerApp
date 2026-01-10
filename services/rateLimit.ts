@@ -20,6 +20,13 @@ export const RATE_LIMITS = {
   SYNC_OPERATION: { maxRequests: 2, windowMs: 30_000 },      // 2 per 30 seconds
   QUERY_PLAYERS: { maxRequests: 20, windowMs: 60_000 },      // 20 per minute
   QUERY_SESSIONS: { maxRequests: 20, windowMs: 60_000 },     // 20 per minute
+  // Player link actions
+  CREATE_PLAYER_LINK: { maxRequests: 10, windowMs: 60_000 }, // 10 per minute
+  ACCEPT_PLAYER_LINK: { maxRequests: 10, windowMs: 60_000 }, // 10 per minute
+  DECLINE_PLAYER_LINK: { maxRequests: 10, windowMs: 60_000 }, // 10 per minute
+  REMOVE_PLAYER_LINK: { maxRequests: 10, windowMs: 60_000 }, // 10 per minute
+  CANCEL_PLAYER_LINK: { maxRequests: 10, windowMs: 60_000 }, // 10 per minute
+  SYNC_PLAYER_LINK: { maxRequests: 20, windowMs: 60_000 },   // 20 per minute (allow batch syncs)
 } as const;
 
 export type RateLimitAction = keyof typeof RATE_LIMITS;
@@ -205,6 +212,12 @@ function formatActionName(action: RateLimitAction): string {
     SYNC_OPERATION: 'syncing data',
     QUERY_PLAYERS: 'querying players',
     QUERY_SESSIONS: 'querying sessions',
+    CREATE_PLAYER_LINK: 'creating player links',
+    ACCEPT_PLAYER_LINK: 'accepting player links',
+    DECLINE_PLAYER_LINK: 'declining player links',
+    REMOVE_PLAYER_LINK: 'removing player links',
+    CANCEL_PLAYER_LINK: 'canceling player links',
+    SYNC_PLAYER_LINK: 'syncing from linked players',
   };
   return names[action] || action;
 }

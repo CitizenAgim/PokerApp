@@ -56,6 +56,8 @@ interface FirestorePlayer {
   notes?: string;
   notesList?: NoteEntry[];
   ranges?: Record<string, Range>;  // Embedded ranges
+  rangeVersion?: number;           // Version number for linked player sync
+  rangeUpdatedAt?: Timestamp;      // Timestamp of last range update
   isShared?: boolean;              // Sharing flag
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -70,6 +72,8 @@ function toPlayer(id: string, data: FirestorePlayer): Player & { ranges?: Record
     notes: data.notes,
     notesList: data.notesList || [],
     ranges: data.ranges || {},
+    rangeVersion: data.rangeVersion || 0,
+    rangeUpdatedAt: data.rangeUpdatedAt?.toMillis() || undefined,
     isShared: data.isShared || false,
     createdBy: '', // Not needed in subcollection model - derived from path
     createdAt: data.createdAt?.toMillis() || Date.now(),
@@ -159,6 +163,7 @@ export async function createPlayer(
     const data = {
       ...toFirestoreData(player),
       ranges: {},           // Initialize empty ranges
+      rangeVersion: 0,      // Initialize version for linked player sync
       isShared: false,      // Default to not shared
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -172,6 +177,7 @@ export async function createPlayer(
       color: player.color,
       notesList: player.notesList || [],
       ranges: {},
+      rangeVersion: 0,
       isShared: false,
       createdBy: userId,
       createdAt: Date.now(),
@@ -305,11 +311,17 @@ export async function updatePlayerRanges(
       return;
     }
     
+    // Get current version to increment
+    const currentData = playerDoc.data() as FirestorePlayer;
+    const currentVersion = currentData.rangeVersion || 0;
+    
     // Sanitize ranges before saving (sparse storage optimization)
     const sanitizedRanges = sanitizeRangesForStorage(ranges);
     
     await updateDoc(playerRef, {
       ranges: sanitizedRanges,
+      rangeVersion: currentVersion + 1,
+      rangeUpdatedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
   } catch (error) {
@@ -346,11 +358,17 @@ export async function updatePlayerRange(
       return;
     }
     
+    // Get current version to increment
+    const currentData = playerDoc.data() as FirestorePlayer;
+    const currentVersion = currentData.rangeVersion || 0;
+    
     // Sanitize range before saving (sparse storage optimization)
     const sanitizedRange = sanitizeRangeForStorage(range);
     
     await updateDoc(playerRef, {
       [`ranges.${rangeKey}`]: sanitizedRange,
+      rangeVersion: currentVersion + 1,
+      rangeUpdatedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
   } catch (error) {

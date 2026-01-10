@@ -92,6 +92,8 @@ export interface Player {
   locations?: string[];   // Places where the player plays
   notes?: string; // Deprecated, kept for backward compatibility
   notesList?: NoteEntry[];
+  rangeVersion?: number;    // Incremented on each range update (for linked player sync)
+  rangeUpdatedAt?: number;  // Timestamp of last range update
   createdAt: number;      // Unix timestamp
   updatedAt: number;      // Unix timestamp
   createdBy: string;      // User ID who created this player

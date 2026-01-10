@@ -741,28 +741,36 @@ With 5-minute cache TTL, actual Firestore reads are reduced by ~80%:
 
 ---
 
-## Open Questions for Discussion
+## Decisions
 
-1. ~~**Should links be bidirectional?**~~ ✅ **DECIDED: Yes, bidirectional**
-   - Links are two-way: both User A and User B share updates with each other
-   - One link document tracks both directions
+| Question | Decision |
+|----------|----------|
+| **Bidirectional links?** | ✅ Yes - both users share updates with each other |
+| **Conflict resolution** | ✅ Show preview, let user choose which ranges to accept (fill-empty-only approach) |
+| **Maximum links per player** | ✅ 250 links max, display remaining count on screen |
+| **Link expiration** | ✅ No auto-expiration (users manually unlink) |
+| **Security model** | ✅ Friend-based read access (any friend can read player docs) |
 
-2. **Conflict resolution?**
-   - What if both users update the same range position at the same time?
-   - **Recommendation**: Show preview and let user choose which ranges to accept (like current fill-empty-only approach). Last-write-wins for individual range slots.
+### Conflict Resolution Details
 
-3. **Maximum links per player?**
-   - Should we limit how many links a player can have?
-   - **Recommendation**: No hard limit needed (pull-based doesn't create per-link cost)
+When accepting updates, use the **fill-empty-only** approach:
+- Only import ranges where the user has NO existing data
+- User's existing observations are NEVER overwritten automatically
+- Show preview with: "X new ranges will be added, Y skipped (you already have data)"
+- User can choose "Accept All New" or "Accept Selected" to pick specific ranges
 
-4. **Link expiration?**
-   - Should inactive links auto-expire?
-   - **Recommendation**: No auto-expiration (users can manually unlink)
+### Link Limit Display
 
-5. **Security: Friend-based vs Link-based read access?**
-   - Simple: Allow any friend to read any player document
-   - Strict: Only allow reading if active link exists (requires Cloud Function validation)
-   - **Recommendation**: Friend-based for MVP (simpler), can tighten later if needed
+Show remaining links on the Create Link screen:
+```
+┌──────────────────────────────────────┐
+│  Create Link with Mike T.            │
+│                                      │
+│  Links available: 248 / 250          │  ← Show limit
+│                                      │
+│  [Create Link]                       │
+└──────────────────────────────────────┘
+```
 
 ---
 
@@ -805,6 +813,51 @@ firestore.rules                         # Add rules for playerLinks + friend rea
 
 firestore.indexes.json                  # Add indexes for playerLinks
 ```
+
+---
+
+## Implementation Status
+
+### Phase 1: Foundation (Backend) ✅ COMPLETE
+
+**Files Created:**
+- [types/sharing.ts](../types/sharing.ts) - Added `PlayerLink`, `PlayerLinkView`, `SyncRangesResult` types
+- [services/firebase/playerLinks.ts](../services/firebase/playerLinks.ts) - Complete CRUD + sync operations
+- [hooks/usePlayerLinks.ts](../hooks/usePlayerLinks.ts) - React hooks with caching
+
+**Files Modified:**
+- [types/poker.ts](../types/poker.ts) - Added `rangeVersion`, `rangeUpdatedAt` to Player interface
+- [services/firebase/players.ts](../services/firebase/players.ts) - Version increment on range updates
+- [services/rateLimit.ts](../services/rateLimit.ts) - Added player link rate limits
+- [firestore.rules](../firestore.rules) - Added playerLinks rules + friend read access
+- [firestore.indexes.json](../firestore.indexes.json) - Added playerLinks indexes
+- [hooks/index.ts](../hooks/index.ts) - Export new hooks
+- [services/firebase/index.ts](../services/firebase/index.ts) - Export new service
+
+**Key Features Implemented:**
+- Bidirectional PlayerLink data model
+- Create, accept, decline, remove, cancel link operations
+- Version-based update detection
+- Fill-empty-only range sync
+- 5-minute client-side cache
+- Friend-based security rules
+- 250 link limit with count tracking
+- Real-time subscriptions for links
+
+### Phase 2: UI Components - NOT STARTED
+
+Components to create:
+- `CreateLinkModal.tsx` - Modal to create a link
+- `AcceptLinkModal.tsx` - Modal to accept link invite  
+- `LinkUpdatePreview.tsx` - Preview changes before accepting
+- `LinkedPlayerBadge.tsx` - Visual indicator for linked players
+
+### Phase 3-7: Integration & Polish - NOT STARTED
+
+- Update ShareRangesModal with "Create Link" option
+- Add linked player indicators to player list/detail
+- Add "Linked Players" section to Friends tab
+- Polish and testing
 
 ---
 

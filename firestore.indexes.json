@@ -173,6 +173,76 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "playerLinks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userAId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "playerLinks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userBId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "playerLinks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userBId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "playerLinks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userAId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "userAPlayerId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "playerLinks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userBId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "userBPlayerId",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": [
