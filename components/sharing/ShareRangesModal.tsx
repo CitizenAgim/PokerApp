@@ -2,11 +2,16 @@
  * ShareRangesModal
  * 
  * Modal that allows a user to select a friend and share player ranges with them.
+ * Supports two modes:
+ * - One-Time Share: Send ranges to a friend once
+ * - Create Link: Set up bidirectional automatic sync
+ * 
  * Only ranges are shared - notes and other personal data are excluded for privacy.
  */
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useFriends } from '@/hooks/useFriends';
+import { usePlayerLinks } from '@/hooks/usePlayerLinks';
 import { useRangeSharing } from '@/hooks/useRangeSharing';
 import { getThemeColors, styles } from '@/styles/sharing/index.styles';
 import { Range } from '@/types/poker';
@@ -17,14 +22,18 @@ import {
     Alert,
     FlatList,
     Modal,
+    StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
 
+type ShareMode = 'one-time' | 'link';
+
 interface ShareRangesModalProps {
   visible: boolean;
   onClose: () => void;
+  playerId?: string;  // Optional - required for link mode
   playerName: string;
   ranges: Record<string, Range>;
   onSuccess?: () => void;
@@ -33,6 +42,7 @@ interface ShareRangesModalProps {
 export function ShareRangesModal({
   visible,
   onClose,
+  playerId,
   playerName,
   ranges,
   onSuccess,
@@ -43,9 +53,25 @@ export function ShareRangesModal({
   
   const { friends, loading: friendsLoading } = useFriends();
   const { sendShare } = useRangeSharing();
+  const { createLink, linkCountInfo, activeLinks } = usePlayerLinks();
   
   const [sending, setSending] = useState(false);
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
+  const [mode, setMode] = useState<ShareMode>('one-time');
+
+  // Get existing link friend IDs to filter them out in link mode
+  const linkedFriendIds = new Set(
+    activeLinks
+      .filter(link => 
+        link.userAPlayerId === playerId || link.userBPlayerId === playerId
+      )
+      .map(link => link.userAId === playerId ? link.userBId : link.userAId)
+  );
+
+  // Filter friends based on mode
+  const availableFriends = mode === 'link' && playerId
+    ? friends.filter(friend => !linkedFriendIds.has(friend.odUserId))
+    : friends;
 
   // Count non-empty ranges
   const rangeCount = Object.entries(ranges).filter(([_, range]) => 
@@ -62,42 +88,86 @@ export function ShareRangesModal({
   };
 
   const handleSelectFriend = async (friendId: string, friendName: string) => {
-    // Confirm before sending
-    Alert.alert(
-      'Share Ranges',
-      `Share ${playerName}'s ranges (${rangeCount} total) with ${friendName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Share',
-          onPress: async () => {
-            setSending(true);
-            setSelectedFriendId(friendId);
-            
-            try {
-              await sendShare(friendId, friendName, playerName, ranges);
+    if (mode === 'link') {
+      // Handle link creation
+      if (!playerId) {
+        Alert.alert('Error', 'Player ID is required to create a link');
+        return;
+      }
+      
+      Alert.alert(
+        'Create Two-Way Link',
+        `Create a link with ${friendName}? You'll both be able to sync range updates for this player.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Create Link',
+            onPress: async () => {
+              setSending(true);
+              setSelectedFriendId(friendId);
               
-              Alert.alert(
-                'Shared!',
-                `${playerName}'s ranges have been shared with ${friendName}.`,
-                [{ text: 'OK', onPress: () => {
-                  onSuccess?.();
-                  onClose();
-                }}]
-              );
-            } catch (error) {
-              Alert.alert(
-                'Error',
-                error instanceof Error ? error.message : 'Failed to share ranges'
-              );
-            } finally {
-              setSending(false);
-              setSelectedFriendId(null);
-            }
+              try {
+                await createLink(friendId, friendName, playerId, playerName);
+                
+                Alert.alert(
+                  'Link Request Sent!',
+                  `${friendName} will receive your link request. Once they accept and select their player, you'll both be able to sync ranges.`,
+                  [{ text: 'OK', onPress: () => {
+                    onSuccess?.();
+                    onClose();
+                  }}]
+                );
+              } catch (error) {
+                Alert.alert(
+                  'Error',
+                  error instanceof Error ? error.message : 'Failed to create link'
+                );
+              } finally {
+                setSending(false);
+                setSelectedFriendId(null);
+              }
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    } else {
+      // Handle one-time share
+      Alert.alert(
+        'Share Ranges',
+        `Share ${playerName}'s ranges (${rangeCount} total) with ${friendName}?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Share',
+            onPress: async () => {
+              setSending(true);
+              setSelectedFriendId(friendId);
+              
+              try {
+                await sendShare(friendId, friendName, playerName, ranges);
+                
+                Alert.alert(
+                  'Shared!',
+                  `${playerName}'s ranges have been shared with ${friendName}.`,
+                  [{ text: 'OK', onPress: () => {
+                    onSuccess?.();
+                    onClose();
+                  }}]
+                );
+              } catch (error) {
+                Alert.alert(
+                  'Error',
+                  error instanceof Error ? error.message : 'Failed to share ranges'
+                );
+              } finally {
+                setSending(false);
+                setSelectedFriendId(null);
+              }
+            },
+          },
+        ]
+      );
+    }
   };
 
   const handleClose = () => {
@@ -134,7 +204,9 @@ export function ShareRangesModal({
           <ActivityIndicator size="small" color={themeColors.accent} />
         ) : (
           <View style={styles.selectButton}>
-            <Text style={styles.selectButtonText}>Select</Text>
+            <Text style={styles.selectButtonText}>
+              {mode === 'link' ? 'Link' : 'Share'}
+            </Text>
           </View>
         )}
       </TouchableOpacity>
@@ -144,16 +216,24 @@ export function ShareRangesModal({
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Ionicons 
-        name="people-outline" 
+        name={mode === 'link' ? 'link-outline' : 'people-outline'} 
         size={48} 
         color={themeColors.subText} 
         style={styles.emptyIcon}
       />
       <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
-        No Friends Yet
+        {friends.length === 0 
+          ? 'No Friends Yet' 
+          : mode === 'link' && availableFriends.length === 0
+            ? 'All Friends Linked'
+            : 'No Friends Yet'}
       </Text>
       <Text style={[styles.emptyText, { color: themeColors.subText }]}>
-        Add friends to share ranges with them.
+        {friends.length === 0 
+          ? 'Add friends to share ranges with them.'
+          : mode === 'link' && availableFriends.length === 0
+            ? "You've already linked this player with all your friends."
+            : 'Add friends to share ranges with them.'}
       </Text>
     </View>
   );
@@ -170,10 +250,10 @@ export function ShareRangesModal({
         <View style={[styles.modalHeader, { borderBottomColor: themeColors.border }]}>
           <View>
             <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-              Share Ranges
+              {mode === 'link' ? 'Create Player Link' : 'Share Ranges'}
             </Text>
             <Text style={[styles.modalSubtitle, { color: themeColors.subText }]}>
-              {playerName} • {rangeCount} ranges
+              {playerName} {mode !== 'link' && `• ${rangeCount} ranges`}
             </Text>
           </View>
           <TouchableOpacity
@@ -187,10 +267,82 @@ export function ShareRangesModal({
 
         {/* Content */}
         <View style={styles.modalContent}>
+          {/* Mode Selector - only show if playerId is provided */}
+          {playerId && (
+            <View style={[localStyles.modeSelector, { borderColor: themeColors.border }]}>
+              <TouchableOpacity
+                style={[
+                  localStyles.modeButton,
+                  mode === 'one-time' && localStyles.modeButtonActive,
+                  mode === 'one-time' && { backgroundColor: themeColors.accent },
+                ]}
+                onPress={() => setMode('one-time')}
+                disabled={sending}
+              >
+                <Ionicons 
+                  name="send-outline" 
+                  size={16} 
+                  color={mode === 'one-time' ? '#fff' : themeColors.text} 
+                />
+                <Text style={[
+                  localStyles.modeButtonText,
+                  { color: mode === 'one-time' ? '#fff' : themeColors.text },
+                ]}>
+                  One-Time
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  localStyles.modeButton,
+                  mode === 'link' && localStyles.modeButtonActive,
+                  mode === 'link' && { backgroundColor: themeColors.accent },
+                ]}
+                onPress={() => setMode('link')}
+                disabled={sending}
+              >
+                <Ionicons 
+                  name="link-outline" 
+                  size={16} 
+                  color={mode === 'link' ? '#fff' : themeColors.text} 
+                />
+                <Text style={[
+                  localStyles.modeButtonText,
+                  { color: mode === 'link' ? '#fff' : themeColors.text },
+                ]}>
+                  Create Link
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Description */}
           <Text style={[styles.shareModalDescription, { color: themeColors.subText }]}>
-            Select a friend to share this player's ranges with.
-            Only ranges will be shared - notes are kept private.
+            {mode === 'link'
+              ? 'Create a two-way link with a friend. You\'ll both be able to sync range updates automatically.'
+              : 'Select a friend to share this player\'s ranges with. Only ranges will be shared - notes are kept private.'}
           </Text>
+
+          {/* Link count info - only for link mode */}
+          {mode === 'link' && linkCountInfo && (
+            <View style={[localStyles.linkCountContainer, { 
+              backgroundColor: isDark ? '#2c2c2e' : '#f5f5f5',
+              borderColor: themeColors.border,
+            }]}>
+              <Ionicons name="link" size={16} color={themeColors.accent} />
+              <Text style={[localStyles.linkCountText, { color: themeColors.text }]}>
+                Links available: {linkCountInfo.remaining} / {linkCountInfo.max}
+              </Text>
+            </View>
+          )}
+
+          {/* Info box for link mode */}
+          {mode === 'link' && (
+            <View style={[styles.infoBox, { backgroundColor: isDark ? '#1a3a4a' : '#e3f2fd' }]}>
+              <Text style={[styles.infoBoxText, { color: isDark ? '#64b5f6' : '#1565c0' }]}>
+                🔗 Once linked, both you and your friend can pull range updates from each other. Your existing observations are never overwritten automatically.
+              </Text>
+            </View>
+          )}
 
           {friendsLoading ? (
             <View style={styles.loadingContainer}>
@@ -198,10 +350,10 @@ export function ShareRangesModal({
             </View>
           ) : (
             <FlatList
-              data={friends}
+              data={availableFriends}
               keyExtractor={(item) => item.odUserId}
               renderItem={renderFriendItem}
-              contentContainerStyle={friends.length === 0 ? { flex: 1 } : undefined}
+              contentContainerStyle={availableFriends.length === 0 ? { flex: 1 } : { paddingTop: 12 }}
               ListEmptyComponent={renderEmptyState}
               showsVerticalScrollIndicator={false}
             />
@@ -222,3 +374,42 @@ export function ShareRangesModal({
     </Modal>
   );
 }
+
+const localStyles = StyleSheet.create({
+  modeSelector: {
+    flexDirection: 'row',
+    borderRadius: 10,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  modeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    gap: 6,
+  },
+  modeButtonActive: {
+    backgroundColor: '#0a7ea4',
+  },
+  modeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  linkCountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  linkCountText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+});

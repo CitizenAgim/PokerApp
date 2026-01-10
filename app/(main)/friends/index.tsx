@@ -1,9 +1,11 @@
-import { PendingSharesModal } from '@/components/sharing';
+import { AcceptLinkModal, PendingSharesModal } from '@/components/sharing';
 import { auth } from '@/config/firebase';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useFriends, usePendingRangeSharesPerFriend } from '@/hooks/useFriends';
+import { usePendingLinksCount, usePlayerLinks } from '@/hooks/usePlayerLinks';
 import { getThemeColors, styles } from '@/styles/friends/index.styles';
 import { Friend, FriendRequest } from '@/types/friends';
+import { PlayerLinkView } from '@/types/sharing';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -14,6 +16,7 @@ import {
     RefreshControl,
     ScrollView,
     Share,
+    StyleSheet,
     Text,
     TouchableOpacity,
     View,
@@ -41,15 +44,20 @@ export default function FriendsScreen() {
   
   const { countByFriend, sharesByFriend } = usePendingRangeSharesPerFriend();
   
+  // Player links state
+  const { pendingInvites, refresh: refreshLinks } = usePlayerLinks();
+  const pendingLinksCount = usePendingLinksCount();
+  
   const [refreshing, setRefreshing] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [selectedFriendForShares, setSelectedFriendForShares] = useState<Friend | null>(null);
+  const [selectedLinkInvite, setSelectedLinkInvite] = useState<PlayerLinkView | null>(null);
 
   const user = auth.currentUser;
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await refresh();
+    await Promise.all([refresh(), refreshLinks()]);
     setRefreshing(false);
   };
 
@@ -282,6 +290,48 @@ export default function FriendsScreen() {
           </View>
         )}
 
+        {/* Pending Player Links Section */}
+        {pendingInvites.length > 0 && (
+          <View style={styles.pendingSection}>
+            <View style={styles.sectionHeader}>
+              <View style={localStyles.linkSectionHeader}>
+                <Ionicons name="link" size={18} color={themeColors.accent} />
+                <Text style={[styles.sectionTitle, { color: themeColors.sectionTitle }]}>
+                  Player Link Invites
+                </Text>
+              </View>
+              <Text style={[styles.sectionCount, { color: themeColors.subText }]}>
+                {pendingInvites.length}
+              </Text>
+            </View>
+            {pendingInvites.map((link) => (
+              <TouchableOpacity
+                key={link.id}
+                style={[localStyles.linkCard, { backgroundColor: themeColors.card }]}
+                onPress={() => setSelectedLinkInvite(link)}
+              >
+                <View style={localStyles.linkInfo}>
+                  <View style={[localStyles.linkIcon, { backgroundColor: isDark ? '#1a3a4a' : '#e3f2fd' }]}>
+                    <Ionicons name="link" size={20} color={themeColors.accent} />
+                  </View>
+                  <View style={localStyles.linkDetails}>
+                    <Text style={[styles.requestName, { color: themeColors.text }]}>
+                      {link.initiatorName}
+                    </Text>
+                    <Text style={[localStyles.linkDescription, { color: themeColors.subText }]}>
+                      wants to link "{link.initiatorPlayerName}"
+                    </Text>
+                  </View>
+                </View>
+                <View style={localStyles.linkAction}>
+                  <Text style={localStyles.linkActionText}>Review</Text>
+                  <Ionicons name="chevron-forward" size={16} color="#fff" />
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         {/* Sent Requests Section */}
         {sentRequests.length > 0 && (
           <View style={styles.sentSection}>
@@ -391,6 +441,69 @@ export default function FriendsScreen() {
           friendName={selectedFriendForShares.displayName}
         />
       )}
+
+      {/* Accept Link Modal */}
+      {selectedLinkInvite && (
+        <AcceptLinkModal
+          visible={!!selectedLinkInvite}
+          onClose={() => setSelectedLinkInvite(null)}
+          linkInvite={selectedLinkInvite}
+          onAccepted={() => {
+            refreshLinks();
+            setSelectedLinkInvite(null);
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
+
+const localStyles = StyleSheet.create({
+  linkSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  linkCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  linkInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  linkIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  linkDetails: {
+    flex: 1,
+  },
+  linkDescription: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  linkAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#0a7ea4',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  linkActionText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+});

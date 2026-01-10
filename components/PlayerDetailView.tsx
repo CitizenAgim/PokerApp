@@ -2,6 +2,7 @@ import { auth } from '@/config/firebase';
 import { HAND_MAP } from '@/constants/hands';
 import { usePlayer, usePlayerRanges, usePlayers } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { usePlayerLinkStatus } from '@/hooks/usePlayerLinks';
 import { VALIDATION_LIMITS } from '@/services/validation';
 import { getThemeColors, styles } from '@/styles/players/[id]/index.styles';
 import { Action, NoteEntry, Position } from '@/types/poker';
@@ -22,7 +23,7 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ShareRangesModal } from './sharing';
+import { LinkedPlayerStatusBadge, LinkUpdatePreview, ShareRangesModal } from './sharing';
 import { LimitWarning, checkLimit } from './ui/LimitWarning';
 
 const POSITIONS: { id: Position; label: string; color: string }[] = [
@@ -48,10 +49,13 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
   const router = useRouter();
   const { player, loading, error } = usePlayer(id);
   const { deletePlayer, updatePlayer } = usePlayers();
-  const { ranges } = usePlayerRanges(id);
+  const { ranges, refresh: refreshRanges } = usePlayerRanges(id);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const insets = useSafeAreaInsets();
+  
+  // Player link status
+  const { linkStatus, linkedFriendNames, checkForUpdates, refresh: refreshLinkStatus } = usePlayerLinkStatus(id);
 
   // Theme colors
   const themeColors = getThemeColors(isDark);
@@ -80,6 +84,13 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
 
   // Share modal state
   const [showShareModal, setShowShareModal] = useState(false);
+  
+  // Link update preview state
+  const [showLinkUpdatePreview, setShowLinkUpdatePreview] = useState(false);
+  const [selectedLinkForUpdate, setSelectedLinkForUpdate] = useState<{
+    linkId: string;
+    friendName: string;
+  } | null>(null);
 
   // Check if user is logged in (required for sharing)
   const isLoggedIn = !!auth.currentUser;
@@ -419,6 +430,30 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
             {player.name.charAt(0).toUpperCase()}
           </Text>
         </View>
+        
+        {/* Linked Player Badge */}
+        {linkStatus !== 'none' && isLoggedIn && (
+          <LinkedPlayerStatusBadge
+            status={linkStatus}
+            linkedFriendNames={linkedFriendNames}
+            onCheckUpdates={async () => {
+              // For now, show the first linked friend update preview
+              if (linkedFriendNames.length > 0) {
+                const updates = await checkForUpdates();
+                if (updates && updates.length > 0) {
+                  setSelectedLinkForUpdate({
+                    linkId: updates[0].linkId,
+                    friendName: updates[0].friendName,
+                  });
+                  setShowLinkUpdatePreview(true);
+                } else {
+                  Alert.alert('Up to Date', 'All linked ranges are up to date.');
+                }
+              }
+            }}
+          />
+        )}
+        
         <View style={styles.headerActions}>
           {isLoggedIn && (
             <TouchableOpacity 
@@ -861,12 +896,34 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
       <ShareRangesModal
         visible={showShareModal}
         onClose={() => setShowShareModal(false)}
+        playerId={id}
         playerName={player?.name || ''}
         ranges={ranges?.ranges || {}}
         onSuccess={() => {
-          // Optionally show success message or refresh
+          // Refresh link status after sharing/creating link
+          refreshLinkStatus();
         }}
       />
+
+      {/* Link Update Preview Modal */}
+      {selectedLinkForUpdate && (
+        <LinkUpdatePreview
+          visible={showLinkUpdatePreview}
+          onClose={() => {
+            setShowLinkUpdatePreview(false);
+            setSelectedLinkForUpdate(null);
+          }}
+          linkId={selectedLinkForUpdate.linkId}
+          friendName={selectedLinkForUpdate.friendName}
+          onSyncComplete={() => {
+            // Refresh ranges and link status after sync
+            refreshRanges();
+            refreshLinkStatus();
+            setShowLinkUpdatePreview(false);
+            setSelectedLinkForUpdate(null);
+          }}
+        />
+      )}
     </ScrollView>
   );
 }

@@ -1,6 +1,8 @@
+import { LinkedPlayerInlineBadge } from '@/components/sharing';
 import { PlayerCardSkeleton } from '@/components/ui';
 import { usePlayers } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { usePlayerLinks } from '@/hooks/usePlayerLinks';
 import * as localStorage from '@/services/localStorage';
 import { getThemeColors, styles } from '@/styles/players/index.styles';
 import { Player } from '@/types/poker';
@@ -22,6 +24,7 @@ import {
 export default function PlayersScreen() {
   const router = useRouter();
   const { players, loading, error, refresh } = usePlayers();
+  const { activeLinks, refresh: refreshLinks } = usePlayerLinks();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -33,6 +36,26 @@ export default function PlayersScreen() {
 
   // Theme colors
   const themeColors = getThemeColors(isDark);
+
+  // Build a map of playerId to linked friend names
+  const linkedPlayerMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    activeLinks.forEach(link => {
+      // Add for userA player
+      if (link.userAPlayerId) {
+        const existing = map.get(link.userAPlayerId) || [];
+        existing.push(link.userBName);
+        map.set(link.userAPlayerId, existing);
+      }
+      // Add for userB player
+      if (link.userBPlayerId) {
+        const existing = map.get(link.userBPlayerId) || [];
+        existing.push(link.userAName);
+        map.set(link.userBPlayerId, existing);
+      }
+    });
+    return map;
+  }, [activeLinks]);
 
   // Load stored locations
   useEffect(() => {
@@ -60,34 +83,43 @@ export default function PlayersScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refresh();
+    await Promise.all([refresh(), refreshLinks()]);
     setRefreshing(false);
   };
 
-  const renderPlayer = ({ item }: { item: Player }) => (
-    <TouchableOpacity
-      style={[styles.playerCard, { backgroundColor: themeColors.card }]}
-      onPress={() => {
-        haptics.lightTap();
-        router.push(`/(main)/players/${item.id}`);
-      }}
-    >
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>
-          {item.name.charAt(0).toUpperCase()}
-        </Text>
-      </View>
-      <View style={styles.playerInfo}>
-        <Text style={[styles.playerName, { color: themeColors.text }]}>{item.name}</Text>
-        {item.notes && (
-          <Text style={[styles.playerNotes, { color: themeColors.subText }]} numberOfLines={1}>
-            {item.notes}
+  const renderPlayer = ({ item }: { item: Player }) => {
+    const linkedFriends = linkedPlayerMap.get(item.id) || [];
+    
+    return (
+      <TouchableOpacity
+        style={[styles.playerCard, { backgroundColor: themeColors.card }]}
+        onPress={() => {
+          haptics.lightTap();
+          router.push(`/(main)/players/${item.id}`);
+        }}
+      >
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {item.name.charAt(0).toUpperCase()}
           </Text>
-        )}
-      </View>
-      <Ionicons name="chevron-forward" size={20} color={themeColors.chevron} />
-    </TouchableOpacity>
-  );
+        </View>
+        <View style={styles.playerInfo}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={[styles.playerName, { color: themeColors.text }]}>{item.name}</Text>
+            {linkedFriends.length > 0 && (
+              <LinkedPlayerInlineBadge friendNames={linkedFriends} />
+            )}
+          </View>
+          {item.notes && (
+            <Text style={[styles.playerNotes, { color: themeColors.subText }]} numberOfLines={1}>
+              {item.notes}
+            </Text>
+          )}
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={themeColors.chevron} />
+      </TouchableOpacity>
+    );
+  };
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
