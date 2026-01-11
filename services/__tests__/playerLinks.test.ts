@@ -6,7 +6,6 @@
  * Uses writeBatch() for atomic dual-writes.
  */
 
-import { Range } from '@/types/poker';
 
 // Mock Firebase - must be before imports
 jest.mock('@/config/firebase', () => ({
@@ -53,18 +52,18 @@ jest.mock('firebase/firestore', () => {
 
 // Get references to mocks after they're set up
 import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  orderBy,
-  query,
-  setDoc,
-  updateDoc,
-  where,
-  writeBatch,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    onSnapshot,
+    orderBy,
+    query,
+    setDoc,
+    updateDoc,
+    where,
+    writeBatch,
 } from 'firebase/firestore';
 
 const mockGetDocs = getDocs as jest.Mock;
@@ -82,7 +81,7 @@ const mockWriteBatchFn = writeBatch as jest.Mock;
 
 // Import after mocks
 import * as playerLinksService from '@/services/firebase/playerLinks';
-import { UserPlayerLink, PLAYER_LINKS_CONFIG } from '@/types/sharing';
+import { PLAYER_LINKS_CONFIG, UserPlayerLink } from '@/types/sharing';
 
 describe('PlayerLinks Service - Subcollection Structure', () => {
   const TEST_USER_A_ID = 'user-a-123';

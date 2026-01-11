@@ -16,12 +16,12 @@
 import { auth } from '@/config/firebase';
 import * as playerLinksService from '@/services/firebase/playerLinks';
 import {
-  AcceptPlayerLink,
-  CreatePlayerLink,
-  PLAYER_LINKS_CONFIG,
-  PlayerLinkView,
-  SyncRangesResult,
-  UserPlayerLink,
+    AcceptPlayerLink,
+    CreatePlayerLink,
+    PLAYER_LINKS_CONFIG,
+    PlayerLinkView,
+    SyncRangesResult,
+    UserPlayerLink,
 } from '@/types/sharing';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 

@@ -18,24 +18,24 @@
 import { db } from '@/config/firebase';
 import { Range } from '@/types/poker';
 import {
-  AcceptPlayerLink,
-  CreatePlayerLink,
-  PLAYER_LINKS_CONFIG,
-  PlayerLinkView,
-  SyncRangesResult,
-  UserPlayerLink,
+    AcceptPlayerLink,
+    CreatePlayerLink,
+    PLAYER_LINKS_CONFIG,
+    PlayerLinkView,
+    SyncRangesResult,
+    UserPlayerLink,
 } from '@/types/sharing';
 import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  query,
-  QuerySnapshot,
-  Timestamp,
-  where,
-  writeBatch,
+    collection,
+    doc,
+    getDoc,
+    getDocs,
+    onSnapshot,
+    query,
+    QuerySnapshot,
+    Timestamp,
+    where,
+    writeBatch,
 } from 'firebase/firestore';
 import { checkRateLimit } from '../rateLimit';
 import { getFriend } from './friends';
