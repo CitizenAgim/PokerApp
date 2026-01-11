@@ -1,8 +1,9 @@
-import { LinkUpdatePreview } from '@/components/sharing';
+import { CreatePlayerModal, LinkUpdatePreview, RangePreviewModal, SelectPlayerModal } from '@/components/sharing';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useFriends } from '@/hooks/useFriends';
+import { useFriends, usePendingRangeSharesPerFriend } from '@/hooks/useFriends';
 import { usePlayerLinks } from '@/hooks/usePlayerLinks';
-import { PlayerLinkView } from '@/types/sharing';
+import { useRangeSharing } from '@/hooks/useRangeSharing';
+import { PlayerLinkView, RangeShare } from '@/types/sharing';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -38,10 +39,17 @@ export default function FriendProfileScreen() {
 
   const { friends, removeFriend, refresh: refreshFriends } = useFriends();
   const { linkViews, checkForUpdates, syncFromLink, refresh: refreshLinks, loading: linksLoading } = usePlayerLinks();
+  const { sharesByFriend, loading: sharesLoading } = usePendingRangeSharesPerFriend();
+  const { dismissShare, importToNewPlayer } = useRangeSharing();
 
   const [refreshing, setRefreshing] = useState(false);
   const [showLinkUpdatePreview, setShowLinkUpdatePreview] = useState(false);
   const [selectedLinkView, setSelectedLinkView] = useState<PlayerLinkView | null>(null);
+  const [selectedShare, setSelectedShare] = useState<RangeShare | null>(null);
+  const [showRangePreview, setShowRangePreview] = useState(false);
+  const [selectedKeysForImport, setSelectedKeysForImport] = useState<string[] | undefined>(undefined);
+  const [showSelectPlayerModal, setShowSelectPlayerModal] = useState(false);
+  const [showCreatePlayerModal, setShowCreatePlayerModal] = useState(false);
 
   // Find the friend by ID
   const friend = useMemo(() => {
@@ -54,10 +62,77 @@ export default function FriendProfileScreen() {
     return linkViews.filter(view => view.theirUserId === id);
   }, [linkViews, id]);
 
+  // Get pending range shares from this friend
+  const pendingShares = useMemo(() => {
+    if (!id) return [];
+    return sharesByFriend.get(id) || [];
+  }, [sharesByFriend, id]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await Promise.all([refreshFriends(), refreshLinks()]);
     setRefreshing(false);
+  };
+
+  const handleSharePress = (share: RangeShare) => {
+    setSelectedShare(share);
+    setShowRangePreview(true);
+  };
+
+  const handleAcceptRanges = async (selectedKeys: string[]) => {
+    if (!selectedShare) return;
+    
+    setShowRangePreview(false);
+    setSelectedKeysForImport(selectedKeys);
+    
+    // Show action choice alert
+    Alert.alert(
+      'Import Ranges',
+      `Import ${selectedKeys.length} range${selectedKeys.length !== 1 ? 's' : ''} to:`,
+      [
+        { text: 'Cancel', style: 'cancel', onPress: () => {
+          setSelectedShare(null);
+          setSelectedKeysForImport(undefined);
+        }},
+        { 
+          text: 'Existing Player', 
+          onPress: () => setShowSelectPlayerModal(true)
+        },
+        { 
+          text: 'New Player', 
+          onPress: () => setShowCreatePlayerModal(true)
+        },
+      ]
+    );
+  };
+
+  const handleImportSuccess = () => {
+    setSelectedShare(null);
+    setSelectedKeysForImport(undefined);
+    setShowSelectPlayerModal(false);
+    setShowCreatePlayerModal(false);
+    Alert.alert('Success', 'Ranges imported successfully!');
+  };
+
+  const handleDeclineShare = async (share: RangeShare) => {
+    Alert.alert(
+      'Decline Range Share',
+      `Are you sure you want to decline the ranges from ${share.fromUserName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Decline',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await dismissShare(share.id);
+            } catch (error) {
+              Alert.alert('Error', error instanceof Error ? error.message : 'Failed to decline share');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleLinkPress = async (linkView: PlayerLinkView) => {
@@ -221,6 +296,75 @@ export default function FriendProfileScreen() {
             ))
           )}
         </View>
+
+        {/* Shared Ranges Section */}
+        <View style={[styles.linksSection, { marginTop: 24 }]}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="share" size={20} color={themeColors.accent} />
+            <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
+              Shared Ranges
+            </Text>
+            <Text style={[styles.sectionCount, { color: themeColors.subText }]}>
+              ({pendingShares.length})
+            </Text>
+          </View>
+
+          {sharesLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={themeColors.accent} />
+            </View>
+          ) : pendingShares.length === 0 ? (
+            <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
+              <Ionicons name="share-outline" size={48} color={themeColors.subText} />
+              <Text style={[styles.emptyTitle, { color: themeColors.text }]}>No Shared Ranges</Text>
+              <Text style={[styles.emptyText, { color: themeColors.subText }]}>
+                When {friend.displayName} shares ranges with you, they'll appear here.
+              </Text>
+            </View>
+          ) : (
+            pendingShares.map(share => (
+              <View
+                key={share.id}
+                style={[styles.shareCard, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}
+              >
+                <TouchableOpacity
+                  style={styles.shareCardContent}
+                  onPress={() => handleSharePress(share)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="layers" size={18} color={themeColors.accent} />
+                  <View style={styles.shareCardInfo}>
+                    <Text style={[styles.sharePlayerName, { color: themeColors.text }]}>
+                      {share.playerName}
+                    </Text>
+                    <Text style={[styles.shareRangeCount, { color: themeColors.subText }]}>
+                      {share.rangeCount} range{share.rangeCount !== 1 ? 's' : ''}
+                    </Text>
+                  </View>
+                  <View style={[styles.newBadge, { backgroundColor: themeColors.accent }]}>
+                    <Text style={styles.newBadgeText}>New</Text>
+                  </View>
+                </TouchableOpacity>
+                <View style={styles.shareActions}>
+                  <TouchableOpacity
+                    style={[styles.shareActionBtn, styles.acceptBtn]}
+                    onPress={() => handleSharePress(share)}
+                  >
+                    <Ionicons name="eye" size={16} color="#fff" />
+                    <Text style={styles.shareActionText}>Preview</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.shareActionBtn, styles.declineBtn]}
+                    onPress={() => handleDeclineShare(share)}
+                  >
+                    <Ionicons name="close" size={16} color="#fff" />
+                    <Text style={styles.shareActionText}>Decline</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
       </ScrollView>
 
       {/* Link Update Preview Modal */}
@@ -237,6 +381,51 @@ export default function FriendProfileScreen() {
             setShowLinkUpdatePreview(false);
             setSelectedLinkView(null);
           }}
+        />
+      )}
+
+      {/* Range Preview Modal */}
+      {selectedShare && (
+        <RangePreviewModal
+          visible={showRangePreview}
+          onClose={() => {
+            setShowRangePreview(false);
+            setSelectedShare(null);
+          }}
+          playerName={selectedShare.playerName}
+          ranges={selectedShare.ranges}
+          rangeKeys={selectedShare.rangeKeys}
+          onAcceptSelected={handleAcceptRanges}
+        />
+      )}
+
+      {/* Select Player Modal (import to existing) */}
+      {selectedShare && (
+        <SelectPlayerModal
+          visible={showSelectPlayerModal}
+          onClose={() => {
+            setShowSelectPlayerModal(false);
+            setSelectedShare(null);
+            setSelectedKeysForImport(undefined);
+          }}
+          share={selectedShare}
+          onSuccess={handleImportSuccess}
+          selectedKeys={selectedKeysForImport}
+        />
+      )}
+
+      {/* Create Player Modal (import to new) */}
+      {selectedShare && (
+        <CreatePlayerModal
+          visible={showCreatePlayerModal}
+          onClose={() => {
+            setShowCreatePlayerModal(false);
+            setSelectedShare(null);
+            setSelectedKeysForImport(undefined);
+          }}
+          share={selectedShare}
+          onSuccess={handleImportSuccess}
+          selectedKeys={selectedKeysForImport}
         />
       )}
     </SafeAreaView>
@@ -385,6 +574,63 @@ const styles = StyleSheet.create({
   updateBadgeText: {
     color: '#fff',
     fontSize: 12,
+    fontWeight: '600',
+  },
+  shareCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  shareCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  shareCardInfo: {
+    flex: 1,
+  },
+  sharePlayerName: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  shareRangeCount: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  newBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  newBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  shareActions: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(150,150,150,0.2)',
+  },
+  shareActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 6,
+  },
+  acceptBtn: {
+    backgroundColor: '#0a7ea4',
+  },
+  declineBtn: {
+    backgroundColor: '#e74c3c',
+  },
+  shareActionText: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: '600',
   },
 });
