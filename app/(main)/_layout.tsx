@@ -1,5 +1,6 @@
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTotalPendingCount } from '@/hooks/useFriends';
+import { usePendingUpdatesCount } from '@/hooks/usePlayerLinks';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, useRouter } from 'expo-router';
 
@@ -9,6 +10,10 @@ export default function MainLayout() {
   const isDark = colorScheme === 'dark';
   // Combined count of pending friend requests AND pending range shares
   const totalPendingCount = useTotalPendingCount();
+  // Count of player links with data available to sync
+  const syncUpdatesCount = usePendingUpdatesCount();
+  // Total badge count
+  const totalBadgeCount = totalPendingCount + syncUpdatesCount;
 
   return (
     <Tabs
@@ -86,7 +91,7 @@ export default function MainLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people-circle" size={size} color={color} />
           ),
-          tabBarBadge: totalPendingCount > 0 ? totalPendingCount : undefined,
+          tabBarBadge: totalBadgeCount > 0 ? totalBadgeCount : undefined,
         }}
       />
 

@@ -442,6 +442,68 @@ export function usePendingLinksCount(): number {
 }
 
 // ============================================
+// USE PENDING UPDATES COUNT HOOK (for sync badge)
+// ============================================
+
+/**
+ * Hook to get the count of active links that have updates available to sync.
+ * Periodically checks friend's player versions (with caching).
+ * Returns count of links with newer data to sync.
+ */
+export function usePendingUpdatesCount(): number {
+  const [updateCount, setUpdateCount] = useState(0);
+  const userId = auth.currentUser?.uid;
+  const { activeLinks, checkAllForUpdates } = usePlayerLinks();
+  const checkInProgressRef = useRef(false);
+
+  useEffect(() => {
+    if (!userId || activeLinks.length === 0) {
+      setUpdateCount(0);
+      return;
+    }
+
+    let mounted = true;
+
+    const runCheck = async () => {
+      // Prevent concurrent checks
+      if (checkInProgressRef.current) return;
+      checkInProgressRef.current = true;
+
+      try {
+        const results = await checkAllForUpdates();
+        
+        if (!mounted) return;
+        
+        let count = 0;
+        for (const result of results.values()) {
+          if (result.hasUpdates) {
+            count++;
+          }
+        }
+        setUpdateCount(count);
+      } catch (err) {
+        console.error('Failed to check for updates:', err);
+      } finally {
+        checkInProgressRef.current = false;
+      }
+    };
+
+    // Initial check
+    runCheck();
+
+    // Re-check periodically (matches cache TTL)
+    const intervalId = setInterval(runCheck, PLAYER_LINKS_CONFIG.CACHE_TTL_MS);
+
+    return () => {
+      mounted = false;
+      clearInterval(intervalId);
+    };
+  }, [userId, activeLinks.length, checkAllForUpdates]);
+
+  return updateCount;
+}
+
+// ============================================
 // USE PLAYER LINK STATUS HOOK
 // ============================================
 
