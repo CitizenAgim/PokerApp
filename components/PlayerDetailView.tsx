@@ -414,55 +414,64 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: themeColors.background }]} contentContainerStyle={styles.content}>
-      {/* Player Header */}
-      <View style={[
-        styles.header, 
-        { 
-          backgroundColor: themeColors.card, 
-          borderBottomColor: themeColors.border,
-          paddingTop: insets.top + 24 
-        }
-      ]}>
-        <TouchableOpacity 
-          onPress={() => router.back()} 
-          style={{ 
-            position: 'absolute', 
-            left: 16, 
-            top: insets.top + 16, 
-            zIndex: 10,
-            padding: 8
-          }}
-        >
-          <Ionicons name="arrow-back" size={24} color={themeColors.text} />
-        </TouchableOpacity>
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
+      <ScrollView 
+        style={[styles.container, { backgroundColor: themeColors.background }]} 
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Player Header */}
+        <View style={[
+          styles.header, 
+          { 
+            backgroundColor: themeColors.card, 
+            borderBottomColor: themeColors.border,
+            paddingTop: insets.top + 24 
+          }
+        ]}>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={{ 
+              position: 'absolute', 
+              left: 16, 
+              top: insets.top + 16, 
+              zIndex: 10,
+              padding: 8
+            }}
+          >
+            <Ionicons name="arrow-back" size={24} color={themeColors.text} />
+          </TouchableOpacity>
 
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {player.name.charAt(0).toUpperCase()}
-          </Text>
-        </View>
-        
-        <View style={styles.headerActions}>
-          {isLoggedIn && (
-            <TouchableOpacity 
-              style={[styles.editButton, { backgroundColor: themeColors.editButtonBg }]} 
-              onPress={() => setShowShareModal(true)}
-            >
-              <Ionicons name="share-outline" size={18} color="#0a7ea4" />
-              <Text style={styles.editButtonText}>Share</Text>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {player.name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          
+          <View style={styles.headerActions}>
+            {isLoggedIn && (
+              <TouchableOpacity 
+                style={[styles.editButton, { backgroundColor: themeColors.editButtonBg }]} 
+                onPress={() => setShowShareModal(true)}
+              >
+                <Ionicons name="share-outline" size={18} color="#0a7ea4" />
+                <Text style={styles.editButtonText}>Share</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={[styles.editButton, { backgroundColor: themeColors.editButtonBg }]} onPress={handleOpenEditModal}>
+              <Ionicons name="pencil" size={18} color="#0a7ea4" />
+              <Text style={styles.editButtonText}>Edit</Text>
             </TouchableOpacity>
-          )}
-          <TouchableOpacity style={[styles.editButton, { backgroundColor: themeColors.editButtonBg }]} onPress={handleOpenEditModal}>
-            <Ionicons name="pencil" size={18} color="#0a7ea4" />
-            <Text style={styles.editButtonText}>Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.deleteButton, { backgroundColor: themeColors.deleteButtonBg }]} onPress={handleDelete}>
-            <Ionicons name="trash" size={18} color="#e74c3c" />
-            <Text style={styles.deleteButtonText}>Delete</Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={[styles.deleteButton, { backgroundColor: themeColors.deleteButtonBg }]} onPress={handleDelete}>
+              <Ionicons name="trash" size={18} color="#e74c3c" />
+              <Text style={styles.deleteButtonText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
 
       {/* Notes Section */}
       <View style={styles.sectionContainer}>
@@ -747,7 +756,7 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
       {/* Locations Section */}
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Locations</Text>
+          <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 0 }]}>Locations</Text>
           {!isAddingLocation && (
             <TouchableOpacity 
               style={[styles.addNoteButton, { backgroundColor: themeColors.editButtonBg }]}
@@ -762,14 +771,14 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
         {isAddingLocation && (
           <View style={[styles.addNoteContainer, { backgroundColor: themeColors.card, borderColor: themeColors.border, marginBottom: 12 }]}>
             <TextInput
-              style={[styles.addNoteInput, { color: themeColors.text, height: 40 }]}
+              style={[styles.addNoteInput, { color: themeColors.text, height: 40, textAlignVertical: 'center' }]}
               value={newLocation}
               onChangeText={setNewLocation}
               placeholder="Enter location..."
               placeholderTextColor={themeColors.placeholder}
               autoFocus
             />
-            <View style={styles.addNoteActions}>
+            <View style={[styles.addNoteActions, { alignItems: 'center', paddingTop: 8 }]}>
               <TouchableOpacity 
                 style={styles.cancelNoteButton}
                 onPress={() => {
@@ -990,5 +999,6 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
         />
       )}
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
