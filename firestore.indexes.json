@@ -179,53 +179,11 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "userAId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "playerLinks",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "userBId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "playerLinks",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "userBId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "status",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "playerLinks",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "userAId",
-          "order": "ASCENDING"
         },
         {
-          "fieldPath": "userAPlayerId",
+          "fieldPath": "isInitiator",
           "order": "ASCENDING"
         }
       ]
@@ -235,11 +193,11 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "userBId",
+          "fieldPath": "theirUserId",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "userBPlayerId",
+          "fieldPath": "myPlayerId",
           "order": "ASCENDING"
         }
       ]

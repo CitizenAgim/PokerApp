@@ -1,36 +1,41 @@
 /**
- * Firebase Player Links Service
+ * Firebase Player Links Service - Subcollection Architecture
  * 
- * Handles bidirectional player links for automatic range syncing.
- * Uses a pull-based architecture with version numbers for cost efficiency.
+ * Stores links in user-scoped subcollections for fast queries:
+ * Path: /users/{userId}/playerLinks/{linkId}
  * 
- * Collection: playerLinks/{linkId}
+ * Each link is stored in BOTH users' subcollections using writeBatch()
+ * for atomic dual-writes. Uses perspective-based fields (myPlayer, theirPlayer)
+ * instead of userA/userB for clarity.
+ * 
+ * Key features:
+ * - Single listener per user (no OR query merging)
+ * - Atomic dual-writes with writeBatch
+ * - Error handling on subscriptions
+ * - Batched update checks
  */
 
 import { db } from '@/config/firebase';
 import { Range } from '@/types/poker';
 import {
-    AcceptPlayerLink,
-    CreatePlayerLink,
-    PLAYER_LINKS_CONFIG,
-    PlayerLink,
-    PlayerLinkView,
-    SyncRangesResult,
+  AcceptPlayerLink,
+  CreatePlayerLink,
+  PLAYER_LINKS_CONFIG,
+  PlayerLinkView,
+  SyncRangesResult,
+  UserPlayerLink,
 } from '@/types/sharing';
 import {
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    onSnapshot,
-    or,
-    query,
-    serverTimestamp,
-    setDoc,
-    Timestamp,
-    updateDoc,
-    where
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  QuerySnapshot,
+  Timestamp,
+  where,
+  writeBatch,
 } from 'firebase/firestore';
 import { checkRateLimit } from '../rateLimit';
 import { getFriend } from './friends';
@@ -40,86 +45,90 @@ import { getPlayer, getPlayerRanges, updatePlayerRanges } from './players';
 // COLLECTION HELPERS
 // ============================================
 
-function getPlayerLinksCollection() {
-  return collection(db, 'playerLinks');
+/**
+ * Get the playerLinks subcollection for a user
+ */
+function getUserPlayerLinksCollection(userId: string) {
+  return collection(db, 'users', userId, 'playerLinks');
 }
 
-function getPlayerLinkDoc(linkId: string) {
-  return doc(db, 'playerLinks', linkId);
+/**
+ * Get a specific playerLink document reference
+ */
+function getUserPlayerLinkDoc(userId: string, linkId: string) {
+  return doc(db, 'users', userId, 'playerLinks', linkId);
+}
+
+/**
+ * Generate a new link ID
+ */
+function generateLinkId(): string {
+  return doc(collection(db, '_')).id;
 }
 
 // ============================================
 // TYPE CONVERTERS
 // ============================================
 
-interface FirestorePlayerLink {
+interface FirestoreUserPlayerLink {
+  id: string;
   status: 'pending' | 'active';
-  userAId: string;
-  userAName: string;
-  userAPlayerId: string;
-  userAPlayerName: string;
-  userALastSyncedVersion: number;
-  userBId: string;
-  userBName: string;
-  userBPlayerId: string | null;
-  userBPlayerName: string | null;
-  userBLastSyncedVersion: number;
-  createdAt: Timestamp;
-  acceptedAt: Timestamp | null;
+  isInitiator: boolean;
+  myPlayerId: string | null;
+  myPlayerName: string | null;
+  myLastSyncedVersion: number;
+  theirUserId: string;
+  theirUserName: string;
+  theirPlayerId: string | null;
+  theirPlayerName: string | null;
+  createdAt: Timestamp | number;
+  acceptedAt: Timestamp | number | null;
 }
 
-function toPlayerLink(id: string, data: FirestorePlayerLink): PlayerLink {
+function toUserPlayerLink(data: FirestoreUserPlayerLink): UserPlayerLink {
   return {
-    id,
+    id: data.id,
     status: data.status,
-    userAId: data.userAId,
-    userAName: data.userAName,
-    userAPlayerId: data.userAPlayerId,
-    userAPlayerName: data.userAPlayerName,
-    userALastSyncedVersion: data.userALastSyncedVersion,
-    userBId: data.userBId,
-    userBName: data.userBName,
-    userBPlayerId: data.userBPlayerId,
-    userBPlayerName: data.userBPlayerName,
-    userBLastSyncedVersion: data.userBLastSyncedVersion,
-    createdAt: data.createdAt?.toMillis() || Date.now(),
-    acceptedAt: data.acceptedAt?.toMillis() || null,
+    isInitiator: data.isInitiator,
+    myPlayerId: data.myPlayerId,
+    myPlayerName: data.myPlayerName,
+    myLastSyncedVersion: data.myLastSyncedVersion || 0,
+    theirUserId: data.theirUserId,
+    theirUserName: data.theirUserName,
+    theirPlayerId: data.theirPlayerId,
+    theirPlayerName: data.theirPlayerName,
+    createdAt: typeof data.createdAt === 'number' 
+      ? data.createdAt 
+      : (data.createdAt as Timestamp)?.toMillis?.() || Date.now(),
+    acceptedAt: data.acceptedAt 
+      ? (typeof data.acceptedAt === 'number' 
+          ? data.acceptedAt 
+          : (data.acceptedAt as Timestamp)?.toMillis?.() || null)
+      : null,
   };
 }
 
 /**
- * Convert a PlayerLink to a user-perspective view
+ * Convert a UserPlayerLink to a PlayerLinkView (for UI compatibility)
  */
 export function toPlayerLinkView(
-  link: PlayerLink,
-  currentUserId: string,
+  link: UserPlayerLink,
   theirRangeVersion: number | null = null
 ): PlayerLinkView {
-  const isUserA = link.userAId === currentUserId;
-  
-  const myPlayerId = isUserA ? link.userAPlayerId : link.userBPlayerId!;
-  const myPlayerName = isUserA ? link.userAPlayerName : link.userBPlayerName!;
-  const myLastSyncedVersion = isUserA ? link.userALastSyncedVersion : link.userBLastSyncedVersion;
-  
-  const theirUserId = isUserA ? link.userBId : link.userAId;
-  const theirUserName = isUserA ? link.userBName : link.userAName;
-  const theirPlayerId = isUserA ? link.userBPlayerId : link.userAPlayerId;
-  const theirPlayerName = isUserA ? link.userBPlayerName : link.userAPlayerName;
-  
   const hasUpdates = theirRangeVersion !== null 
-    ? theirRangeVersion > myLastSyncedVersion 
+    ? theirRangeVersion > link.myLastSyncedVersion 
     : null;
   
   return {
     link,
-    isUserA,
-    myPlayerId,
-    myPlayerName,
-    theirUserId,
-    theirUserName,
-    theirPlayerId,
-    theirPlayerName,
-    myLastSyncedVersion,
+    isInitiator: link.isInitiator,
+    myPlayerId: link.myPlayerId,
+    myPlayerName: link.myPlayerName,
+    theirUserId: link.theirUserId,
+    theirUserName: link.theirUserName,
+    theirPlayerId: link.theirPlayerId,
+    theirPlayerName: link.theirPlayerName,
+    myLastSyncedVersion: link.myLastSyncedVersion,
     theirRangeVersion,
     hasUpdates,
   };
@@ -138,62 +147,33 @@ async function validateFriendship(userId: string, friendId: string): Promise<boo
 }
 
 /**
- * Check if a link already exists between two players
+ * Get count of links for a user (from their subcollection)
  */
-async function getLinkBetweenUsers(
-  userId: string,
-  playerId: string,
-  friendId: string
-): Promise<PlayerLink | null> {
-  const linksRef = getPlayerLinksCollection();
-  
-  // Check if user A's player is already linked to friend
-  const q1 = query(
-    linksRef,
-    where('userAId', '==', userId),
-    where('userAPlayerId', '==', playerId),
-    where('userBId', '==', friendId)
-  );
-  
-  // Check if friend created a link to this user's player
-  const q2 = query(
-    linksRef,
-    where('userBId', '==', userId),
-    where('userBPlayerId', '==', playerId),
-    where('userAId', '==', friendId)
-  );
-  
-  const [snapshot1, snapshot2] = await Promise.all([getDocs(q1), getDocs(q2)]);
-  
-  if (!snapshot1.empty) {
-    const doc = snapshot1.docs[0];
-    return toPlayerLink(doc.id, doc.data() as FirestorePlayerLink);
-  }
-  
-  if (!snapshot2.empty) {
-    const doc = snapshot2.docs[0];
-    return toPlayerLink(doc.id, doc.data() as FirestorePlayerLink);
-  }
-  
-  return null;
+async function getLinkCount(userId: string): Promise<number> {
+  const linksRef = getUserPlayerLinksCollection(userId);
+  const snapshot = await getDocs(linksRef);
+  return snapshot.size;
 }
 
 /**
- * Get count of active links for a user
+ * Check if a link already exists between two users for a specific player
  */
-async function getLinkCount(userId: string): Promise<number> {
-  const linksRef = getPlayerLinksCollection();
+async function linkExistsBetweenUsers(
+  userId: string,
+  playerId: string,
+  friendId: string
+): Promise<boolean> {
+  const linksRef = getUserPlayerLinksCollection(userId);
   
+  // Check for any link with this friend where my player matches
   const q = query(
     linksRef,
-    or(
-      where('userAId', '==', userId),
-      where('userBId', '==', userId)
-    )
+    where('theirUserId', '==', friendId),
+    where('myPlayerId', '==', playerId)
   );
   
   const snapshot = await getDocs(q);
-  return snapshot.size;
+  return !snapshot.empty;
 }
 
 // ============================================
@@ -201,87 +181,105 @@ async function getLinkCount(userId: string): Promise<number> {
 // ============================================
 
 /**
- * Create a new player link (initiates link request)
+ * Create a new player link using atomic dual-write
  */
-export async function createPlayerLink(data: CreatePlayerLink): Promise<PlayerLink> {
-  checkRateLimit(data.userAId, 'CREATE_PLAYER_LINK');
+export async function createPlayerLink(data: CreatePlayerLink): Promise<UserPlayerLink> {
+  checkRateLimit(data.initiatorUserId, 'CREATE_PLAYER_LINK');
   
   // Validate friendship
-  const areFriends = await validateFriendship(data.userAId, data.userBId);
+  const areFriends = await validateFriendship(data.initiatorUserId, data.recipientUserId);
   if (!areFriends) {
     throw new Error('You can only create links with friends');
   }
   
   // Check link limits
-  const linkCount = await getLinkCount(data.userAId);
-  if (linkCount >= PLAYER_LINKS_CONFIG.MAX_LINKS_PER_PLAYER) {
-    throw new Error(`You've reached the maximum of ${PLAYER_LINKS_CONFIG.MAX_LINKS_PER_PLAYER} player links`);
+  const linkCount = await getLinkCount(data.initiatorUserId);
+  if (linkCount >= PLAYER_LINKS_CONFIG.MAX_LINKS_PER_USER) {
+    throw new Error(`You've reached the maximum of ${PLAYER_LINKS_CONFIG.MAX_LINKS_PER_USER} player links`);
   }
   
   // Check for existing link
-  const existingLink = await getLinkBetweenUsers(data.userAId, data.userAPlayerId, data.userBId);
+  const existingLink = await linkExistsBetweenUsers(
+    data.initiatorUserId,
+    data.initiatorPlayerId,
+    data.recipientUserId
+  );
   if (existingLink) {
     throw new Error('A link already exists between these players');
   }
   
   // Validate that the player exists
-  const player = await getPlayer(data.userAId, data.userAPlayerId);
+  const player = await getPlayer(data.initiatorUserId, data.initiatorPlayerId);
   if (!player) {
     throw new Error('Player not found');
   }
   
-  const linksRef = getPlayerLinksCollection();
-  const linkDoc = doc(linksRef);
+  const linkId = generateLinkId();
+  const now = Date.now();
   
-  const linkData: Omit<FirestorePlayerLink, 'createdAt' | 'acceptedAt'> = {
+  // Initiator's view of the link
+  const initiatorLink: FirestoreUserPlayerLink = {
+    id: linkId,
     status: 'pending',
-    userAId: data.userAId,
-    userAName: data.userAName,
-    userAPlayerId: data.userAPlayerId,
-    userAPlayerName: data.userAPlayerName,
-    userALastSyncedVersion: 0,
-    userBId: data.userBId,
-    userBName: data.userBName,
-    userBPlayerId: null,
-    userBPlayerName: null,
-    userBLastSyncedVersion: 0,
-  };
-  
-  await setDoc(linkDoc, {
-    ...linkData,
-    createdAt: serverTimestamp(),
-    acceptedAt: null,
-  });
-  
-  return {
-    id: linkDoc.id,
-    ...linkData,
-    createdAt: Date.now(),
+    isInitiator: true,
+    myPlayerId: data.initiatorPlayerId,
+    myPlayerName: data.initiatorPlayerName,
+    myLastSyncedVersion: 0,
+    theirUserId: data.recipientUserId,
+    theirUserName: data.recipientUserName,
+    theirPlayerId: null,  // Pending, recipient hasn't selected yet
+    theirPlayerName: null,
+    createdAt: now,
     acceptedAt: null,
   };
+  
+  // Recipient's view of the link
+  const recipientLink: FirestoreUserPlayerLink = {
+    id: linkId,
+    status: 'pending',
+    isInitiator: false,
+    myPlayerId: null,  // Pending, recipient hasn't selected yet
+    myPlayerName: null,
+    myLastSyncedVersion: 0,
+    theirUserId: data.initiatorUserId,
+    theirUserName: data.initiatorUserName,
+    theirPlayerId: data.initiatorPlayerId,
+    theirPlayerName: data.initiatorPlayerName,
+    createdAt: now,
+    acceptedAt: null,
+  };
+  
+  // Atomic dual-write using writeBatch
+  const batch = writeBatch(db);
+  batch.set(getUserPlayerLinkDoc(data.initiatorUserId, linkId), initiatorLink);
+  batch.set(getUserPlayerLinkDoc(data.recipientUserId, linkId), recipientLink);
+  await batch.commit();
+  
+  return toUserPlayerLink(initiatorLink);
 }
 
 /**
- * Accept a pending player link (User B selects their player)
+ * Accept a pending player link using atomic dual-write
  */
 export async function acceptPlayerLink(
   linkId: string,
   userId: string,
   acceptData: AcceptPlayerLink
-): Promise<PlayerLink> {
+): Promise<UserPlayerLink> {
   checkRateLimit(userId, 'ACCEPT_PLAYER_LINK');
   
-  const linkRef = getPlayerLinkDoc(linkId);
+  // Get the link from recipient's subcollection
+  const linkRef = getUserPlayerLinkDoc(userId, linkId);
   const linkDoc = await getDoc(linkRef);
   
   if (!linkDoc.exists()) {
     throw new Error('Player link not found');
   }
   
-  const link = linkDoc.data() as FirestorePlayerLink;
+  const link = toUserPlayerLink(linkDoc.data() as FirestoreUserPlayerLink);
   
-  // Validate user is User B
-  if (link.userBId !== userId) {
+  // Validate user is the recipient (not initiator)
+  if (link.isInitiator) {
     throw new Error('You can only accept links sent to you');
   }
   
@@ -290,59 +288,66 @@ export async function acceptPlayerLink(
   }
   
   // Validate the player exists
-  const player = await getPlayer(userId, acceptData.userBPlayerId);
+  const player = await getPlayer(userId, acceptData.recipientPlayerId);
   if (!player) {
     throw new Error('Player not found');
   }
   
-  // Check link count for User B
+  // Check link count for recipient
   const linkCount = await getLinkCount(userId);
-  if (linkCount >= PLAYER_LINKS_CONFIG.MAX_LINKS_PER_PLAYER) {
-    throw new Error(`You've reached the maximum of ${PLAYER_LINKS_CONFIG.MAX_LINKS_PER_PLAYER} player links`);
+  if (linkCount >= PLAYER_LINKS_CONFIG.MAX_LINKS_PER_USER) {
+    throw new Error(`You've reached the maximum of ${PLAYER_LINKS_CONFIG.MAX_LINKS_PER_USER} player links`);
   }
   
-  await updateDoc(linkRef, {
+  const now = Date.now();
+  
+  // Atomic dual-update using writeBatch
+  const batch = writeBatch(db);
+  
+  // Update recipient's link (set my player, activate)
+  batch.update(getUserPlayerLinkDoc(userId, linkId), {
     status: 'active',
-    userBPlayerId: acceptData.userBPlayerId,
-    userBPlayerName: acceptData.userBPlayerName,
-    acceptedAt: serverTimestamp(),
+    myPlayerId: acceptData.recipientPlayerId,
+    myPlayerName: acceptData.recipientPlayerName,
+    acceptedAt: now,
   });
   
-  return {
-    id: linkId,
+  // Update initiator's link (set their player, activate)
+  batch.update(getUserPlayerLinkDoc(link.theirUserId, linkId), {
     status: 'active',
-    userAId: link.userAId,
-    userAName: link.userAName,
-    userAPlayerId: link.userAPlayerId,
-    userAPlayerName: link.userAPlayerName,
-    userALastSyncedVersion: link.userALastSyncedVersion,
-    userBId: link.userBId,
-    userBName: link.userBName,
-    userBPlayerId: acceptData.userBPlayerId,
-    userBPlayerName: acceptData.userBPlayerName,
-    userBLastSyncedVersion: link.userBLastSyncedVersion,
-    createdAt: link.createdAt?.toMillis() || Date.now(),
-    acceptedAt: Date.now(),
+    theirPlayerId: acceptData.recipientPlayerId,
+    theirPlayerName: acceptData.recipientPlayerName,
+    acceptedAt: now,
+  });
+  
+  await batch.commit();
+  
+  return {
+    ...link,
+    status: 'active',
+    myPlayerId: acceptData.recipientPlayerId,
+    myPlayerName: acceptData.recipientPlayerName,
+    acceptedAt: now,
   };
 }
 
 /**
- * Decline a pending player link
+ * Decline a pending player link using atomic dual-delete
  */
 export async function declinePlayerLink(linkId: string, userId: string): Promise<void> {
   checkRateLimit(userId, 'DECLINE_PLAYER_LINK');
   
-  const linkRef = getPlayerLinkDoc(linkId);
+  const linkRef = getUserPlayerLinkDoc(userId, linkId);
   const linkDoc = await getDoc(linkRef);
   
   if (!linkDoc.exists()) {
     throw new Error('Player link not found');
   }
   
-  const link = linkDoc.data() as FirestorePlayerLink;
+  const link = toUserPlayerLink(linkDoc.data() as FirestoreUserPlayerLink);
   
-  // Only User B can decline pending links
-  if (link.userBId !== userId) {
+  // Only recipient can decline pending links
+  if (link.isInitiator) {
     throw new Error('You can only decline links sent to you');
   }
   
@@ -350,30 +355,33 @@ export async function declinePlayerLink(linkId: string, userId: string): Promise
     throw new Error('This link is not pending');
   }
   
-  await deleteDoc(linkRef);
+  // Atomic dual-delete
+  const batch = writeBatch(db);
+  batch.delete(getUserPlayerLinkDoc(userId, linkId));
+  batch.delete(getUserPlayerLinkDoc(link.theirUserId, linkId));
+  await batch.commit();
 }
 
 /**
- * Remove an active player link (either party can remove)
+ * Remove an active player link using atomic dual-delete
  */
 export async function removePlayerLink(linkId: string, userId: string): Promise<void> {
   checkRateLimit(userId, 'REMOVE_PLAYER_LINK');
   
-  const linkRef = getPlayerLinkDoc(linkId);
+  const linkRef = getUserPlayerLinkDoc(userId, linkId);
   const linkDoc = await getDoc(linkRef);
   
   if (!linkDoc.exists()) {
     throw new Error('Player link not found');
   }
   
-  const link = linkDoc.data() as FirestorePlayerLink;
+  const link = toUserPlayerLink(linkDoc.data() as FirestoreUserPlayerLink);
   
-  // Either party can remove the link
-  if (link.userAId !== userId && link.userBId !== userId) {
-    throw new Error('You are not part of this link');
-  }
-  
-  await deleteDoc(linkRef);
+  // Atomic dual-delete
+  const batch = writeBatch(db);
+  batch.delete(getUserPlayerLinkDoc(userId, linkId));
+  batch.delete(getUserPlayerLinkDoc(link.theirUserId, linkId));
+  await batch.commit();
 }
 
 /**
@@ -382,17 +390,17 @@ export async function removePlayerLink(linkId: string, userId: string): Promise<
 export async function cancelPlayerLink(linkId: string, userId: string): Promise<void> {
   checkRateLimit(userId, 'CANCEL_PLAYER_LINK');
   
-  const linkRef = getPlayerLinkDoc(linkId);
+  const linkRef = getUserPlayerLinkDoc(userId, linkId);
   const linkDoc = await getDoc(linkRef);
   
   if (!linkDoc.exists()) {
     throw new Error('Player link not found');
   }
   
-  const link = linkDoc.data() as FirestorePlayerLink;
+  const link = toUserPlayerLink(linkDoc.data() as FirestoreUserPlayerLink);
   
-  // Only User A can cancel pending links
-  if (link.userAId !== userId) {
+  // Only initiator can cancel pending links
+  if (!link.isInitiator) {
     throw new Error('You can only cancel links you created');
   }
   
@@ -400,7 +408,11 @@ export async function cancelPlayerLink(linkId: string, userId: string): Promise<
     throw new Error('This link is not pending');
   }
   
-  await deleteDoc(linkRef);
+  // Atomic dual-delete
+  const batch = writeBatch(db);
+  batch.delete(getUserPlayerLinkDoc(userId, linkId));
+  batch.delete(getUserPlayerLinkDoc(link.theirUserId, linkId));
+  await batch.commit();
 }
 
 // ============================================
@@ -408,49 +420,68 @@ export async function cancelPlayerLink(linkId: string, userId: string): Promise<
 // ============================================
 
 /**
- * Get all links for a user (both as creator and recipient)
+ * Get a single player link
  */
-export async function getPlayerLinks(userId: string): Promise<PlayerLink[]> {
-  const linksRef = getPlayerLinksCollection();
+export async function getPlayerLink(
+  userId: string,
+  linkId: string
+): Promise<UserPlayerLink | null> {
+  const linkRef = getUserPlayerLinkDoc(userId, linkId);
+  const linkDoc = await getDoc(linkRef);
   
-  const q = query(
-    linksRef,
-    or(
-      where('userAId', '==', userId),
-      where('userBId', '==', userId)
-    )
-  );
+  if (!linkDoc.exists()) {
+    return null;
+  }
   
-  const snapshot = await getDocs(q);
+  return toUserPlayerLink(linkDoc.data() as FirestoreUserPlayerLink);
+}
+
+/**
+ * Get all links for a user (simple subcollection query, no OR)
+ */
+export async function getPlayerLinks(userId: string): Promise<UserPlayerLink[]> {
+  if (!userId) return [];
+  
+  const linksRef = getUserPlayerLinksCollection(userId);
+  const snapshot = await getDocs(linksRef);
+  
   return snapshot.docs.map(doc => 
-    toPlayerLink(doc.id, doc.data() as FirestorePlayerLink)
+    toUserPlayerLink(doc.data() as FirestoreUserPlayerLink)
   );
 }
 
 /**
- * Get pending links received by a user
+ * Get pending links received by a user (where they need to accept)
  */
-export async function getPendingPlayerLinks(userId: string): Promise<PlayerLink[]> {
-  const linksRef = getPlayerLinksCollection();
+export async function getPendingPlayerLinks(userId: string): Promise<UserPlayerLink[]> {
+  if (!userId) return [];
   
+  const linksRef = getUserPlayerLinksCollection(userId);
   const q = query(
     linksRef,
-    where('userBId', '==', userId),
-    where('status', '==', 'pending')
+    where('status', '==', 'pending'),
+    where('isInitiator', '==', false)  // Only links they received
   );
   
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => 
-    toPlayerLink(doc.id, doc.data() as FirestorePlayerLink)
+    toUserPlayerLink(doc.data() as FirestoreUserPlayerLink)
   );
 }
 
 /**
  * Get active links for a user
  */
-export async function getActivePlayerLinks(userId: string): Promise<PlayerLink[]> {
-  const links = await getPlayerLinks(userId);
-  return links.filter(link => link.status === 'active');
+export async function getActivePlayerLinks(userId: string): Promise<UserPlayerLink[]> {
+  if (!userId) return [];
+  
+  const linksRef = getUserPlayerLinksCollection(userId);
+  const q = query(linksRef, where('status', '==', 'active'));
+  
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => 
+    toUserPlayerLink(doc.data() as FirestoreUserPlayerLink)
+  );
 }
 
 /**
@@ -459,36 +490,16 @@ export async function getActivePlayerLinks(userId: string): Promise<PlayerLink[]
 export async function getPlayerLinksForPlayer(
   userId: string,
   playerId: string
-): Promise<PlayerLink[]> {
-  const linksRef = getPlayerLinksCollection();
+): Promise<UserPlayerLink[]> {
+  if (!userId || !playerId) return [];
   
-  // Query where user is A and their player matches
-  const q1 = query(
-    linksRef,
-    where('userAId', '==', userId),
-    where('userAPlayerId', '==', playerId)
+  const linksRef = getUserPlayerLinksCollection(userId);
+  const q = query(linksRef, where('myPlayerId', '==', playerId));
+  
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => 
+    toUserPlayerLink(doc.data() as FirestoreUserPlayerLink)
   );
-  
-  // Query where user is B and their player matches
-  const q2 = query(
-    linksRef,
-    where('userBId', '==', userId),
-    where('userBPlayerId', '==', playerId)
-  );
-  
-  const [snapshot1, snapshot2] = await Promise.all([getDocs(q1), getDocs(q2)]);
-  
-  const links: PlayerLink[] = [];
-  
-  snapshot1.docs.forEach(doc => {
-    links.push(toPlayerLink(doc.id, doc.data() as FirestorePlayerLink));
-  });
-  
-  snapshot2.docs.forEach(doc => {
-    links.push(toPlayerLink(doc.id, doc.data() as FirestorePlayerLink));
-  });
-  
-  return links;
 }
 
 /**
@@ -502,8 +513,8 @@ export async function getRemainingLinkCount(userId: string): Promise<{
   const used = await getLinkCount(userId);
   return {
     used,
-    remaining: PLAYER_LINKS_CONFIG.MAX_LINKS_PER_PLAYER - used,
-    max: PLAYER_LINKS_CONFIG.MAX_LINKS_PER_PLAYER,
+    remaining: PLAYER_LINKS_CONFIG.MAX_LINKS_PER_USER - used,
+    max: PLAYER_LINKS_CONFIG.MAX_LINKS_PER_USER,
   };
 }
 
@@ -515,23 +526,14 @@ export async function getRemainingLinkCount(userId: string): Promise<{
  * Check if updates are available from a linked player
  */
 export async function checkForUpdates(
-  link: PlayerLink,
-  currentUserId: string
+  link: UserPlayerLink
 ): Promise<{ hasUpdates: boolean; theirVersion: number }> {
-  const isUserA = link.userAId === currentUserId;
-  
-  const theirUserId = isUserA ? link.userBId : link.userAId;
-  const theirPlayerId = isUserA ? link.userBPlayerId : link.userAPlayerId;
-  const myLastSyncedVersion = isUserA 
-    ? link.userALastSyncedVersion 
-    : link.userBLastSyncedVersion;
-  
-  if (!theirPlayerId) {
+  if (!link.theirPlayerId || !link.theirUserId) {
     return { hasUpdates: false, theirVersion: 0 };
   }
   
   // Get their player to check rangeVersion
-  const theirPlayer = await getPlayer(theirUserId, theirPlayerId);
+  const theirPlayer = await getPlayer(link.theirUserId, link.theirPlayerId);
   
   if (!theirPlayer) {
     return { hasUpdates: false, theirVersion: 0 };
@@ -540,13 +542,49 @@ export async function checkForUpdates(
   const theirVersion = theirPlayer.rangeVersion || 0;
   
   return {
-    hasUpdates: theirVersion > myLastSyncedVersion,
+    hasUpdates: theirVersion > link.myLastSyncedVersion,
     theirVersion,
   };
 }
 
 /**
- * Sync ranges from a linked player
+ * Check all links for updates with batched requests
+ */
+export async function checkAllForUpdates(
+  links: UserPlayerLink[],
+  _userId: string
+): Promise<Map<string, { hasUpdates: boolean; theirVersion: number }>> {
+  const results = new Map<string, { hasUpdates: boolean; theirVersion: number }>();
+  const activeLinks = links.filter(l => l.status === 'active' && l.theirPlayerId);
+  
+  // Process in batches
+  const batchSize = PLAYER_LINKS_CONFIG.UPDATE_CHECK_BATCH_SIZE;
+  
+  for (let i = 0; i < activeLinks.length; i += batchSize) {
+    const batch = activeLinks.slice(i, i + batchSize);
+    
+    const batchResults = await Promise.all(
+      batch.map(async (link) => {
+        try {
+          const result = await checkForUpdates(link);
+          return { linkId: link.id, result };
+        } catch (error) {
+          console.error(`Failed to check updates for link ${link.id}:`, error);
+          return { linkId: link.id, result: { hasUpdates: false, theirVersion: 0 } };
+        }
+      })
+    );
+    
+    for (const { linkId, result } of batchResults) {
+      results.set(linkId, result);
+    }
+  }
+  
+  return results;
+}
+
+/**
+ * Sync ranges from a linked player using atomic write
  * Uses fill-empty-only approach: only fills empty range slots
  */
 export async function syncRangesFromLink(
@@ -555,37 +593,27 @@ export async function syncRangesFromLink(
 ): Promise<SyncRangesResult> {
   checkRateLimit(currentUserId, 'SYNC_PLAYER_LINK');
   
-  const linkRef = getPlayerLinkDoc(linkId);
+  const linkRef = getUserPlayerLinkDoc(currentUserId, linkId);
   const linkDoc = await getDoc(linkRef);
   
   if (!linkDoc.exists()) {
     throw new Error('Player link not found');
   }
   
-  const link = linkDoc.data() as FirestorePlayerLink;
+  const link = toUserPlayerLink(linkDoc.data() as FirestoreUserPlayerLink);
   
   if (link.status !== 'active') {
     throw new Error('Link is not active');
   }
   
-  const isUserA = link.userAId === currentUserId;
-  
-  if (!isUserA && link.userBId !== currentUserId) {
-    throw new Error('You are not part of this link');
-  }
-  
-  const myPlayerId = isUserA ? link.userAPlayerId : link.userBPlayerId!;
-  const theirUserId = isUserA ? link.userBId : link.userAId;
-  const theirPlayerId = isUserA ? link.userBPlayerId : link.userAPlayerId;
-  
-  if (!theirPlayerId) {
+  if (!link.myPlayerId || !link.theirPlayerId) {
     throw new Error('Linked player not set');
   }
   
   // Fetch both players' ranges
   const [myRanges, theirPlayer] = await Promise.all([
-    getPlayerRanges(currentUserId, myPlayerId),
-    getPlayer(theirUserId, theirPlayerId),
+    getPlayerRanges(currentUserId, link.myPlayerId),
+    getPlayer(link.theirUserId, link.theirPlayerId),
   ]);
   
   if (!theirPlayer) {
@@ -619,16 +647,20 @@ export async function syncRangesFromLink(
     }
   }
   
+  // Use writeBatch for atomic update of ranges and sync version
+  const batch = writeBatch(db);
+  
   // Update my player's ranges if there were changes
   if (rangeKeysAdded.length > 0) {
-    await updatePlayerRanges(currentUserId, myPlayerId, mergedRanges);
+    await updatePlayerRanges(currentUserId, link.myPlayerId, mergedRanges);
   }
   
-  // Update my last synced version in the link
-  const versionField = isUserA ? 'userALastSyncedVersion' : 'userBLastSyncedVersion';
-  await updateDoc(linkRef, {
-    [versionField]: theirVersion,
+  // Update my sync version
+  batch.update(getUserPlayerLinkDoc(currentUserId, linkId), {
+    myLastSyncedVersion: theirVersion,
   });
+  
+  await batch.commit();
   
   return {
     added: rangeKeysAdded.length,
@@ -644,49 +676,33 @@ export async function syncRangesFromLink(
 // ============================================
 
 /**
- * Subscribe to player links for a user
+ * Subscribe to player links for a user (single listener, not dual OR)
  */
 export function subscribeToPlayerLinks(
   userId: string,
-  callback: (links: PlayerLink[]) => void
+  callback: (links: UserPlayerLink[]) => void,
+  onError?: (error: Error) => void
 ): () => void {
-  const linksRef = getPlayerLinksCollection();
+  if (!userId) {
+    callback([]);
+    return () => {};
+  }
   
-  // Note: Firestore doesn't support OR in onSnapshot efficiently,
-  // so we subscribe to both and merge
-  const q1 = query(linksRef, where('userAId', '==', userId));
-  const q2 = query(linksRef, where('userBId', '==', userId));
+  const linksRef = getUserPlayerLinksCollection(userId);
   
-  let links1: PlayerLink[] = [];
-  let links2: PlayerLink[] = [];
-  
-  const mergeAndCallback = () => {
-    // Merge and deduplicate
-    const allLinks = [...links1, ...links2];
-    const uniqueLinks = allLinks.filter((link, index, self) => 
-      index === self.findIndex(l => l.id === link.id)
-    );
-    callback(uniqueLinks);
-  };
-  
-  const unsubscribe1 = onSnapshot(q1, (snapshot) => {
-    links1 = snapshot.docs.map(doc => 
-      toPlayerLink(doc.id, doc.data() as FirestorePlayerLink)
-    );
-    mergeAndCallback();
-  });
-  
-  const unsubscribe2 = onSnapshot(q2, (snapshot) => {
-    links2 = snapshot.docs.map(doc => 
-      toPlayerLink(doc.id, doc.data() as FirestorePlayerLink)
-    );
-    mergeAndCallback();
-  });
-  
-  return () => {
-    unsubscribe1();
-    unsubscribe2();
-  };
+  return onSnapshot(
+    linksRef,
+    (snapshot: QuerySnapshot) => {
+      const links = snapshot.docs.map(doc => 
+        toUserPlayerLink(doc.data() as FirestoreUserPlayerLink)
+      );
+      callback(links);
+    },
+    (error) => {
+      console.error('PlayerLinks subscription error:', error);
+      onError?.(error);
+    }
+  );
 }
 
 /**
@@ -694,17 +710,29 @@ export function subscribeToPlayerLinks(
  */
 export function subscribeToPendingLinkCount(
   userId: string,
-  callback: (count: number) => void
+  callback: (count: number) => void,
+  onError?: (error: Error) => void
 ): () => void {
-  const linksRef = getPlayerLinksCollection();
+  if (!userId) {
+    callback(0);
+    return () => {};
+  }
   
+  const linksRef = getUserPlayerLinksCollection(userId);
   const q = query(
     linksRef,
-    where('userBId', '==', userId),
-    where('status', '==', 'pending')
+    where('status', '==', 'pending'),
+    where('isInitiator', '==', false)
   );
   
-  return onSnapshot(q, (snapshot) => {
-    callback(snapshot.size);
-  });
+  return onSnapshot(
+    q,
+    (snapshot: QuerySnapshot) => {
+      callback(snapshot.size);
+    },
+    (error) => {
+      console.error('Pending links subscription error:', error);
+      onError?.(error);
+    }
+  );
 }

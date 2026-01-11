@@ -1,22 +1,27 @@
 /**
- * Player Links Hook
+ * Player Links Hook - Subcollection Architecture
  * 
  * Provides access to player link functionality including:
  * - Creating, accepting, and managing player links
  * - Checking for range updates from linked players
  * - Syncing ranges with linked players
  * - Client-side caching for cost efficiency
+ * 
+ * Key improvements:
+ * - Single real-time listener (no dual OR merge)
+ * - Error handling on subscriptions
+ * - Batched update checks
  */
 
 import { auth } from '@/config/firebase';
 import * as playerLinksService from '@/services/firebase/playerLinks';
 import {
-    AcceptPlayerLink,
-    CreatePlayerLink,
-    PLAYER_LINKS_CONFIG,
-    PlayerLink,
-    PlayerLinkView,
-    SyncRangesResult,
+  AcceptPlayerLink,
+  CreatePlayerLink,
+  PLAYER_LINKS_CONFIG,
+  PlayerLinkView,
+  SyncRangesResult,
+  UserPlayerLink,
 } from '@/types/sharing';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -39,10 +44,10 @@ interface VersionCache {
 
 interface UsePlayerLinksResult {
   // State
-  links: PlayerLink[];
-  activeLinks: PlayerLink[];
-  pendingLinks: PlayerLink[];
-  pendingInvites: PlayerLinkView[];  // Pending links as views (for UI)
+  links: UserPlayerLink[];
+  activeLinks: UserPlayerLink[];
+  pendingLinks: UserPlayerLink[];
+  pendingInvites: PlayerLinkView[];
   pendingLinksCount: number;
   linkViews: PlayerLinkView[];
   loading: boolean;
@@ -61,25 +66,25 @@ interface UsePlayerLinksResult {
     friendName: string,
     playerId: string,
     playerName: string
-  ) => Promise<PlayerLink>;
+  ) => Promise<UserPlayerLink>;
   
   acceptLink: (
     linkId: string,
     playerId: string,
     playerName: string
-  ) => Promise<PlayerLink>;
+  ) => Promise<UserPlayerLink>;
   
   declineLink: (linkId: string) => Promise<void>;
   removeLink: (linkId: string) => Promise<void>;
   cancelLink: (linkId: string) => Promise<void>;
   
   // Sync operations
-  checkForUpdates: (link: PlayerLink) => Promise<{ hasUpdates: boolean; theirVersion: number }>;
+  checkForUpdates: (link: UserPlayerLink) => Promise<{ hasUpdates: boolean; theirVersion: number }>;
   checkAllForUpdates: () => Promise<Map<string, { hasUpdates: boolean; theirVersion: number }>>;
   syncFromLink: (linkId: string) => Promise<SyncRangesResult>;
   
   // Query helpers
-  getLinksForPlayer: (playerId: string) => PlayerLink[];
+  getLinksForPlayer: (playerId: string) => UserPlayerLink[];
   getLinkViewsForPlayer: (playerId: string) => PlayerLinkView[];
   
   // Refresh
@@ -88,7 +93,7 @@ interface UsePlayerLinksResult {
 }
 
 export function usePlayerLinks(): UsePlayerLinksResult {
-  const [links, setLinks] = useState<PlayerLink[]>([]);
+  const [links, setLinks] = useState<UserPlayerLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [linkCountInfo, setLinkCountInfo] = useState<{
@@ -111,27 +116,25 @@ export function usePlayerLinks(): UsePlayerLinksResult {
   );
   
   const pendingLinks = useMemo(
-    () => links.filter(link => link.status === 'pending' && link.userBId === userId),
-    [links, userId]
+    () => links.filter(link => link.status === 'pending' && !link.isInitiator),
+    [links]
   );
   
   const pendingLinksCount = pendingLinks.length;
   
-  // Convert active links to views for the current user
+  // Convert active links to views
   const linkViews = useMemo<PlayerLinkView[]>(() => {
-    if (!userId) return [];
     return links
       .filter(link => link.status === 'active')
-      .map(link => playerLinksService.toPlayerLinkView(link, userId));
-  }, [links, userId]);
+      .map(link => playerLinksService.toPlayerLinkView(link));
+  }, [links]);
   
-  // Convert pending links to views for the current user (for UI display)
+  // Convert pending links to views (for UI display)
   const pendingInvites = useMemo<PlayerLinkView[]>(() => {
-    if (!userId) return [];
-    return pendingLinks.map(link => playerLinksService.toPlayerLinkView(link, userId));
-  }, [pendingLinks, userId]);
+    return pendingLinks.map(link => playerLinksService.toPlayerLinkView(link));
+  }, [pendingLinks]);
   
-  // Subscribe to real-time updates
+  // Subscribe to real-time updates (single listener with error handling)
   useEffect(() => {
     if (!userId) {
       setLoading(false);
@@ -142,6 +145,12 @@ export function usePlayerLinks(): UsePlayerLinksResult {
       userId,
       (updatedLinks) => {
         setLinks(updatedLinks);
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        console.error('PlayerLinks subscription error:', err);
+        setError(err);
         setLoading(false);
       }
     );
@@ -156,7 +165,7 @@ export function usePlayerLinks(): UsePlayerLinksResult {
     playerLinksService.getRemainingLinkCount(userId)
       .then(setLinkCountInfo)
       .catch(console.error);
-  }, [userId, links.length]); // Refresh when links change
+  }, [userId, links.length]);
   
   // Check if cache is valid
   const isCacheValid = useCallback((entry: CacheEntry<unknown> | undefined): boolean => {
@@ -170,19 +179,19 @@ export function usePlayerLinks(): UsePlayerLinksResult {
     friendName: string,
     playerId: string,
     playerName: string
-  ): Promise<PlayerLink> => {
+  ): Promise<UserPlayerLink> => {
     if (!userId) {
       throw new Error('You must be logged in to create links');
     }
     
     try {
       const linkData: CreatePlayerLink = {
-        userAId: userId,
-        userAName: userName,
-        userAPlayerId: playerId,
-        userAPlayerName: playerName,
-        userBId: friendId,
-        userBName: friendName,
+        initiatorUserId: userId,
+        initiatorUserName: userName,
+        initiatorPlayerId: playerId,
+        initiatorPlayerName: playerName,
+        recipientUserId: friendId,
+        recipientUserName: friendName,
       };
       
       const link = await playerLinksService.createPlayerLink(linkData);
@@ -199,15 +208,15 @@ export function usePlayerLinks(): UsePlayerLinksResult {
     linkId: string,
     playerId: string,
     playerName: string
-  ): Promise<PlayerLink> => {
+  ): Promise<UserPlayerLink> => {
     if (!userId) {
       throw new Error('You must be logged in to accept links');
     }
     
     try {
       const acceptData: AcceptPlayerLink = {
-        userBPlayerId: playerId,
-        userBPlayerName: playerName,
+        recipientPlayerId: playerId,
+        recipientPlayerName: playerName,
       };
       
       const link = await playerLinksService.acceptPlayerLink(linkId, userId, acceptData);
@@ -268,7 +277,7 @@ export function usePlayerLinks(): UsePlayerLinksResult {
   
   // Check for updates from a specific linked player (with caching)
   const checkForUpdates = useCallback(async (
-    link: PlayerLink
+    link: UserPlayerLink
   ): Promise<{ hasUpdates: boolean; theirVersion: number }> => {
     if (!userId) {
       throw new Error('You must be logged in to check for updates');
@@ -281,7 +290,7 @@ export function usePlayerLinks(): UsePlayerLinksResult {
     }
     
     // Fetch fresh data
-    const result = await playerLinksService.checkForUpdates(link, userId);
+    const result = await playerLinksService.checkForUpdates(link);
     
     // Update cache
     versionCacheRef.current[link.id] = {
@@ -292,7 +301,7 @@ export function usePlayerLinks(): UsePlayerLinksResult {
     return result;
   }, [userId, isCacheValid]);
   
-  // Check all active links for updates
+  // Check all active links for updates (batched)
   const checkAllForUpdates = useCallback(async (): Promise<
     Map<string, { hasUpdates: boolean; theirVersion: number }>
   > => {
@@ -300,22 +309,19 @@ export function usePlayerLinks(): UsePlayerLinksResult {
       return new Map();
     }
     
-    const results = new Map<string, { hasUpdates: boolean; theirVersion: number }>();
+    // Use batched service method
+    const results = await playerLinksService.checkAllForUpdates(activeLinks, userId);
     
-    // Check each active link
-    await Promise.all(
-      activeLinks.map(async (link) => {
-        try {
-          const result = await checkForUpdates(link);
-          results.set(link.id, result);
-        } catch (err) {
-          console.error(`Failed to check updates for link ${link.id}:`, err);
-        }
-      })
-    );
+    // Update cache with results
+    for (const [linkId, result] of results.entries()) {
+      versionCacheRef.current[linkId] = {
+        data: result,
+        timestamp: Date.now(),
+      };
+    }
     
     return results;
-  }, [userId, activeLinks, checkForUpdates]);
+  }, [userId, activeLinks]);
   
   // Sync ranges from a linked player
   const syncFromLink = useCallback(async (linkId: string): Promise<SyncRangesResult> => {
@@ -338,22 +344,14 @@ export function usePlayerLinks(): UsePlayerLinksResult {
   }, [userId]);
   
   // Get links for a specific player
-  const getLinksForPlayer = useCallback((playerId: string): PlayerLink[] => {
-    if (!userId) return [];
-    
-    return links.filter(link => {
-      const isUserA = link.userAId === userId;
-      const myPlayerId = isUserA ? link.userAPlayerId : link.userBPlayerId;
-      return myPlayerId === playerId;
-    });
-  }, [links, userId]);
+  const getLinksForPlayer = useCallback((playerId: string): UserPlayerLink[] => {
+    return links.filter(link => link.myPlayerId === playerId);
+  }, [links]);
   
   // Get link views for a specific player
   const getLinkViewsForPlayer = useCallback((playerId: string): PlayerLinkView[] => {
-    if (!userId) return [];
-    
     return linkViews.filter(view => view.myPlayerId === playerId);
-  }, [linkViews, userId]);
+  }, [linkViews]);
   
   // Refresh all data
   const refresh = useCallback(async (): Promise<void> => {
@@ -431,7 +429,10 @@ export function usePendingLinksCount(): number {
     
     const unsubscribe = playerLinksService.subscribeToPendingLinkCount(
       userId,
-      setCount
+      setCount,
+      (error) => {
+        console.error('Pending links count subscription error:', error);
+      }
     );
     
     return unsubscribe;
@@ -476,7 +477,6 @@ export function usePlayerLinkStatus(playerId: string): {
     refresh: refreshLinks 
   } = usePlayerLinks();
   const [hasUpdates, setHasUpdates] = useState(false);
-  const userId = auth.currentUser?.uid;
   
   // Get active link views for this player
   const playerLinkViews = useMemo(
@@ -484,15 +484,10 @@ export function usePlayerLinkStatus(playerId: string): {
     [linkViews, playerId]
   );
   
-  // Get pending links for this player
+  // Get pending links for this player (both sent and received)
   const playerPendingLinks = useMemo(
-    () => pendingLinks.filter(link => {
-      if (!userId) return false;
-      const isUserA = link.userAId === userId;
-      const myPlayerId = isUserA ? link.userAPlayerId : link.userBPlayerId;
-      return myPlayerId === playerId;
-    }),
-    [pendingLinks, playerId, userId]
+    () => pendingLinks.filter(link => link.myPlayerId === playerId || link.theirPlayerId === playerId),
+    [pendingLinks, playerId]
   );
   
   // Get linked friend names
@@ -520,7 +515,7 @@ export function usePlayerLinkStatus(playerId: string): {
   
   // Function to check for updates across all links for this player
   const checkForUpdates = useCallback(async (): Promise<UpdateInfo[] | null> => {
-    if (!userId || playerLinkViews.length === 0) return null;
+    if (playerLinkViews.length === 0) return null;
     
     const updates: UpdateInfo[] = [];
     
@@ -545,7 +540,7 @@ export function usePlayerLinkStatus(playerId: string): {
     
     setHasUpdates(updates.length > 0);
     return updates.length > 0 ? updates : null;
-  }, [userId, playerLinkViews, activeLinks, checkLinkForUpdates]);
+  }, [playerLinkViews, activeLinks, checkLinkForUpdates]);
   
   // Get link view by ID
   const getLinkViewById = useCallback((linkId: string): PlayerLinkView | null => {
