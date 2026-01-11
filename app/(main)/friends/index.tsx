@@ -8,7 +8,7 @@ import { Friend, FriendRequest } from '@/types/friends';
 import { PlayerLinkView } from '@/types/sharing';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -45,8 +45,20 @@ export default function FriendsScreen() {
   const { countByFriend, sharesByFriend } = usePendingRangeSharesPerFriend();
   
   // Player links state
-  const { pendingInvites, refresh: refreshLinks } = usePlayerLinks();
+  const { pendingInvites, linkViews, refresh: refreshLinks } = usePlayerLinks();
   const pendingLinksCount = usePendingLinksCount();
+
+  // Build a map of friendId -> count of links with updates
+  const linkUpdatesCountByFriend = useMemo(() => {
+    const map = new Map<string, number>();
+    linkViews.forEach(view => {
+      if (view.hasUpdates === true) {
+        const friendId = view.theirUserId;
+        map.set(friendId, (map.get(friendId) || 0) + 1);
+      }
+    });
+    return map;
+  }, [linkViews]);
   
   const [refreshing, setRefreshing] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -391,12 +403,14 @@ export default function FriendsScreen() {
           ) : (
             friends.map((friend) => {
               const shareCount = countByFriend.get(friend.odUserId) || 0;
+              const linkUpdateCount = linkUpdatesCountByFriend.get(friend.odUserId) || 0;
+              const totalNotifications = shareCount + linkUpdateCount;
               return (
                 <TouchableOpacity 
                   key={friend.odUserId} 
                   style={[styles.friendCard, { backgroundColor: themeColors.card }]}
                   onPress={() => handleFriendPress(friend)}
-                  activeOpacity={shareCount > 0 ? 0.7 : 1}
+                  activeOpacity={totalNotifications > 0 ? 0.7 : 1}
                 >
                   <View style={styles.friendAvatar}>
                     <Text style={styles.friendAvatarText}>{getInitials(friend.displayName)}</Text>
@@ -409,10 +423,13 @@ export default function FriendsScreen() {
                       {friend.friendCode}
                     </Text>
                   </View>
-                  {shareCount > 0 && (
+                  {totalNotifications > 0 && (
                     <View style={styles.friendShareBadgeContainer}>
-                      <View style={styles.friendShareBadge}>
-                        <Text style={styles.friendShareBadgeText}>{shareCount}</Text>
+                      <View style={[
+                        styles.friendShareBadge, 
+                        linkUpdateCount > 0 && shareCount === 0 && { backgroundColor: '#4caf50' }
+                      ]}>
+                        <Text style={styles.friendShareBadgeText}>{totalNotifications}</Text>
                       </View>
                     </View>
                   )}
