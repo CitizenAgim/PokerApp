@@ -1,3 +1,4 @@
+import { LinkUpdatePreview } from '@/components/sharing';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useFriends } from '@/hooks/useFriends';
 import { usePlayerLinks } from '@/hooks/usePlayerLinks';
@@ -6,17 +7,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinkUpdatePreview } from '@/components/sharing';
 
 const getThemeColors = (isDark: boolean) => ({
   background: isDark ? '#000' : '#f5f5f5',
