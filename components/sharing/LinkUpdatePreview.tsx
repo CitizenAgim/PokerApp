@@ -22,6 +22,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface LinkUpdatePreviewProps {
   visible: boolean;
@@ -65,6 +66,7 @@ export function LinkUpdatePreview({
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const themeColors = getThemeColors(isDark);
+  const insets = useSafeAreaInsets();
   
   const { syncFromLink } = usePlayerLinks();
   
@@ -119,7 +121,7 @@ export function LinkUpdatePreview({
         presentationStyle="pageSheet"
         onRequestClose={handleDone}
       >
-        <View style={[styles.modalContainer, { backgroundColor: themeColors.modalBackground, flex: 1 }]}>
+        <View style={[styles.modalContainer, { backgroundColor: themeColors.modalBackground, flex: 1, maxHeight: undefined }]}>
           <View style={[styles.modalHeader, { borderBottomColor: themeColors.border }]}>
             <Text style={[styles.modalTitle, { color: themeColors.text }]}>
               Sync Complete
@@ -195,7 +197,7 @@ export function LinkUpdatePreview({
             </View>
           </View>
 
-          <View style={[styles.modalFooter, { borderTopColor: themeColors.border }]}>
+          <View style={[styles.modalFooter, { borderTopColor: themeColors.border, paddingBottom: insets.bottom + 20 }]}>
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={handleDone}
@@ -215,7 +217,7 @@ export function LinkUpdatePreview({
       presentationStyle="pageSheet"
       onRequestClose={handleClose}
     >
-      <View style={[styles.modalContainer, { backgroundColor: themeColors.modalBackground, flex: 1 }]}>
+      <View style={[styles.modalContainer, { backgroundColor: themeColors.modalBackground, flex: 1, maxHeight: undefined }]}>
         {/* Header */}
         <View style={[styles.modalHeader, { borderBottomColor: themeColors.border }]}>
           <View style={{ flex: 1 }}>
@@ -315,14 +317,17 @@ export function LinkUpdatePreview({
         </ScrollView>
 
         {/* Footer */}
-        <View style={[styles.modalFooter, { borderTopColor: themeColors.border }]}>
+        <View style={[styles.modalFooter, { borderTopColor: themeColors.border, paddingBottom: insets.bottom + 20 }]}>
           <View style={localStyles.footerButtons}>
             <TouchableOpacity
-              style={[styles.secondaryButton, { flex: 1 }]}
+              style={[
+                styles.secondaryButton, 
+                { flex: 1, backgroundColor: themeColors.card, borderColor: themeColors.border }
+              ]}
               onPress={handleClose}
               disabled={syncing}
             >
-              <Text style={styles.secondaryButtonText}>Cancel</Text>
+              <Text style={[styles.secondaryButtonText, { color: themeColors.text }]}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.primaryButton, { flex: 2 }, syncing && styles.primaryButtonDisabled]}

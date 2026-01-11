@@ -153,10 +153,7 @@ export default function FriendsScreen() {
   };
 
   const handleFriendPress = (friend: Friend) => {
-    const shareCount = countByFriend.get(friend.odUserId) || 0;
-    if (shareCount > 0) {
-      setSelectedFriendForShares(friend);
-    }
+    router.push(`/(main)/friends/${friend.odUserId}`);
   };
 
   const getInitials = (name: string) => {

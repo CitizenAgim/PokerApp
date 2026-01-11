@@ -31,6 +31,12 @@ export default function FriendsLayout() {
           presentation: 'modal',
         }}
       />
+      <Stack.Screen
+        name="[id]"
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }
