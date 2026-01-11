@@ -19,6 +19,9 @@ export const getThemeColors = (isDark: boolean) => ({
   noteSelected: isDark ? '#1a2a3a' : '#e3f2fd',
   editButtonBg: isDark ? '#1a2a3a' : '#e3f2fd',
   deleteButtonBg: isDark ? '#3a1a1a' : '#ffebee',
+  accent: '#0a7ea4',
+  success: isDark ? '#4caf50' : '#2e7d32',
+  chevron: isDark ? '#666' : '#999',
 });
 
 export const styles = StyleSheet.create({
@@ -470,5 +473,42 @@ export const styles = StyleSheet.create({
   editNoteActions: {
     flexDirection: 'row',
     gap: 12,
+  },
+  // Link item styles
+  linkItem: {
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 10,
+  },
+  linkItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  linkItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    flex: 1,
+  },
+  linkUpdateBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  linkUpdateBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  linkItemSubtext: {
+    fontSize: 14,
+    marginLeft: 26,
+    marginBottom: 2,
+  },
+  linkItemMeta: {
+    fontSize: 12,
+    marginLeft: 26,
   },
 });

@@ -23,7 +23,7 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinkedPlayerStatusBadge, LinkUpdatePreview, ShareRangesModal } from './sharing';
+import { LinkUpdatePreview, ShareRangesModal } from './sharing';
 import { checkLimit, LimitWarning } from './ui/LimitWarning';
 
 const POSITIONS: { id: Position; label: string; color: string }[] = [
@@ -84,6 +84,9 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
 
   // Share modal state
   const [showShareModal, setShowShareModal] = useState(false);
+  
+  // Links section state
+  const [showLinks, setShowLinks] = useState(true);
   
   // Link update preview state
   const [showLinkUpdatePreview, setShowLinkUpdatePreview] = useState(false);
@@ -440,26 +443,6 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
           </Text>
         </View>
         
-        {/* Linked Player Badge */}
-        {linkStatus !== 'none' && isLoggedIn && (
-          <LinkedPlayerStatusBadge
-            status={linkStatus}
-            linkedFriendNames={linkedFriendNames}
-            onCheckUpdates={async () => {
-              // For now, show the first linked friend update preview
-              if (linkedFriendNames.length > 0) {
-                const updates = await checkForUpdates();
-                if (updates && updates.length > 0) {
-                  setSelectedLinkId(updates[0].linkId);
-                  setShowLinkUpdatePreview(true);
-                } else {
-                  Alert.alert('Up to Date', 'All linked ranges are up to date.');
-                }
-              }
-            }}
-          />
-        )}
-        
         <View style={styles.headerActions}>
           {isLoggedIn && (
             <TouchableOpacity 
@@ -629,6 +612,83 @@ export default function PlayerDetailView({ onEditRange }: { onEditRange?: (id: s
           </View>
         )}
       </View>
+
+      {/* Links Section */}
+      {isLoggedIn && linkViews.length > 0 && (
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <TouchableOpacity 
+              style={styles.sectionHeaderTitle} 
+              onPress={() => setShowLinks(!showLinks)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 0 }]}>Links</Text>
+              <Text style={{ color: themeColors.subText, fontSize: 16, fontWeight: '500' }}>
+                ({linkViews.length})
+              </Text>
+              <Ionicons 
+                name={showLinks ? "chevron-up" : "chevron-down"} 
+                size={24} 
+                color={themeColors.icon} 
+              />
+            </TouchableOpacity>
+          </View>
+          
+          {showLinks && (
+            <View style={styles.notesContainer}>
+              {linkViews.map(linkView => (
+                <TouchableOpacity
+                  key={linkView.link.id}
+                  style={[styles.linkItem, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}
+                  onPress={async () => {
+                    // Check if there are updates for this specific link
+                    const updates = await checkForUpdates();
+                    const hasUpdatesForLink = updates?.some(u => u.linkId === linkView.link.id);
+                    if (hasUpdatesForLink) {
+                      setSelectedLinkId(linkView.link.id);
+                      setShowLinkUpdatePreview(true);
+                    } else {
+                      Alert.alert(
+                        'Link Info',
+                        `Linked with ${linkView.theirUserName}'s "${linkView.theirPlayerName}".\n\nNo updates available.`,
+                        [
+                          { text: 'OK' },
+                          {
+                            text: 'Sync Anyway',
+                            onPress: () => {
+                              setSelectedLinkId(linkView.link.id);
+                              setShowLinkUpdatePreview(true);
+                            }
+                          }
+                        ]
+                      );
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.linkItemHeader}>
+                    <Ionicons name="link" size={18} color={themeColors.accent} />
+                    <Text style={[styles.linkItemName, { color: themeColors.text }]}>
+                      {linkView.theirUserName}
+                    </Text>
+                    {linkView.hasUpdates && (
+                      <View style={[styles.linkUpdateBadge, { backgroundColor: themeColors.success }]}>
+                        <Text style={styles.linkUpdateBadgeText}>Updates</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[styles.linkItemSubtext, { color: themeColors.subText }]}>
+                    Their player: "{linkView.theirPlayerName}"
+                  </Text>
+                  <Text style={[styles.linkItemMeta, { color: themeColors.subText }]}>
+                    Linked {new Date(linkView.link.acceptedAt || linkView.link.createdAt).toLocaleDateString()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
 
       {/* Ranges Grid */}
       <View style={styles.rangesSection}>
