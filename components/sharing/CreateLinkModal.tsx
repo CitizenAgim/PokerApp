@@ -50,10 +50,8 @@ export function CreateLinkModal({
   // Get existing link friend IDs to filter them out
   const linkedFriendIds = new Set(
     activeLinks
-      .filter(link => 
-        link.userAPlayerId === playerId || link.userBPlayerId === playerId
-      )
-      .map(link => link.userAId === playerId ? link.userBId : link.userAId)
+      .filter(link => link.myPlayerId === playerId)
+      .map(link => link.theirUserId)
   );
 
   // Filter out friends who are already linked

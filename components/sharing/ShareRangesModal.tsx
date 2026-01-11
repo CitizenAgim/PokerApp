@@ -62,10 +62,8 @@ export function ShareRangesModal({
   // Get existing link friend IDs to filter them out in link mode
   const linkedFriendIds = new Set(
     activeLinks
-      .filter(link => 
-        link.userAPlayerId === playerId || link.userBPlayerId === playerId
-      )
-      .map(link => link.userAId === playerId ? link.userBId : link.userAId)
+      .filter(link => link.myPlayerId === playerId)
+      .map(link => link.theirUserId)
   );
 
   // Filter friends based on mode

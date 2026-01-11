@@ -529,6 +529,7 @@ export async function checkForUpdates(
   link: UserPlayerLink
 ): Promise<{ hasUpdates: boolean; theirVersion: number }> {
   if (!link.theirPlayerId || !link.theirUserId) {
+    console.log(`[checkForUpdates] Link ${link.id}: missing theirPlayerId or theirUserId`);
     return { hasUpdates: false, theirVersion: 0 };
   }
   
@@ -536,13 +537,17 @@ export async function checkForUpdates(
   const theirPlayer = await getPlayer(link.theirUserId, link.theirPlayerId);
   
   if (!theirPlayer) {
+    console.log(`[checkForUpdates] Link ${link.id}: theirPlayer not found at ${link.theirUserId}/${link.theirPlayerId}`);
     return { hasUpdates: false, theirVersion: 0 };
   }
   
   const theirVersion = theirPlayer.rangeVersion || 0;
+  const hasUpdates = theirVersion > link.myLastSyncedVersion;
+  
+  console.log(`[checkForUpdates] Link ${link.id}: theirVersion=${theirVersion}, myLastSyncedVersion=${link.myLastSyncedVersion}, hasUpdates=${hasUpdates}`);
   
   return {
-    hasUpdates: theirVersion > link.myLastSyncedVersion,
+    hasUpdates,
     theirVersion,
   };
 }

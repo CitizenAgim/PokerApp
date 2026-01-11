@@ -9,7 +9,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { usePlayers } from '@/hooks/usePlayer';
 import { usePlayerLinks } from '@/hooks/usePlayerLinks';
 import { getThemeColors, styles } from '@/styles/sharing/index.styles';
-import { PlayerLink } from '@/types/sharing';
+import { UserPlayerLink } from '@/types/sharing';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -29,7 +29,7 @@ import {
 interface AcceptLinkModalProps {
   visible: boolean;
   onClose: () => void;
-  link: PlayerLink;
+  link: UserPlayerLink;
   onSuccess?: () => void;
   onDecline?: () => void;
 }
@@ -66,7 +66,7 @@ export function AcceptLinkModal({
   const handleSelectPlayer = async (playerId: string, playerName: string) => {
     Alert.alert(
       'Accept Link',
-      `Link your "${playerName}" with ${link.userAName}'s "${link.userAPlayerName}"? You'll both be able to sync ranges.`,
+      `Link your "${playerName}" with ${link.theirUserName}'s "${link.theirPlayerName}"? You'll both be able to sync ranges.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -81,7 +81,7 @@ export function AcceptLinkModal({
               // Offer to sync ranges immediately
               Alert.alert(
                 'Link Established!',
-                `Your players are now linked. Would you like to sync ${link.userAName}'s ranges now?`,
+                `Your players are now linked. Would you like to sync ${link.theirUserName}'s ranges now?`,
                 [
                   { 
                     text: 'Later', 
@@ -136,7 +136,7 @@ export function AcceptLinkModal({
   const handleDecline = () => {
     Alert.alert(
       'Decline Link',
-      `Decline the link request from ${link.userAName}?`,
+      `Decline the link request from ${link.theirUserName}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -187,7 +187,7 @@ export function AcceptLinkModal({
       // Offer to sync ranges immediately
       Alert.alert(
         'Link Established!',
-        `Created "${newPlayerName.trim()}" and linked with ${link.userAName}'s "${link.userAPlayerName}". Would you like to sync their ranges now?`,
+        `Created "${newPlayerName.trim()}" and linked with ${link.theirUserName}'s "${link.theirPlayerName}". Would you like to sync their ranges now?`,
         [
           { 
             text: 'Later', 
@@ -306,7 +306,7 @@ export function AcceptLinkModal({
               Accept Player Link
             </Text>
             <Text style={[styles.modalSubtitle, { color: themeColors.subText }]}>
-              From {link.userAName}
+              From {link.theirUserName}
             </Text>
           </View>
           <TouchableOpacity
@@ -332,7 +332,7 @@ export function AcceptLinkModal({
               </Text>
             </View>
             <Text style={[localStyles.inviteDescription, { color: themeColors.subText }]}>
-              {link.userAName} wants to link their player "{link.userAPlayerName}" with one of your players.
+              {link.theirUserName} wants to link their player "{link.theirPlayerName}" with one of your players.
             </Text>
           </View>
 

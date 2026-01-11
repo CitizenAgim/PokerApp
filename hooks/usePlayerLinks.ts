@@ -102,6 +102,9 @@ export function usePlayerLinks(): UsePlayerLinksResult {
     max: number;
   } | null>(null);
   
+  // Track update status for each link
+  const [updateStatusMap, setUpdateStatusMap] = useState<Map<string, { hasUpdates: boolean; theirVersion: number }>>(new Map());
+  
   // Version check cache (5 minute TTL)
   const versionCacheRef = useRef<VersionCache>({});
   
@@ -122,12 +125,18 @@ export function usePlayerLinks(): UsePlayerLinksResult {
   
   const pendingLinksCount = pendingLinks.length;
   
-  // Convert active links to views
+  // Convert active links to views (enriched with update status)
   const linkViews = useMemo<PlayerLinkView[]>(() => {
     return links
       .filter(link => link.status === 'active')
-      .map(link => playerLinksService.toPlayerLinkView(link));
-  }, [links]);
+      .map(link => {
+        const updateStatus = updateStatusMap.get(link.id);
+        return playerLinksService.toPlayerLinkView(
+          link, 
+          updateStatus?.theirVersion ?? null
+        );
+      });
+  }, [links, updateStatusMap]);
   
   // Convert pending links to views (for UI display)
   const pendingInvites = useMemo<PlayerLinkView[]>(() => {
@@ -157,6 +166,57 @@ export function usePlayerLinks(): UsePlayerLinksResult {
     
     return unsubscribe;
   }, [userId]);
+  
+  // Check for updates when active links change (auto-refresh update status)
+  useEffect(() => {
+    if (!userId || activeLinks.length === 0) {
+      setUpdateStatusMap(new Map());
+      return;
+    }
+
+    let mounted = true;
+    
+    const checkUpdates = async () => {
+      try {
+        console.log('[usePlayerLinks] Checking for updates on', activeLinks.length, 'active links');
+        const results = await playerLinksService.checkAllForUpdates(activeLinks, userId);
+        
+        if (mounted) {
+          // Update cache
+          for (const [linkId, result] of results.entries()) {
+            versionCacheRef.current[linkId] = {
+              data: result,
+              timestamp: Date.now(),
+            };
+          }
+          setUpdateStatusMap(results);
+          
+          // Log for debugging
+          let updatesCount = 0;
+          for (const [linkId, result] of results.entries()) {
+            if (result.hasUpdates) {
+              console.log(`[usePlayerLinks] Link ${linkId} has updates: theirVersion=${result.theirVersion}`);
+              updatesCount++;
+            }
+          }
+          console.log(`[usePlayerLinks] Found ${updatesCount} links with updates`);
+        }
+      } catch (err) {
+        console.error('[usePlayerLinks] Error checking for updates:', err);
+      }
+    };
+    
+    // Check immediately
+    checkUpdates();
+    
+    // Re-check periodically
+    const intervalId = setInterval(checkUpdates, PLAYER_LINKS_CONFIG.CACHE_TTL_MS);
+    
+    return () => {
+      mounted = false;
+      clearInterval(intervalId);
+    };
+  }, [userId, activeLinks]);
   
   // Load link counts on mount
   useEffect(() => {
@@ -329,11 +389,23 @@ export function usePlayerLinks(): UsePlayerLinksResult {
       throw new Error('You must be logged in to sync');
     }
     
+    // Debug: log where sync is being called from
+    console.log(`[syncFromLink] SYNC INITIATED for linkId=${linkId}, userId=${userId}`);
+    console.log('[syncFromLink] Call stack:', new Error().stack);
+    
     try {
       const result = await playerLinksService.syncRangesFromLink(linkId, userId);
+      console.log(`[syncFromLink] SYNC COMPLETED: added=${result.added}, skipped=${result.skipped}, newVersion=${result.newVersion}`);
       
       // Invalidate cache for this link since we just synced
       delete versionCacheRef.current[linkId];
+      
+      // Update the updateStatusMap to reflect that we're now synced
+      setUpdateStatusMap(prev => {
+        const newMap = new Map(prev);
+        newMap.set(linkId, { hasUpdates: false, theirVersion: result.newVersion });
+        return newMap;
+      });
       
       return result;
     } catch (err) {
@@ -453,9 +525,35 @@ export function usePendingLinksCount(): number {
 export function usePendingUpdatesCount(): number {
   const [updateCount, setUpdateCount] = useState(0);
   const userId = auth.currentUser?.uid;
-  const { activeLinks, checkAllForUpdates } = usePlayerLinks();
+  const [activeLinks, setActiveLinks] = useState<UserPlayerLink[]>([]);
   const checkInProgressRef = useRef(false);
 
+  // Subscribe to active links separately to avoid circular dependency
+  useEffect(() => {
+    if (!userId) {
+      setActiveLinks([]);
+      return;
+    }
+
+    const unsubscribe = playerLinksService.subscribeToPlayerLinks(
+      userId,
+      (links) => {
+        const active = links.filter(l => l.status === 'active');
+        console.log(`[usePendingUpdatesCount] Subscription update received: ${active.length} active links`);
+        active.forEach(link => {
+          console.log(`[usePendingUpdatesCount] Subscription data - Link ${link.id}: myLastSyncedVersion=${link.myLastSyncedVersion}`);
+        });
+        setActiveLinks(active);
+      },
+      (error) => {
+        console.error('usePendingUpdatesCount subscription error:', error);
+      }
+    );
+
+    return unsubscribe;
+  }, [userId]);
+
+  // Check for updates when active links change
   useEffect(() => {
     if (!userId || activeLinks.length === 0) {
       setUpdateCount(0);
@@ -470,16 +568,22 @@ export function usePendingUpdatesCount(): number {
       checkInProgressRef.current = true;
 
       try {
-        const results = await checkAllForUpdates();
+        console.log('[usePendingUpdatesCount] Checking updates for', activeLinks.length, 'active links');
+        activeLinks.forEach(link => {
+          console.log(`[usePendingUpdatesCount] Link ${link.id}: myLastSyncedVersion=${link.myLastSyncedVersion}, theirUserId=${link.theirUserId}, theirPlayerId=${link.theirPlayerId}`);
+        });
+        const results = await playerLinksService.checkAllForUpdates(activeLinks, userId);
         
         if (!mounted) return;
         
         let count = 0;
-        for (const result of results.values()) {
+        for (const [linkId, result] of results.entries()) {
+          console.log(`[usePendingUpdatesCount] Link ${linkId}: hasUpdates=${result.hasUpdates}, theirVersion=${result.theirVersion}`);
           if (result.hasUpdates) {
             count++;
           }
         }
+        console.log('[usePendingUpdatesCount] Total updates count:', count);
         setUpdateCount(count);
       } catch (err) {
         console.error('Failed to check for updates:', err);
@@ -498,7 +602,7 @@ export function usePendingUpdatesCount(): number {
       mounted = false;
       clearInterval(intervalId);
     };
-  }, [userId, activeLinks.length, checkAllForUpdates]);
+  }, [userId, activeLinks]);
 
   return updateCount;
 }

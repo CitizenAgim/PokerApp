@@ -46,17 +46,11 @@ export default function PlayersScreen() {
   const linkedPlayerMap = useMemo(() => {
     const map = new Map<string, string[]>();
     activeLinks.forEach(link => {
-      // Add for userA player
-      if (link.userAPlayerId) {
-        const existing = map.get(link.userAPlayerId) || [];
-        existing.push(link.userBName);
-        map.set(link.userAPlayerId, existing);
-      }
-      // Add for userB player
-      if (link.userBPlayerId) {
-        const existing = map.get(link.userBPlayerId) || [];
-        existing.push(link.userAName);
-        map.set(link.userBPlayerId, existing);
+      // Only include links where we have both players set (active links)
+      if (link.myPlayerId && link.theirUserName) {
+        const existing = map.get(link.myPlayerId) || [];
+        existing.push(link.theirUserName);
+        map.set(link.myPlayerId, existing);
       }
     });
     return map;
