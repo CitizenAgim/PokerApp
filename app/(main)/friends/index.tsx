@@ -8,7 +8,7 @@ import { Friend, FriendRequest } from '@/types/friends';
 import { PlayerLinkView } from '@/types/sharing';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -64,12 +64,47 @@ export default function FriendsScreen() {
   const [copiedCode, setCopiedCode] = useState(false);
   const [selectedFriendForShares, setSelectedFriendForShares] = useState<Friend | null>(null);
   const [selectedLinkInvite, setSelectedLinkInvite] = useState<PlayerLinkView | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [, setForceUpdate] = useState(0);
 
   const user = auth.currentUser;
+
+  // Set initial refresh time when data loads
+  useEffect(() => {
+    if (!loading && !lastRefreshed) {
+      setLastRefreshed(new Date());
+    }
+  }, [loading, lastRefreshed]);
+
+  // Update the "time ago" display every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setForceUpdate(n => n + 1);
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Format the last refreshed time
+  const getLastRefreshedText = useCallback(() => {
+    if (!lastRefreshed) return '';
+    
+    const now = new Date();
+    const diffMs = now.getTime() - lastRefreshed.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return 'Last updated just now';
+    if (diffMins === 1) return 'Last updated 1 minute ago';
+    if (diffMins < 60) return `Last updated ${diffMins} minutes ago`;
+    
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours === 1) return 'Last updated 1 hour ago';
+    return `Last updated ${diffHours} hours ago`;
+  }, [lastRefreshed]);
 
   const onRefresh = async () => {
     setRefreshing(true);
     await Promise.all([refresh(), refreshLinks()]);
+    setLastRefreshed(new Date());
     setRefreshing(false);
   };
 
@@ -444,6 +479,16 @@ export default function FriendsScreen() {
             })
           )}
         </View>
+
+        {/* Last Refreshed Indicator */}
+        {lastRefreshed && (
+          <View style={localStyles.lastRefreshedContainer}>
+            <Ionicons name="time-outline" size={14} color={themeColors.subText} />
+            <Text style={[localStyles.lastRefreshedText, { color: themeColors.subText }]}>
+              {getLastRefreshedText()}
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       {/* Pending Shares Modal */}
@@ -519,5 +564,16 @@ const localStyles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 13,
+  },
+  lastRefreshedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 16,
+    marginTop: 8,
+  },
+  lastRefreshedText: {
+    fontSize: 12,
   },
 });
