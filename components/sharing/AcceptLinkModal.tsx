@@ -26,6 +26,8 @@ import {
     View,
 } from 'react-native';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 interface AcceptLinkModalProps {
   visible: boolean;
   onClose: () => void;
@@ -44,6 +46,7 @@ export function AcceptLinkModal({
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const themeColors = getThemeColors(isDark);
+  const insets = useSafeAreaInsets();
   
   const { players, loading: playersLoading, createPlayer } = usePlayers();
   const { acceptLink, declineLink, linkCountInfo, syncFromLink } = usePlayerLinks();
@@ -298,7 +301,7 @@ export function AcceptLinkModal({
       presentationStyle="pageSheet"
       onRequestClose={handleClose}
     >
-      <View style={[styles.modalContainer, { backgroundColor: themeColors.modalBackground, flex: 1 }]}>
+      <View style={[styles.modalContainer, { backgroundColor: themeColors.modalBackground, flex: 1, maxHeight: '100%', paddingBottom: 0 }]}>
         {/* Header */}
         <View style={[styles.modalHeader, { borderBottomColor: themeColors.border }]}>
           <View style={{ flex: 1 }}>
@@ -479,7 +482,11 @@ export function AcceptLinkModal({
         </View>
 
         {/* Footer */}
-        <View style={[styles.modalFooter, { borderTopColor: themeColors.border, backgroundColor: themeColors.modalBackground }]}>
+        <View style={[styles.modalFooter, { 
+          borderTopColor: themeColors.border, 
+          backgroundColor: themeColors.modalBackground,
+          paddingBottom: Math.max(insets.bottom, 20)
+        }]}>
           <View style={localStyles.footerButtons}>
             <TouchableOpacity
               style={[localStyles.declineButton, { borderColor: themeColors.danger }]}
