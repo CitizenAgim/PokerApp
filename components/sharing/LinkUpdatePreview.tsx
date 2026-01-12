@@ -78,9 +78,20 @@ export function LinkUpdatePreview({
     
     try {
       const syncResult = await syncFromLink(linkView.link.id);
-      setResult(syncResult);
       
-      if (syncResult.added === 0) {
+      // Auto-close and return to previous screen after successful sync
+      onSuccess?.(syncResult);
+      setResult(null);
+      onClose();
+      
+      // Show a brief toast-style message (using Alert for now)
+      if (syncResult.added > 0) {
+        Alert.alert(
+          'Sync Complete',
+          `Added ${syncResult.added} range${syncResult.added !== 1 ? 's' : ''}${syncResult.skipped > 0 ? `, skipped ${syncResult.skipped} (you already had data)` : ''}.`,
+          [{ text: 'OK' }]
+        );
+      } else {
         Alert.alert(
           'No New Ranges',
           `You already have observations for all shared positions. No changes were made.`,
