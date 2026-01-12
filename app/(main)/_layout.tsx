@@ -1,6 +1,6 @@
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTotalPendingCount } from '@/hooks/useFriends';
-import { usePendingUpdatesCount } from '@/hooks/usePlayerLinks';
+import { usePendingLinksCount, usePendingUpdatesCount } from '@/hooks/usePlayerLinks';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, useRouter } from 'expo-router';
 
@@ -12,8 +12,10 @@ export default function MainLayout() {
   const totalPendingCount = useTotalPendingCount();
   // Count of player links with data available to sync
   const syncUpdatesCount = usePendingUpdatesCount();
+  // Count of pending player link invitations
+  const pendingLinkInvitesCount = usePendingLinksCount();
   // Total badge count
-  const totalBadgeCount = totalPendingCount + syncUpdatesCount;
+  const totalBadgeCount = totalPendingCount + syncUpdatesCount + pendingLinkInvitesCount;
 
   return (
     <Tabs

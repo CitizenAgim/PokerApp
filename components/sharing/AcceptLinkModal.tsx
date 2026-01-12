@@ -319,7 +319,7 @@ export function AcceptLinkModal({
         </View>
 
         {/* Content */}
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, { flex: 1 }]}>
           {/* Link invite card */}
           <View style={[localStyles.inviteCard, { 
             backgroundColor: isDark ? '#2c2c2e' : '#f8f9fa',
@@ -471,7 +471,7 @@ export function AcceptLinkModal({
               data={filteredPlayers}
               keyExtractor={(item) => item.id}
               renderItem={renderPlayerItem}
-              contentContainerStyle={filteredPlayers.length === 0 ? { flex: 1 } : undefined}
+              contentContainerStyle={filteredPlayers.length === 0 ? { flexGrow: 1 } : { paddingBottom: 16 }}
               ListEmptyComponent={renderEmptyState}
               showsVerticalScrollIndicator={false}
             />
@@ -479,7 +479,7 @@ export function AcceptLinkModal({
         </View>
 
         {/* Footer */}
-        <View style={[styles.modalFooter, { borderTopColor: themeColors.border }]}>
+        <View style={[styles.modalFooter, { borderTopColor: themeColors.border, backgroundColor: themeColors.modalBackground }]}>
           <View style={localStyles.footerButtons}>
             <TouchableOpacity
               style={[localStyles.declineButton, { borderColor: themeColors.danger }]}
@@ -495,11 +495,14 @@ export function AcceptLinkModal({
               )}
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.secondaryButton}
+              style={[localStyles.cancelButton, { 
+                backgroundColor: isDark ? '#2c2c2e' : '#f5f5f5',
+                borderColor: themeColors.border,
+              }]}
               onPress={handleClose}
               disabled={accepting || declining}
             >
-              <Text style={styles.secondaryButtonText}>Cancel</Text>
+              <Text style={[localStyles.cancelButtonText, { color: themeColors.subText }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -556,6 +559,17 @@ const localStyles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   declineButtonText: {
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  cancelButtonText: {
     fontWeight: '600',
     fontSize: 16,
   },

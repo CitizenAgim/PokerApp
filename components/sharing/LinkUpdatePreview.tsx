@@ -8,8 +8,8 @@
 import { RangeGrid, RangeStats } from '@/components/poker';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { usePlayerLinks } from '@/hooks/usePlayerLinks';
-import { getThemeColors, styles as previewStyles } from '@/styles/sharing/range-preview.styles';
 import { styles as sharedStyles } from '@/styles/sharing/index.styles';
+import { getThemeColors, styles as previewStyles } from '@/styles/sharing/range-preview.styles';
 import { Position, Range } from '@/types/poker';
 import { PlayerLinkView, SyncRangesResult } from '@/types/sharing';
 import { haptics } from '@/utils/haptics';

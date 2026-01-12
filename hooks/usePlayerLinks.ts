@@ -15,6 +15,7 @@
 
 import { auth } from '@/config/firebase';
 import * as playerLinksService from '@/services/firebase/playerLinks';
+import { Range } from '@/types/poker';
 import {
     AcceptPlayerLink,
     CreatePlayerLink,
@@ -23,7 +24,6 @@ import {
     SyncRangesResult,
     UserPlayerLink,
 } from '@/types/sharing';
-import { Range } from '@/types/poker';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
