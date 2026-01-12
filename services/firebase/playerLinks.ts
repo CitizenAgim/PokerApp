@@ -656,8 +656,9 @@ export async function syncRangesFromLink(
   const batch = writeBatch(db);
   
   // Update my player's ranges if there were changes
+  // Pass false for incrementVersion to avoid triggering notifications back to the sender
   if (rangeKeysAdded.length > 0) {
-    await updatePlayerRanges(currentUserId, link.myPlayerId, mergedRanges);
+    await updatePlayerRanges(currentUserId, link.myPlayerId, mergedRanges, false);
   }
   
   // Update my sync version

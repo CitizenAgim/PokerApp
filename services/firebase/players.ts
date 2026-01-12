@@ -278,11 +278,13 @@ function sanitizeRangesForStorage(ranges: Record<string, Range>): Record<string,
 
 /**
  * Update all ranges for a player
+ * @param incrementVersion - If false, skips incrementing rangeVersion (used when syncing from friend)
  */
 export async function updatePlayerRanges(
   userId: string,
   playerId: string,
-  ranges: Record<string, Range>
+  ranges: Record<string, Range>,
+  incrementVersion: boolean = true
 ): Promise<void> {
   // Rate limiting
   checkRateLimit(userId, 'UPDATE_RANGE');
@@ -318,12 +320,18 @@ export async function updatePlayerRanges(
     // Sanitize ranges before saving (sparse storage optimization)
     const sanitizedRanges = sanitizeRangesForStorage(ranges);
     
-    await updateDoc(playerRef, {
+    // Build update object - only increment version if requested
+    const updateData: Record<string, unknown> = {
       ranges: sanitizedRanges,
-      rangeVersion: currentVersion + 1,
       rangeUpdatedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-    });
+    };
+    
+    if (incrementVersion) {
+      updateData.rangeVersion = currentVersion + 1;
+    }
+    
+    await updateDoc(playerRef, updateData);
   } catch (error) {
     console.error('Error updating player ranges:', error);
     throw error;
