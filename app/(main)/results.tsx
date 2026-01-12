@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -318,18 +319,19 @@ export default function ResultsScreen() {
   }
 
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: themeColors.background }]}
-      refreshControl={
-        <RefreshControl refreshing={loading} onRefresh={refresh} colors={['#0a7ea4']} tintColor={themeColors.text} />
-      }
-    >
-      <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
-        <Text style={[styles.headerTitle, { color: themeColors.text }]}>Performance Results</Text>
-        <Text style={[styles.headerSubtitle, { color: themeColors.subText }]}>Lifetime Statistics</Text>
-      </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
+      <ScrollView 
+        contentContainerStyle={{ flexGrow: 1 }}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={refresh} colors={['#0a7ea4']} tintColor={themeColors.text} />
+        }
+      >
+        <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
+          <Text style={[styles.headerTitle, { color: themeColors.text }]}>Performance Results</Text>
+          <Text style={[styles.headerSubtitle, { color: themeColors.subText }]}>Lifetime Statistics</Text>
+        </View>
 
-      <View style={[styles.tabContainer, { backgroundColor: themeColors.tabBg }]}>
+        <View style={[styles.tabContainer, { backgroundColor: themeColors.tabBg }]}>
         <TouchableOpacity 
           style={[styles.tabButton, activeTab === 'overview' && [styles.activeTabButton, { backgroundColor: themeColors.activeTabBg }]]} 
           onPress={() => setActiveTab('overview')}
@@ -559,7 +561,8 @@ export default function ResultsScreen() {
           <View style={{ height: 40 }} />
         </View>
       )}
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

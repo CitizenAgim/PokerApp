@@ -5,7 +5,6 @@ import { startAutoSync, stopAutoSync } from '@/services/sync';
 import { getThemeColors, styles } from '@/styles/main/index.styles';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { signOut } from 'firebase/auth';
 import { useCallback, useEffect } from 'react';
 import {
     Text,
@@ -40,15 +39,6 @@ export default function HomeScreen() {
     return () => stopAutoSync();
   }, []);
 
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      router.replace('/');
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
-
   const handleSignIn = () => {
     router.push('/(auth)/login');
   };
@@ -71,8 +61,8 @@ export default function HomeScreen() {
         </View>
         
         {user ? (
-          <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
-            <Ionicons name="log-out-outline" size={24} color={themeColors.subText} />
+          <TouchableOpacity onPress={() => router.push('/(main)/settings')} style={styles.signOutBtn}>
+            <Ionicons name="settings-outline" size={24} color={themeColors.subText} />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity onPress={handleSignIn} style={styles.signInBtn}>

@@ -75,17 +75,6 @@ export default function MainLayout() {
       />
 
       <Tabs.Screen
-        name="results"
-        options={{
-          title: 'Results',
-          headerShown: false,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="stats-chart" size={size} color={color} />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
         name="friends"
         options={{
           title: 'Friends',
@@ -98,8 +87,20 @@ export default function MainLayout() {
       />
 
       <Tabs.Screen
+        name="results"
+        options={{
+          title: 'Results',
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="stats-chart" size={size} color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
         name="settings"
         options={{
+          href: null,
           title: 'Settings',
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
