@@ -1,4 +1,3 @@
-import { auth } from '@/config/firebase';
 import { useCurrentSession, useCurrentUser, usePlayers, useSessions } from '@/hooks';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { startAutoSync, stopAutoSync } from '@/services/sync';
