@@ -38,7 +38,7 @@ export default function FriendProfileScreen() {
   const themeColors = getThemeColors(isDark);
 
   const { friends, removeFriend, refresh: refreshFriends } = useFriends();
-  const { linkViews, checkForUpdates, syncFromLink, refresh: refreshLinks, loading: linksLoading } = usePlayerLinks();
+  const { linkViews, checkForUpdates, syncFromLink, removeLink, refresh: refreshLinks, loading: linksLoading } = usePlayerLinks();
   const { sharesByFriend, loading: sharesLoading } = usePendingRangeSharesPerFriend();
   const { dismissShare, importToNewPlayer } = useRangeSharing();
 
@@ -165,6 +165,43 @@ export default function FriendProfileScreen() {
     }
   };
 
+  const handleLinkLongPress = (linkView: PlayerLinkView) => {
+    Alert.alert(
+      'Link Options',
+      `"${linkView.myPlayerName}" linked with ${linkView.theirUserName}'s "${linkView.theirPlayerName}"`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Link',
+          style: 'destructive',
+          onPress: () => confirmDeleteLink(linkView),
+        },
+      ]
+    );
+  };
+
+  const confirmDeleteLink = (linkView: PlayerLinkView) => {
+    Alert.alert(
+      'Delete Link',
+      `Are you sure you want to delete the link between "${linkView.myPlayerName}" and "${linkView.theirPlayerName}"?\n\nThis will remove the link for both you and ${linkView.theirUserName}. Your range data will not be deleted.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await removeLink(linkView.link.id);
+              Alert.alert('Success', 'Link deleted successfully');
+            } catch (error) {
+              Alert.alert('Error', error instanceof Error ? error.message : 'Failed to delete link');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleRemoveFriend = () => {
     if (!friend) return;
     
@@ -276,6 +313,7 @@ export default function FriendProfileScreen() {
                 key={linkView.link.id}
                 style={[styles.linkCard, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}
                 onPress={() => handleLinkPress(linkView)}
+                onLongPress={() => handleLinkLongPress(linkView)}
                 activeOpacity={0.7}
               >
                 <View style={styles.linkCardHeader}>

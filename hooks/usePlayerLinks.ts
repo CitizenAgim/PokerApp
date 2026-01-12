@@ -23,6 +23,7 @@ import {
     SyncRangesResult,
     UserPlayerLink,
 } from '@/types/sharing';
+import { Range } from '@/types/poker';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -82,7 +83,16 @@ interface UsePlayerLinksResult {
   // Sync operations
   checkForUpdates: (link: UserPlayerLink) => Promise<{ hasUpdates: boolean; theirVersion: number }>;
   checkAllForUpdates: () => Promise<Map<string, { hasUpdates: boolean; theirVersion: number }>>;
+  getRangesForSync: (linkId: string) => Promise<{
+    theirRanges: Record<string, Range>;
+    myRanges: Record<string, Range>;
+    theirVersion: number;
+    newRangeKeys: string[];
+    updateRangeKeys: string[];
+  }>;
+  markLinkAsSynced: (linkId: string, theirVersion: number) => Promise<void>;
   syncFromLink: (linkId: string) => Promise<SyncRangesResult>;
+  syncSelectedFromLink: (linkId: string, selectedKeys: string[]) => Promise<SyncRangesResult>;
   
   // Query helpers
   getLinksForPlayer: (playerId: string) => UserPlayerLink[];
@@ -438,6 +448,71 @@ export function usePlayerLinks(): UsePlayerLinksResult {
     }
   }, [userId]);
   
+  // Get ranges for sync preview
+  const getRangesForSync = useCallback(async (linkId: string): Promise<{
+    theirRanges: Record<string, Range>;
+    myRanges: Record<string, Range>;
+    theirVersion: number;
+    availableKeys: string[];
+    skippableKeys: string[];
+  }> => {
+    if (!userId) {
+      throw new Error('You must be logged in to get sync data');
+    }
+    
+    return playerLinksService.getRangesForSync(linkId, userId);
+  }, [userId]);
+  
+  // Mark link as synced without transferring ranges (for "all caught up" case)
+  const markLinkAsSynced = useCallback(async (linkId: string, theirVersion: number): Promise<void> => {
+    if (!userId) {
+      throw new Error('You must be logged in');
+    }
+    
+    await playerLinksService.markLinkAsSynced(linkId, userId, theirVersion);
+    
+    // Invalidate cache and update status map
+    delete versionCacheRef.current[linkId];
+    setUpdateStatusMap(prev => {
+      const newMap = new Map(prev);
+      newMap.set(linkId, { hasUpdates: false, theirVersion });
+      return newMap;
+    });
+  }, [userId]);
+  
+  // Sync selected ranges from a linked player
+  const syncSelectedFromLink = useCallback(async (
+    linkId: string,
+    selectedKeys: string[]
+  ): Promise<SyncRangesResult> => {
+    if (!userId) {
+      throw new Error('You must be logged in to sync');
+    }
+    
+    console.log(`[syncSelectedFromLink] SYNC INITIATED for linkId=${linkId}, userId=${userId}, keys=${selectedKeys.join(',')}`);
+    
+    try {
+      const result = await playerLinksService.syncSelectedRangesFromLink(linkId, userId, selectedKeys);
+      console.log(`[syncSelectedFromLink] SYNC COMPLETED: added=${result.added}, skipped=${result.skipped}, newVersion=${result.newVersion}`);
+      
+      // Invalidate cache for this link since we just synced
+      delete versionCacheRef.current[linkId];
+      
+      // Update the updateStatusMap to reflect that we're now synced
+      setUpdateStatusMap(prev => {
+        const newMap = new Map(prev);
+        newMap.set(linkId, { hasUpdates: false, theirVersion: result.newVersion });
+        return newMap;
+      });
+      
+      return result;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to sync ranges');
+      setError(error);
+      throw error;
+    }
+  }, [userId]);
+  
   // Get links for a specific player
   const getLinksForPlayer = useCallback((playerId: string): UserPlayerLink[] => {
     return links.filter(link => link.myPlayerId === playerId);
@@ -500,7 +575,10 @@ export function usePlayerLinks(): UsePlayerLinksResult {
     cancelLink,
     checkForUpdates,
     checkAllForUpdates,
+    getRangesForSync,
+    markLinkAsSynced,
     syncFromLink,
+    syncSelectedFromLink,
     getLinksForPlayer,
     getLinkViewsForPlayer,
     refresh,

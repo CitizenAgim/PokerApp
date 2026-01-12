@@ -589,6 +589,208 @@ export async function checkAllForUpdates(
 }
 
 /**
+ * Mark a link as synced without actually transferring any ranges.
+ * Used when user has already caught up (all ranges skipped).
+ */
+export async function markLinkAsSynced(
+  linkId: string,
+  currentUserId: string,
+  theirVersion: number
+): Promise<void> {
+  const batch = writeBatch(db);
+  batch.update(getUserPlayerLinkDoc(currentUserId, linkId), {
+    myLastSyncedVersion: theirVersion,
+  });
+  await batch.commit();
+}
+
+/**
+ * Get ranges available for sync from a linked player
+ * Returns the friend's ranges along with your current ranges for comparison
+ */
+export async function getRangesForSync(
+  linkId: string,
+  currentUserId: string
+): Promise<{
+  theirRanges: Record<string, Range>;
+  myRanges: Record<string, Range>;
+  theirVersion: number;
+  newRangeKeys: string[];      // Keys where you have empty slots (safe to fill)
+  updateRangeKeys: string[];   // Keys where you have data but friend's is DIFFERENT
+}> {
+  const linkRef = getUserPlayerLinkDoc(currentUserId, linkId);
+  const linkDoc = await getDoc(linkRef);
+  
+  if (!linkDoc.exists()) {
+    throw new Error('Player link not found');
+  }
+  
+  const link = toUserPlayerLink(linkDoc.data() as FirestoreUserPlayerLink);
+  
+  if (link.status !== 'active') {
+    throw new Error('Link is not active');
+  }
+  
+  if (!link.myPlayerId || !link.theirPlayerId) {
+    throw new Error('Linked player not set');
+  }
+  
+  // Fetch both players' ranges
+  const [myRanges, theirPlayer] = await Promise.all([
+    getPlayerRanges(currentUserId, link.myPlayerId),
+    getPlayer(link.theirUserId, link.theirPlayerId),
+  ]);
+  
+  if (!theirPlayer) {
+    throw new Error('Linked player not found');
+  }
+  
+  const theirRanges = theirPlayer.ranges || {};
+  const theirVersion = theirPlayer.rangeVersion || 0;
+  const newRangeKeys: string[] = [];
+  const updateRangeKeys: string[] = [];
+  
+  // Categorize ranges
+  for (const [rangeKey, theirRange] of Object.entries(theirRanges)) {
+    const myRange = myRanges?.[rangeKey];
+    
+    // Check if my range is empty
+    const isMyRangeEmpty = !myRange || 
+      Object.values(myRange).every(state => state === 'unselected');
+    
+    // Check if their range has content
+    const hasTheirRangeContent = theirRange && 
+      Object.values(theirRange).some(state => state !== 'unselected');
+    
+    if (hasTheirRangeContent) {
+      if (isMyRangeEmpty) {
+        newRangeKeys.push(rangeKey);
+      } else {
+        // Only include as update if the ranges are actually different
+        if (areRangesDifferent(myRange, theirRange)) {
+          updateRangeKeys.push(rangeKey);
+        }
+      }
+    }
+  }
+  
+  return {
+    theirRanges,
+    myRanges: myRanges || {},
+    theirVersion,
+    newRangeKeys,
+    updateRangeKeys,
+  };
+}
+
+/**
+ * Compare two ranges to see if they are different
+ */
+function areRangesDifferent(rangeA: Range, rangeB: Range): boolean {
+  // Get all unique keys from both ranges
+  const allKeys = new Set([...Object.keys(rangeA), ...Object.keys(rangeB)]);
+  
+  for (const key of allKeys) {
+    const stateA = rangeA[key] || 'unselected';
+    const stateB = rangeB[key] || 'unselected';
+    
+    // Normalize states - treat both selected types as equivalent for comparison
+    const normalizedA = (stateA === 'manual-selected' || stateA === 'auto-selected') ? 'selected' : 'unselected';
+    const normalizedB = (stateB === 'manual-selected' || stateB === 'auto-selected') ? 'selected' : 'unselected';
+    
+    if (normalizedA !== normalizedB) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Sync selected ranges from a linked player
+ * Only syncs the specified range keys (can overwrite existing if selected)
+ */
+export async function syncSelectedRangesFromLink(
+  linkId: string,
+  currentUserId: string,
+  selectedKeys: string[]
+): Promise<SyncRangesResult> {
+  checkRateLimit(currentUserId, 'SYNC_PLAYER_LINK');
+  
+  const linkRef = getUserPlayerLinkDoc(currentUserId, linkId);
+  const linkDoc = await getDoc(linkRef);
+  
+  if (!linkDoc.exists()) {
+    throw new Error('Player link not found');
+  }
+  
+  const link = toUserPlayerLink(linkDoc.data() as FirestoreUserPlayerLink);
+  
+  if (link.status !== 'active') {
+    throw new Error('Link is not active');
+  }
+  
+  if (!link.myPlayerId || !link.theirPlayerId) {
+    throw new Error('Linked player not set');
+  }
+  
+  // Fetch both players' data
+  const [myRanges, theirPlayer] = await Promise.all([
+    getPlayerRanges(currentUserId, link.myPlayerId),
+    getPlayer(link.theirUserId, link.theirPlayerId),
+  ]);
+  
+  if (!theirPlayer) {
+    throw new Error('Linked player not found');
+  }
+  
+  const theirRanges = theirPlayer.ranges || {};
+  const theirVersion = theirPlayer.rangeVersion || 0;
+  
+  // Merge selected ranges (overwrite if selected, even if user has existing data)
+  const mergedRanges: Record<string, Range> = { ...(myRanges || {}) };
+  const rangeKeysAdded: string[] = [];
+  const rangeKeysSkipped: string[] = [];
+  
+  for (const rangeKey of selectedKeys) {
+    const theirRange = theirRanges[rangeKey];
+    
+    // Check if their range has content
+    const hasTheirRangeContent = theirRange && 
+      Object.values(theirRange).some(state => state !== 'unselected');
+    
+    if (hasTheirRangeContent) {
+      // Overwrite with friend's range (user explicitly selected this)
+      mergedRanges[rangeKey] = theirRange;
+      rangeKeysAdded.push(rangeKey);
+    } else {
+      rangeKeysSkipped.push(rangeKey);
+    }
+  }
+  
+  // Update my player's ranges if there were changes
+  // Pass false for incrementVersion to avoid triggering notifications back to the sender
+  if (rangeKeysAdded.length > 0) {
+    await updatePlayerRanges(currentUserId, link.myPlayerId, mergedRanges, false);
+  }
+  
+  // Update my sync version using writeBatch
+  const batch = writeBatch(db);
+  batch.update(getUserPlayerLinkDoc(currentUserId, linkId), {
+    myLastSyncedVersion: theirVersion,
+  });
+  await batch.commit();
+  
+  return {
+    added: rangeKeysAdded.length,
+    skipped: rangeKeysSkipped.length,
+    newVersion: theirVersion,
+    rangeKeysAdded,
+    rangeKeysSkipped,
+  };
+}
+
+/**
  * Sync ranges from a linked player using atomic write
  * Uses fill-empty-only approach: only fills empty range slots
  */
