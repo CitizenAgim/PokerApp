@@ -23,6 +23,7 @@ import {
     SyncRangesResult,
     UserPlayerLink,
 } from '@/types/sharing';
+import { onAuthStateChanged } from 'firebase/auth';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // ============================================
@@ -108,9 +109,31 @@ export function usePlayerLinks(): UsePlayerLinksResult {
   // Version check cache (5 minute TTL)
   const versionCacheRef = useRef<VersionCache>({});
   
-  const userId = auth.currentUser?.uid;
-  const userName = auth.currentUser?.displayName || 
-    auth.currentUser?.email?.split('@')[0] || 'Unknown';
+  // Use auth state listener for proper cleanup on sign-out
+  const [userId, setUserId] = useState<string | null>(auth.currentUser?.uid ?? null);
+  const [userName, setUserName] = useState<string>(
+    auth.currentUser?.displayName || 
+    auth.currentUser?.email?.split('@')[0] || 'Unknown'
+  );
+  
+  // Track auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+        setUserName(user.displayName || user.email?.split('@')[0] || 'Unknown');
+      } else {
+        // Clear all state on sign out
+        setUserId(null);
+        setUserName('Unknown');
+        setLinks([]);
+        setUpdateStatusMap(new Map());
+        setLoading(false);
+        versionCacheRef.current = {};
+      }
+    });
+    return unsubscribe;
+  }, []);
   
   // Derived state
   const activeLinks = useMemo(
@@ -491,7 +514,18 @@ export function usePlayerLinks(): UsePlayerLinksResult {
 
 export function usePendingLinksCount(): number {
   const [count, setCount] = useState(0);
-  const userId = auth.currentUser?.uid;
+  const [userId, setUserId] = useState<string | null>(auth.currentUser?.uid ?? null);
+  
+  // Track auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUserId(user?.uid ?? null);
+      if (!user) {
+        setCount(0);
+      }
+    });
+    return unsubscribe;
+  }, []);
   
   useEffect(() => {
     if (!userId) {
@@ -524,9 +558,21 @@ export function usePendingLinksCount(): number {
  */
 export function usePendingUpdatesCount(): number {
   const [updateCount, setUpdateCount] = useState(0);
-  const userId = auth.currentUser?.uid;
+  const [userId, setUserId] = useState<string | null>(auth.currentUser?.uid ?? null);
   const [activeLinks, setActiveLinks] = useState<UserPlayerLink[]>([]);
   const checkInProgressRef = useRef(false);
+
+  // Track auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUserId(user?.uid ?? null);
+      if (!user) {
+        setUpdateCount(0);
+        setActiveLinks([]);
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   // Subscribe to active links separately to avoid circular dependency
   useEffect(() => {
