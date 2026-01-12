@@ -10,6 +10,7 @@ import * as rangeSharingService from '@/services/firebase/rangeSharing';
 import { Friend, FriendRequest } from '@/types/friends';
 import { User } from '@/types/poker';
 import { RangeShare } from '@/types/sharing';
+import { onAuthStateChanged } from 'firebase/auth';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 // ============================================
@@ -41,7 +42,27 @@ export function useFriends(): UseFriendsResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const userId = auth.currentUser?.uid;
+  // Use auth state listener for proper cleanup on sign-out
+  const [userId, setUserId] = useState<string | null>(auth.currentUser?.uid ?? null);
+
+  // Track auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+      } else {
+        // Clear all state on sign out
+        setUserId(null);
+        setFriends([]);
+        setPendingRequests([]);
+        setSentRequests([]);
+        setPendingCount(0);
+        setFriendCode(null);
+        setLoading(false);
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   // Load all friends data
   const loadData = useCallback(async () => {
@@ -208,7 +229,18 @@ export function useFriends(): UseFriendsResult {
 
 export function usePendingFriendRequestsCount(): number {
   const [count, setCount] = useState(0);
-  const userId = auth.currentUser?.uid;
+  const [userId, setUserId] = useState<string | null>(auth.currentUser?.uid ?? null);
+
+  // Track auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUserId(user?.uid ?? null);
+      if (!user) {
+        setCount(0);
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     if (!userId) {
@@ -245,7 +277,19 @@ interface PendingSharesPerFriend {
 export function usePendingRangeSharesPerFriend(): PendingSharesPerFriend {
   const [shares, setShares] = useState<RangeShare[]>([]);
   const [loading, setLoading] = useState(true);
-  const userId = auth.currentUser?.uid;
+  const [userId, setUserId] = useState<string | null>(auth.currentUser?.uid ?? null);
+
+  // Track auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUserId(user?.uid ?? null);
+      if (!user) {
+        setShares([]);
+        setLoading(false);
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     if (!userId) {

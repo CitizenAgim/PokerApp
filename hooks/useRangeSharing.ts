@@ -13,6 +13,7 @@ import * as rangeSharingService from '@/services/firebase/rangeSharing';
 import * as localStorage from '@/services/localStorage';
 import { Range } from '@/types/poker';
 import { ImportRangesResult, PendingSharesSummary, RangeShare } from '@/types/sharing';
+import { onAuthStateChanged } from 'firebase/auth';
 import { useCallback, useEffect, useState } from 'react';
 
 // ============================================
@@ -62,8 +63,30 @@ export function useRangeSharing(): UseRangeSharingResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const userId = auth.currentUser?.uid;
-  const userName = auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Unknown';
+  // Use auth state listener for proper cleanup on sign-out
+  const [userId, setUserId] = useState<string | null>(auth.currentUser?.uid ?? null);
+  const [userName, setUserName] = useState<string>(
+    auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Unknown'
+  );
+
+  // Track auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+        setUserName(user.displayName || user.email?.split('@')[0] || 'Unknown');
+      } else {
+        // Clear all state on sign out
+        setUserId(null);
+        setUserName('Unknown');
+        setPendingShares([]);
+        setPendingSharesCount(0);
+        setPendingSharesByFriend([]);
+        setLoading(false);
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   // Calculate per-friend counts from shares
   const calculatePerFriendCounts = useCallback((shares: RangeShare[]) => {
@@ -314,7 +337,18 @@ export function useRangeSharing(): UseRangeSharingResult {
 
 export function usePendingSharesCount(): number {
   const [count, setCount] = useState(0);
-  const userId = auth.currentUser?.uid;
+  const [userId, setUserId] = useState<string | null>(auth.currentUser?.uid ?? null);
+
+  // Track auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUserId(user?.uid ?? null);
+      if (!user) {
+        setCount(0);
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     if (!userId) {
