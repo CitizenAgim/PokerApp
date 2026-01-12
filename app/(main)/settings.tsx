@@ -392,11 +392,13 @@ export default function SettingsScreen() {
         {renderSettingItem('help-circle-outline', 'Help & Support', '', () => {})}
         {renderSettingItem('information-circle-outline', 'About', 'v1.0.1', () => {})}
 
-        {/* Sign Out / Exit Guest Mode */}
-        <TouchableOpacity style={[styles.signOutButton, { backgroundColor: themeColors.card, borderColor: themeColors.signOutBorder }]} onPress={handleSignOut}>
-          <Ionicons name="log-out-outline" size={22} color="#e74c3c" />
-          <Text style={styles.signOutText}>{guestModeActive ? 'Exit Guest Mode' : 'Sign Out'}</Text>
-        </TouchableOpacity>
+        {/* Sign Out / Exit Guest Mode - Only show when logged in */}
+        {currentUser && (
+          <TouchableOpacity style={[styles.signOutButton, { backgroundColor: themeColors.card, borderColor: themeColors.signOutBorder }]} onPress={handleSignOut}>
+            <Ionicons name="log-out-outline" size={22} color="#e74c3c" />
+            <Text style={styles.signOutText}>{guestModeActive ? 'Exit Guest Mode' : 'Sign Out'}</Text>
+          </TouchableOpacity>
+        )}
 
         <View style={{ height: 40 }} />
       </ScrollView>
