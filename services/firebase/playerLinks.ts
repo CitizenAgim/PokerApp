@@ -591,16 +591,41 @@ export async function checkAllForUpdates(
 /**
  * Mark a link as synced without actually transferring any ranges.
  * Used when user has already caught up (all ranges skipped).
+ * Updates BOTH users' sync versions to prevent false notifications.
  */
 export async function markLinkAsSynced(
   linkId: string,
   currentUserId: string,
   theirVersion: number
 ): Promise<void> {
+  // Get the link to find the other user
+  const linkRef = getUserPlayerLinkDoc(currentUserId, linkId);
+  const linkDoc = await getDoc(linkRef);
+  
+  if (!linkDoc.exists()) {
+    throw new Error('Player link not found');
+  }
+  
+  const link = toUserPlayerLink(linkDoc.data() as FirestoreUserPlayerLink);
+  
+  // Get my player's current version
+  const myPlayer = link.myPlayerId ? await getPlayer(currentUserId, link.myPlayerId) : null;
+  const myVersion = myPlayer?.rangeVersion || 0;
+  
+  // Update BOTH users' sync versions
   const batch = writeBatch(db);
+  
+  // Update my sync version (I'm now caught up with their version)
   batch.update(getUserPlayerLinkDoc(currentUserId, linkId), {
     myLastSyncedVersion: theirVersion,
   });
+  
+  // Update their sync version (they're now caught up with my version)
+  // This prevents them from seeing a notification that I have new data
+  batch.update(getUserPlayerLinkDoc(link.theirUserId, linkId), {
+    myLastSyncedVersion: myVersion,
+  });
+  
   await batch.commit();
 }
 
@@ -734,8 +759,9 @@ export async function syncSelectedRangesFromLink(
     throw new Error('Linked player not set');
   }
   
-  // Fetch both players' data
-  const [myRanges, theirPlayer] = await Promise.all([
+  // Fetch both players' data (we need my player to get my current rangeVersion)
+  const [myPlayer, myRanges, theirPlayer] = await Promise.all([
+    getPlayer(currentUserId, link.myPlayerId),
     getPlayerRanges(currentUserId, link.myPlayerId),
     getPlayer(link.theirUserId, link.theirPlayerId),
   ]);
@@ -746,6 +772,7 @@ export async function syncSelectedRangesFromLink(
   
   const theirRanges = theirPlayer.ranges || {};
   const theirVersion = theirPlayer.rangeVersion || 0;
+  const myVersion = myPlayer?.rangeVersion || 0;
   
   // Merge selected ranges (overwrite if selected, even if user has existing data)
   const mergedRanges: Record<string, Range> = { ...(myRanges || {}) };
@@ -774,11 +801,21 @@ export async function syncSelectedRangesFromLink(
     await updatePlayerRanges(currentUserId, link.myPlayerId, mergedRanges, false);
   }
   
-  // Update my sync version using writeBatch
+  // Update BOTH users' sync versions using writeBatch
+  // This prevents the sender from getting a false notification that we have updates
   const batch = writeBatch(db);
+  
+  // Update my sync version (I'm now caught up with their version)
   batch.update(getUserPlayerLinkDoc(currentUserId, linkId), {
     myLastSyncedVersion: theirVersion,
   });
+  
+  // Update their sync version (they're now caught up with my version since I just got their data)
+  // This prevents them from seeing a notification that I have new data
+  batch.update(getUserPlayerLinkDoc(link.theirUserId, linkId), {
+    myLastSyncedVersion: myVersion,
+  });
+  
   await batch.commit();
   
   return {
@@ -817,8 +854,9 @@ export async function syncRangesFromLink(
     throw new Error('Linked player not set');
   }
   
-  // Fetch both players' ranges
-  const [myRanges, theirPlayer] = await Promise.all([
+  // Fetch both players' data (we need my player to get my current rangeVersion)
+  const [myPlayer, myRanges, theirPlayer] = await Promise.all([
+    getPlayer(currentUserId, link.myPlayerId),
     getPlayerRanges(currentUserId, link.myPlayerId),
     getPlayer(link.theirUserId, link.theirPlayerId),
   ]);
@@ -829,6 +867,7 @@ export async function syncRangesFromLink(
   
   const theirRanges = theirPlayer.ranges || {};
   const theirVersion = theirPlayer.rangeVersion || 0;
+  const myVersion = myPlayer?.rangeVersion || 0;
   
   // Merge ranges (fill-empty-only approach)
   const mergedRanges: Record<string, Range> = { ...(myRanges || {}) };
@@ -854,18 +893,25 @@ export async function syncRangesFromLink(
     }
   }
   
-  // Use writeBatch for atomic update of ranges and sync version
-  const batch = writeBatch(db);
-  
   // Update my player's ranges if there were changes
   // Pass false for incrementVersion to avoid triggering notifications back to the sender
   if (rangeKeysAdded.length > 0) {
     await updatePlayerRanges(currentUserId, link.myPlayerId, mergedRanges, false);
   }
   
-  // Update my sync version
+  // Use writeBatch for atomic update of BOTH users' sync versions
+  // This prevents the sender from getting a false notification that we have updates
+  const batch = writeBatch(db);
+  
+  // Update my sync version (I'm now caught up with their version)
   batch.update(getUserPlayerLinkDoc(currentUserId, linkId), {
     myLastSyncedVersion: theirVersion,
+  });
+  
+  // Update their sync version (they're now caught up with my version since I just got their data)
+  // This prevents them from seeing a notification that I have new data
+  batch.update(getUserPlayerLinkDoc(link.theirUserId, linkId), {
+    myLastSyncedVersion: myVersion,
   });
   
   await batch.commit();
