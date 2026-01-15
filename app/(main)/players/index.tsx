@@ -76,7 +76,10 @@ export default function PlayersScreen() {
     // 1. Filter
     const filtered = players.filter(player => {
       const matchesSearch = player.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesLocation = !filterLocation || (player.locations && player.locations.includes(filterLocation));
+      const matchesLocation = !filterLocation || 
+        (filterLocation === '__NO_LOCATION__' 
+          ? (!player.locations || player.locations.length === 0)
+          : (player.locations && player.locations.includes(filterLocation)));
       const hasLinks = linkedPlayerMap.has(player.id);
       const matchesLinkStatus = 
         filterLinkStatus === 'all' ||
@@ -350,6 +353,30 @@ export default function PlayersScreen() {
 
               <Text style={[styles.filterLabel, { color: themeColors.text }]}>Location</Text>
               <View style={styles.filterOptions}>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    { backgroundColor: themeColors.filterChipBg },
+                    filterLocation === '__NO_LOCATION__' && styles.filterChipActive,
+                    filterLocation === '__NO_LOCATION__' && { backgroundColor: themeColors.filterChipActiveBg }
+                  ]}
+                  onPress={() => {
+                    haptics.selectionChanged();
+                    setFilterLocation(filterLocation === '__NO_LOCATION__' ? null : '__NO_LOCATION__');
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      { color: themeColors.filterChipText },
+                      filterLocation === '__NO_LOCATION__' && styles.filterChipTextActive,
+                      filterLocation === '__NO_LOCATION__' && { color: themeColors.filterChipActiveText }
+                    ]}
+                  >
+                    No Location
+                  </Text>
+                </TouchableOpacity>
+
                 {availableLocations.map(location => (
                   <TouchableOpacity
                     key={location}
