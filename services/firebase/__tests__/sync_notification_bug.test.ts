@@ -1,6 +1,5 @@
 
-import { checkForUpdates, syncRangesFromLink } from '../playerLinks'; 
-import { createPlayer, getPlayer, updatePlayerRanges } from '../players';
+import { checkForUpdates, syncRangesFromLink } from '../playerLinks';
 
 // ============================================
 // MOCKS
