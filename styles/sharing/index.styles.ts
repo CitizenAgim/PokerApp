@@ -28,8 +28,6 @@ export const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '85%',
-    minHeight: '50%',
   },
   modalHeader: {
     flexDirection: 'row',
