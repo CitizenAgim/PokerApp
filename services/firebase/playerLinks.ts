@@ -801,10 +801,8 @@ export async function syncSelectedRangesFromLink(
     await updatePlayerRanges(currentUserId, link.myPlayerId, mergedRanges, false);
   }
 
-  // Refetch my player to get the definitive current version to stamp on the link
-  // This ensures consistency even if rangeVersion changed unexpectedly
-  const myPlayerRefreshed = await getPlayer(currentUserId, link.myPlayerId);
-  const definitiveMyVersion = myPlayerRefreshed?.rangeVersion || myVersion;
+  // Use the definitive version captured at start
+  const definitiveMyVersion = myVersion;
   
   // Update BOTH users' sync versions using writeBatch
   // This prevents the sender from getting a false notification that we have updates
@@ -904,10 +902,8 @@ export async function syncRangesFromLink(
     await updatePlayerRanges(currentUserId, link.myPlayerId, mergedRanges, false);
   }
 
-  // Refetch my player to get the definitive current version to stamp on the link
-  // This ensures consistency even if rangeVersion changed unexpectedly
-  const myPlayerRefreshed = await getPlayer(currentUserId, link.myPlayerId);
-  const definitiveMyVersion = myPlayerRefreshed?.rangeVersion || myVersion;
+  // Use the definitive version captured at start
+  const definitiveMyVersion = myVersion;
   
   // Use writeBatch for atomic update of BOTH users' sync versions
   // This prevents the sender from getting a false notification that we have updates

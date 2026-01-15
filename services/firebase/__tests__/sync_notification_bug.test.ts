@@ -168,4 +168,35 @@ describe('Sync Notification Bug', () => {
     // Result should be FALSE.
     expect(updateCheck.hasUpdates).toBe(false);
   });
+
+  it('should use definitive version (myVersion) when B is already at a higher version', async () => {
+      // Scenario: B is at version 5. A is at version 2.
+      // B syncs A. B should write "5" to A's link.
+      
+      const vB = 5;
+      
+      // Update B's Player to v5
+      mockDbState[`users/${userB}/players/${playerBId}`] = {
+          ...mockDbState[`users/${userB}/players/${playerBId}`],
+          rangeVersion: vB
+      };
+      
+      // Update B's Link to reflect state
+      // (B hasn't synced A yet, so B's link myLastSyncedVersion is old, e.g. 0)
+      
+      // Execute Sync
+      await syncRangesFromLink(linkId, userB);
+      
+      // Verify
+      const linkDocA = mockDbState[`users/${userA}/playerLinks/${linkId}`];
+      
+      // B's version is still 5 (no increment).
+      // A's link should say myLastSyncedVersion = 5.
+      expect(linkDocA.myLastSyncedVersion).toBe(vB);
+      
+      // Ensure notification is OFF
+      const updateCheck = await checkForUpdates(linkDocA);
+      expect(updateCheck.hasUpdates).toBe(false);
+  });
 });
+
