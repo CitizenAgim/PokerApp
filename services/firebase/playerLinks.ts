@@ -70,7 +70,7 @@ function generateLinkId(): string {
 // TYPE CONVERTERS
 // ============================================
 
-interface FirestoreUserPlayerLink {
+export interface FirestoreUserPlayerLink {
   id: string;
   status: 'pending' | 'active';
   isInitiator: boolean;
@@ -85,7 +85,7 @@ interface FirestoreUserPlayerLink {
   acceptedAt: Timestamp | number | null;
 }
 
-function toUserPlayerLink(data: FirestoreUserPlayerLink): UserPlayerLink {
+export function toUserPlayerLink(data: FirestoreUserPlayerLink): UserPlayerLink {
   return {
     id: data.id,
     status: data.status,
@@ -800,6 +800,11 @@ export async function syncSelectedRangesFromLink(
   if (rangeKeysAdded.length > 0) {
     await updatePlayerRanges(currentUserId, link.myPlayerId, mergedRanges, false);
   }
+
+  // Refetch my player to get the definitive current version to stamp on the link
+  // This ensures consistency even if rangeVersion changed unexpectedly
+  const myPlayerRefreshed = await getPlayer(currentUserId, link.myPlayerId);
+  const definitiveMyVersion = myPlayerRefreshed?.rangeVersion || myVersion;
   
   // Update BOTH users' sync versions using writeBatch
   // This prevents the sender from getting a false notification that we have updates
@@ -813,7 +818,7 @@ export async function syncSelectedRangesFromLink(
   // Update their sync version (they're now caught up with my version since I just got their data)
   // This prevents them from seeing a notification that I have new data
   batch.update(getUserPlayerLinkDoc(link.theirUserId, linkId), {
-    myLastSyncedVersion: myVersion,
+    myLastSyncedVersion: definitiveMyVersion,
   });
   
   await batch.commit();
@@ -898,6 +903,11 @@ export async function syncRangesFromLink(
   if (rangeKeysAdded.length > 0) {
     await updatePlayerRanges(currentUserId, link.myPlayerId, mergedRanges, false);
   }
+
+  // Refetch my player to get the definitive current version to stamp on the link
+  // This ensures consistency even if rangeVersion changed unexpectedly
+  const myPlayerRefreshed = await getPlayer(currentUserId, link.myPlayerId);
+  const definitiveMyVersion = myPlayerRefreshed?.rangeVersion || myVersion;
   
   // Use writeBatch for atomic update of BOTH users' sync versions
   // This prevents the sender from getting a false notification that we have updates
@@ -911,7 +921,7 @@ export async function syncRangesFromLink(
   // Update their sync version (they're now caught up with my version since I just got their data)
   // This prevents them from seeing a notification that I have new data
   batch.update(getUserPlayerLinkDoc(link.theirUserId, linkId), {
-    myLastSyncedVersion: myVersion,
+    myLastSyncedVersion: definitiveMyVersion,
   });
   
   await batch.commit();
