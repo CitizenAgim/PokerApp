@@ -390,7 +390,7 @@ export default function SettingsScreen() {
         {renderSettingItem('shield-checkmark-outline', 'Privacy Policy', '', () => router.push('/legal/privacy'))}
         {renderSettingItem('document-text-outline', 'Terms of Service', '', () => router.push('/legal/terms'))}
         {renderSettingItem('help-circle-outline', 'Help & Support', '', () => {})}
-        {renderSettingItem('information-circle-outline', 'About', 'v1.0.1', () => {})}
+        {renderSettingItem('information-circle-outline', 'About', 'v1.0.2', () => {})}
 
         {/* Sign Out / Exit Guest Mode - Only show when logged in */}
         {currentUser && (
