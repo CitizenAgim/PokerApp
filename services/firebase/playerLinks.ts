@@ -612,6 +612,8 @@ export async function markLinkAsSynced(
   const myPlayer = link.myPlayerId ? await getPlayer(currentUserId, link.myPlayerId) : null;
   const myVersion = myPlayer?.rangeVersion || 0;
   
+  console.log(`[markLinkAsSynced] Link ${linkId}: myVersion=${myVersion}, theirVersion=${theirVersion}`);
+  
   // Update BOTH users' sync versions
   const batch = writeBatch(db);
   
@@ -625,6 +627,8 @@ export async function markLinkAsSynced(
   batch.update(getUserPlayerLinkDoc(link.theirUserId, linkId), {
     myLastSyncedVersion: myVersion,
   });
+  
+  console.log(`[markLinkAsSynced] Link ${linkId}: Updating link docs - my doc: myLastSyncedVersion=${theirVersion}, their doc: myLastSyncedVersion=${myVersion}`);
   
   await batch.commit();
 }
@@ -801,8 +805,13 @@ export async function syncSelectedRangesFromLink(
     await updatePlayerRanges(currentUserId, link.myPlayerId, mergedRanges, false);
   }
 
-  // Use the definitive version captured at start
-  const definitiveMyVersion = myVersion;
+  // CRITICAL: Re-fetch my player AFTER update to get the actual final version
+  // This ensures we record the correct version in the link documents
+  // even if incrementVersion behavior changes or there are unexpected version updates
+  const myPlayerAfterUpdate = await getPlayer(currentUserId, link.myPlayerId);
+  const definitiveMyVersion = myPlayerAfterUpdate?.rangeVersion || myVersion;
+  
+  console.log(`[syncSelectedRangesFromLink] Link ${linkId}: myVersion before=${myVersion}, after=${definitiveMyVersion}, theirVersion=${theirVersion}, rangesAdded=${rangeKeysAdded.length}`);
   
   // Update BOTH users' sync versions using writeBatch
   // This prevents the sender from getting a false notification that we have updates
@@ -818,6 +827,8 @@ export async function syncSelectedRangesFromLink(
   batch.update(getUserPlayerLinkDoc(link.theirUserId, linkId), {
     myLastSyncedVersion: definitiveMyVersion,
   });
+  
+  console.log(`[syncSelectedRangesFromLink] Link ${linkId}: Updating link docs - my doc: myLastSyncedVersion=${theirVersion}, their doc: myLastSyncedVersion=${definitiveMyVersion}`);
   
   await batch.commit();
   
@@ -902,8 +913,13 @@ export async function syncRangesFromLink(
     await updatePlayerRanges(currentUserId, link.myPlayerId, mergedRanges, false);
   }
 
-  // Use the definitive version captured at start
-  const definitiveMyVersion = myVersion;
+  // CRITICAL: Re-fetch my player AFTER update to get the actual final version
+  // This ensures we record the correct version in the link documents
+  // even if incrementVersion behavior changes or there are unexpected version updates
+  const myPlayerAfterUpdate = await getPlayer(currentUserId, link.myPlayerId);
+  const definitiveMyVersion = myPlayerAfterUpdate?.rangeVersion || myVersion;
+  
+  console.log(`[syncRangesFromLink] Link ${linkId}: myVersion before=${myVersion}, after=${definitiveMyVersion}, theirVersion=${theirVersion}, rangesAdded=${rangeKeysAdded.length}`);
   
   // Use writeBatch for atomic update of BOTH users' sync versions
   // This prevents the sender from getting a false notification that we have updates
@@ -919,6 +935,8 @@ export async function syncRangesFromLink(
   batch.update(getUserPlayerLinkDoc(link.theirUserId, linkId), {
     myLastSyncedVersion: definitiveMyVersion,
   });
+  
+  console.log(`[syncRangesFromLink] Link ${linkId}: Updating link docs - my doc: myLastSyncedVersion=${theirVersion}, their doc: myLastSyncedVersion=${definitiveMyVersion}`);
   
   await batch.commit();
   
