@@ -134,6 +134,13 @@ export default function LoginScreen() {
               secureTextEntry
             />
 
+            <TouchableOpacity 
+              onPress={() => router.push('/(auth)/reset-password')}
+              style={{ alignSelf: 'flex-end', marginBottom: 20 }}
+            >
+              <ThemedText style={{ color: '#0a7ea4' }}>Forgot Password?</ThemedText>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.button} onPress={handleLogin}>
               <ThemedText style={styles.buttonText}>Sign In</ThemedText>
             </TouchableOpacity>
