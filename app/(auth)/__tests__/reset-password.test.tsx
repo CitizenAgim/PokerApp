@@ -1,8 +1,8 @@
-import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import ResetPasswordScreen from '../reset-password';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { sendPasswordResetEmail } from 'firebase/auth';
+import React from 'react';
 import { Alert } from 'react-native';
+import ResetPasswordScreen from '../reset-password';
 
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => ({

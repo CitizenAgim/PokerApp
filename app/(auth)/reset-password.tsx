@@ -47,14 +47,28 @@ export default function ResetPasswordScreen() {
         ]
       );
     } catch (error: any) {
+        // SECURITY: We use a generic error message or success message to prevent 
+        // "Email Enumeration" attacks (attackers checking which emails exist in your DB).
+        // If the email is invalid format, we tell them. Otherwise, we pretend it worked 
+        // or show a generic error, but we do NOT say "User not found".
         let errorMessage = 'Failed to send reset email.';
         
         if (error.code === 'auth/invalid-email') {
             errorMessage = 'That email address is invalid.';
-        } else if (error.code === 'auth/user-not-found') {
-            errorMessage = 'No user found with that email address.';
         } else {
-            errorMessage = error.message;
+            // Log the real error internally for debugging
+            console.log('Reset Password Error:', error.code, error.message);
+            // Show generic message to user for user-not-found or other server errors
+            errorMessage = 'If an account exists with this email, a reset link has been sent.';
+            
+            // Actually, for user experience, we can just treat this as a "Success"
+            // so the user thinks it worked. This is the industry standard.
+            Alert.alert(
+              'Email Sent',
+              'If an account exists with this email, we have sent a password reset link.',
+              [{ text: 'Back to Login', onPress: () => router.back() }]
+            );
+            return; 
         }
 
       Alert.alert('Error', errorMessage);
